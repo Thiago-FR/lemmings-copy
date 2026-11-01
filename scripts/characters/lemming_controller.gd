@@ -3,18 +3,48 @@ extends CharacterBody2D
 ## Core lemming physics: FALLING and WALKING, wall turn-around/step-up and
 ## fatal fall detection. Skill-specific states (BUILDING, DIGGING, ...) are
 ## delegated to the active SkillBase instance instead of branching here.
+##
+## The lemming knows nothing about the level, the HUD or SkillManager. It
+## reports what happens to it through signals (clicked, died, exited) and
+## receives what it needs from outside: the terrain it walks on (assigned
+## before it enters the tree, or found in the "terrain" group as a fallback)
+## and skills through assign_skill().
 
-signal died
+## Why a lemming died. Decides which death animation plays, and lets
+## listeners tell a fall from an explosion without inspecting the lemming.
+enum DeathCause { FALL, VOID, EXPLOSION, OTHER }
+
+signal clicked(lemming: LemmingController)
+signal died(cause: DeathCause)
 signal exited
 
 ## Tint a dying lemming fades towards: red, so a death reads as a death and
 ## not as the lemming simply walking off-screen.
 const DEATH_FADE_COLOUR := Color(1.0, 0.25, 0.2, 0.0)
 
+## Animation played for each state. States missing here fall back to "walk"
+## until they get dedicated art.
+const STATE_ANIMATIONS := {
+	LemmingStateMachine.State.CLIMBING: &"climb",
+	LemmingStateMachine.State.DIGGING: &"dig",
+}
+const DEFAULT_ANIMATION := &"walk"
+
+## Animation played before the body fades, per cause of death. Causes
+## missing here go straight to the fade.
+const DEATH_ANIMATIONS := {
+	DeathCause.FALL: &"death_fall",
+}
+
 @onready var state_machine: LemmingStateMachine = LemmingStateMachine.new()
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var _collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var _blocker_zone: Area2D = $BlockerZone
+
+## Terrain this lemming walks on and that its skills carve. Set it before
+## adding the lemming to the tree to use a specific terrain; left empty, the
+## first node in the "terrain" group is used.
+var terrain: TerrainDestructible = null
 
 var direction: int = 1
 var current_skill: SkillBase = null
@@ -38,6 +68,9 @@ func _ready() -> void:
 	collision_mask = Constants.TERRAIN_COLLISION_LAYER
 	_blocker_zone.collision_mask = Constants.LEMMING_COLLISION_LAYER
 	_fall_start_y = position.y
+	if terrain == null:
+		terrain = get_tree().get_first_node_in_group("terrain")
+	assert(terrain != null, "LemmingController needs a TerrainDestructible: assign one or add it to the 'terrain' group")
 	input_event.connect(_on_input_event)
 	_blocker_zone.body_entered.connect(_on_blocker_zone_body_entered)
 	_assert_body_fits_carved_openings()
@@ -59,7 +92,18 @@ func _assert_body_fits_carved_openings() -> void:
 
 func _on_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		SkillManager.try_assign_to(self)
+		clicked.emit(self)
+
+
+## Applies a skill if the lemming can take it right now. Returns whether it
+## was applied, so the caller only spends a skill charge when it was.
+func assign_skill(skill: SkillBase) -> bool:
+	if not state_machine.is_alive() or not skill.can_apply_to(self):
+		return false
+	if skill.occupies_skill_slot():
+		current_skill = skill
+	skill.apply_to(self)
+	return true
 
 
 func set_blocker_zone_active(active: bool) -> void:
@@ -89,6 +133,12 @@ func get_body_rect() -> Rect2:
 ## solid tile instead of the empty one just above it.
 func get_feet_position() -> Vector2:
 	return _collision_shape.global_position + Vector2(0, get_half_extents().y + Constants.GROUND_PROBE_EPSILON)
+
+
+## The terrain cell just ahead of the feet: where Builder lays its next step
+## and where Miner digs its next diagonal.
+func get_forward_feet_position() -> Vector2:
+	return get_forward_position() + Vector2(0, get_half_extents().y + Constants.GROUND_PROBE_EPSILON)
 
 
 ## World position just past the lemming's leading edge (in its facing
@@ -158,22 +208,10 @@ func _physics_process(delta: float) -> void:
 	_update_animation()
 
 
-## Walk, climb and dig cycles exist (see lemming.tscn); every other state
-## still falls back to "walk" until it gets dedicated art.
 func _update_animation() -> void:
-	var animation_name := _animation_for_state()
+	var animation_name: StringName = STATE_ANIMATIONS.get(state_machine.current_state, DEFAULT_ANIMATION)
 	if animated_sprite.animation != animation_name:
 		animated_sprite.play(animation_name)
-
-
-func _animation_for_state() -> StringName:
-	match state_machine.current_state:
-		LemmingStateMachine.State.CLIMBING:
-			return &"climb"
-		LemmingStateMachine.State.DIGGING:
-			return &"dig"
-		_:
-			return &"walk"
 
 
 func _process_falling() -> void:
@@ -181,7 +219,7 @@ func _process_falling() -> void:
 	if is_on_floor():
 		_land()
 	elif _fell_into_void():
-		die()
+		die(DeathCause.VOID)
 
 
 func _process_floating() -> void:
@@ -193,7 +231,7 @@ func _process_floating() -> void:
 		# without this, floating into a gap with no floor anywhere below
 		# would leave the lemming falling forever, never saved or lost, so
 		# the level could never finish resolving on its own.
-		die()
+		die(DeathCause.VOID)
 
 
 func _fell_into_void() -> bool:
@@ -202,10 +240,6 @@ func _fell_into_void() -> bool:
 
 func _process_climbing() -> void:
 	velocity = Vector2(0.0, -Constants.CLIMB_SPEED)
-
-	var terrain: TerrainDestructible = get_tree().get_first_node_in_group("terrain")
-	if terrain == null:
-		return
 
 	# Terrain-grid checks instead of is_on_ceiling()/is_on_wall(): a wall
 	# tall enough to need Climber is built from many stacked tiles, and the
@@ -243,8 +277,7 @@ func _process_walking() -> void:
 	# right way instead of one frame later (which let a lemming re-detect
 	# the same wall next frame and immediately flip back, oscillating in
 	# place forever).
-	var terrain: TerrainDestructible = get_tree().get_first_node_in_group("terrain")
-	var step_height := _forward_step_height(terrain) if terrain != null else 0.0
+	var step_height := _forward_step_height()
 
 	if step_height < 0.0:
 		if has_climber_skill:
@@ -275,7 +308,7 @@ func _process_walking() -> void:
 ## probe to find clearance, but also didn't hit the (differently placed)
 ## wall probe, so the lemming neither turned around nor stepped up and just
 ## froze walking into solid terrain.
-func _forward_step_height(terrain: TerrainDestructible) -> float:
+func _forward_step_height() -> float:
 	var half := get_half_extents()
 	var forward_x := get_forward_position().x
 	var foot_y := _collision_shape.global_position.y + half.y + Constants.GROUND_PROBE_EPSILON
@@ -309,28 +342,32 @@ func turn_around() -> void:
 	animated_sprite.flip_h = direction < 0
 
 
-func die() -> void:
+func die(cause: DeathCause = DeathCause.OTHER) -> void:
 	if not state_machine.is_alive():
 		return
 	state_machine.change_state(LemmingStateMachine.State.DEAD)
-	# Emitted before the fade so the level's counts and its win/lose check
-	# resolve on the frame the lemming actually died, not a third of a second
-	# later once the body has finished disappearing.
-	died.emit()
-	_play_death_fade()
+	# Emitted before the animation so the level's counts and its win/lose
+	# check resolve on the frame the lemming actually died, not once the body
+	# has finished disappearing.
+	died.emit(cause)
+	_play_death(cause)
 
 
 ## A dying lemming used to be freed on the same frame, so it vanished at the
 ## instant of impact with nothing to show why. Landing a fatal fall and
 ## falling straight through the floor looked identical, and the second is
-## what it got reported as. Fading the body out over a few frames makes the
-## death readable without needing dedicated art, and should be replaced by a
-## real death animation when art lands.
-func _play_death_fade() -> void:
+## what it got reported as. The body now plays the death animation for its
+## cause (a splat for a fall) and then fades out.
+func _play_death(cause: DeathCause) -> void:
 	set_physics_process(false)
 	input_pickable = false
 	_blocker_zone.monitoring = false
 	_collision_shape.set_deferred("disabled", true)
+
+	var animation_name: StringName = DEATH_ANIMATIONS.get(cause, &"")
+	if animation_name != &"" and animated_sprite.sprite_frames.has_animation(animation_name):
+		animated_sprite.play(animation_name)
+		await animated_sprite.animation_finished
 
 	var tween := create_tween()
 	tween.tween_property(animated_sprite, "modulate", DEATH_FADE_COLOUR, Constants.DEATH_FADE_SECONDS)
@@ -348,7 +385,7 @@ func exit() -> void:
 func _land() -> void:
 	var fall_distance := position.y - _fall_start_y
 	if fall_distance > Constants.MAX_SAFE_FALL_HEIGHT:
-		die()
+		die(DeathCause.FALL)
 		return
 	state_machine.change_state(LemmingStateMachine.State.WALKING)
 

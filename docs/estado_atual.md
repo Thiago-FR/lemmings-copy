@@ -13,10 +13,11 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 |---|---|
 | Escavador vertical (`SkillDigger`) | ✅ fechado, com teste automático |
 | Geometria corpo × grade | ✅ regra definida e verificada em tempo de execução |
-| Morte visível | ✅ fade vermelho de 0,35s |
+| Morte visível | ✅ animação de esmagamento na queda + fade vermelho de 0,35s |
 | Instruções da fase na tela | ✅ |
-| Interface em português | ✅ |
-| Animação de escavar (frente) | ✅ gerada a partir da arte existente |
+| Interface em português | ✅ inclusive nomes das fases e das habilidades |
+| Animação de escavar (frente) | ✅ com pá, mais lenta (20 px/s) |
+| Habilidades, entrada e saída desacopladas | ✅ ver "Arquitetura" abaixo |
 | Demais 7 habilidades | ⬜ pendentes |
 
 ## A causa raiz (o que travava tudo)
@@ -38,6 +39,35 @@ Corrigir isso expôs mais dois problemas em sequência:
 A regra final está na seção 9 de [game_design.md](game_design.md) e é
 verificada por `LemmingController._assert_body_fits_carved_openings()` no
 nascimento de cada lemming.
+
+## Arquitetura (como as peças conversam)
+
+Cada peça é independente e só fala por sinais ou parâmetros. O
+`LevelManager` é o único lugar que liga uma coisa à outra.
+
+| Peça | O que recebe | O que emite |
+|---|---|---|
+| Habilidade (`SkillBase` e filhas) | o lemming em que foi aplicada; ajustes como `@export` (velocidade, passos, pavio) | nada — devolve `true`/`false` em `physics_process` |
+| Lemming (`LemmingController`) | `terrain` (antes de entrar na árvore, ou pelo grupo `terrain`) e habilidades via `assign_skill()` | `clicked`, `died(cause)`, `exited` |
+| Entrada (`SpawnPoint`) | `start(intervalo, total)`; cena a criar, nó pai e texto como `@export` | `lemming_spawned`, `all_lemmings_spawned` |
+| Saída (`ExitPoint`) | camadas detectadas e texto como `@export` | `lemming_exited` |
+| `SkillManager` | moldes de habilidade (`register_skill()` troca um molde) | `skill_selected`, `skill_count_changed`, `skill_assigned` |
+
+- Nenhuma habilidade lê `Constants` nem procura nó na árvore. O tamanho do
+  passo vem de `terrain.get_cell_size()`.
+- O nome que o jogador lê fica na própria habilidade (`display_name`).
+- Para ajustar uma habilidade numa fase ou num teste, crie uma cópia com
+  outros valores e registre: `var d := SkillDigger.new(); d.dig_speed = 10;
+  SkillManager.register_skill(d)`.
+- **O terreno tem estágios de escavação.** Cada bloco de 32 px passa por 4
+  estágios de 8 px (tiles 0 a 3 do atlas, cada um com a colisão do que
+  sobrou). O Escavador tira um estágio por vez com `dig_stage_in_rect()`, e
+  `is_solid_at()`/`get_solid_cells_in_rect()` só contam a parte que ainda
+  existe. Antes ele apagava o bloco inteiro e demorava 1,6 s para descer, e
+  quem passava caía no buraco antes dele. `test_skill_digger` agora mede o
+  vão aberto sob os pés durante a escavação (máximo: um estágio).
+- A morte tem causa (`FALL`, `VOID`, `EXPLOSION`, `OTHER`). Cada causa pode
+  ter uma animação em `DEATH_ANIMATIONS`; hoje só a queda tem.
 
 ## Armadilhas que custaram tempo (não repetir)
 
@@ -62,6 +92,13 @@ nascimento de cada lemming.
 - **A caixa de colisão tem deslocamento de (1,2)** em relação à origem do nó.
   Perguntas sobre grade e posição devem usar `get_body_rect()`, nunca
   `global_position` direto.
+- **`local_to_map()` arredonda perto da borda da célula.** Com margem de
+  0,001 px, um retângulo terminando em y=192 caía na linha 6 em vez da 5, e
+  o escavador abria duas linhas de uma vez (o lemming caía 96 px e morria).
+  A margem em `TerrainDestructible._cells_overlapping` agora é 0,1 px.
+- **Em testes com mais de um cenário, passe o `terrain` ao lemming.** O
+  terreno do cenário anterior continua no grupo `terrain` até o
+  `queue_free()` rodar, e a busca pelo grupo pega o terreno já apagado.
 - **Posicione o lemming antes de inseri-lo na cena.** Ele começa a contar
   distância de queda de onde nasce; inserir na origem e mover depois conta
   como uma queda enorme e mata na aterrissagem.
@@ -73,10 +110,12 @@ nascimento de cada lemming.
 | Jogar | clique duplo em `play.bat` |
 | Rodar os testes | clique duplo em `run_tests.bat` |
 | Um teste só | `godot --headless res://tests/test_skill_digger.tscn` |
+| Teste da morte por queda | `godot --headless res://tests/test_fall_death.tscn` |
 | Diagnóstico de queda | `godot --headless res://tests/diagnose_falling_through.tscn` |
 | Regerar o terreno | `godot --headless --script res://tools/build_terrain_tileset.gd` |
 | Regerar as fases | `godot --headless --script res://tools/build_test_levels.gd` |
 | Regerar a animação de escavar | `python tools/build_dig_frames.py` |
+| Regerar a animação de morte | `python tools/build_death_frames.py` |
 
 O Godot está em `C:\Users\Thiago\Desktop\CriarJogos\Godot_v4.6-stable_win64.exe`
 e não está no PATH; os `.bat` já apontam para ele.
@@ -95,6 +134,8 @@ refeita em `tools/build_test_levels.gd`.
 
 ## Pendências de arte
 
+- A pá é desenhada por código na mesma grade de ~7 px da arte do mago
+  (`tools/wizard_art.py`). Na escala do jogo as mãos ficam com ~1 px.
 - A animação de escavar está pronta, mas o **tronco ficou mais liso e escuro**
   que as demais, porque tirar a mochila deixou uma área vazia. Dá para
   acrescentar uma dobra de manto usando o sombreado do quadro de andar.

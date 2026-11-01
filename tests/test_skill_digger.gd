@@ -27,7 +27,10 @@ const SETTLE_SECONDS := 0.2
 ## Slack for where the body comes to rest: physics leaves it a fraction of a
 ## pixel short of the surface it is standing on.
 const RESTING_TOLERANCE := 1.0
-const DIG_SECONDS := 2.5
+## Time allowed on top of the dig itself for falling out of the shaft and
+## landing on the floor below. The dig time is derived from the skill's own
+## dig_speed, so retuning the digger does not quietly break this test.
+const FALL_AND_LAND_SECONDS := 1.5
 
 const TILE_SET_PATH := "res://resources/tilesets/terrain_tileset.tres"
 const LEMMING_SCENE_PATH := "res://scenes/characters/lemming.tscn"
@@ -50,6 +53,10 @@ var _dig_applied := false
 var _dig_start_position := Vector2.ZERO
 var _dig_start_body_centre := Vector2.ZERO
 var _body_size := Vector2.ZERO
+var _dig_seconds := 0.0
+var _death_report := ""
+## Deepest open gap seen under the digger's feet while it was digging.
+var _largest_gap_under_feet := 0.0
 
 
 func _ready() -> void:
@@ -67,7 +74,8 @@ func _physics_process(delta: float) -> void:
 			_apply_digger()
 		return
 
-	if _elapsed < SETTLE_SECONDS + DIG_SECONDS:
+	if _elapsed < SETTLE_SECONDS + _dig_seconds:
+		_measure_gap_under_feet()
 		return
 
 	_evaluate_scenario()
@@ -112,11 +120,47 @@ func _start_scenario() -> void:
 	# adding it at the origin and moving it afterwards reads as a long
 	# plunge and kills it on landing.
 	_lemming.position = Vector2(scenario.dig_x, FLOOR_TOP_ROW * TILE - _body_size.y / 2.0)
+	# Handed over explicitly: the previous scenario's terrain is still in the
+	# "terrain" group until its queue_free() runs, so a group lookup can pick
+	# up the wrong one.
+	_lemming.terrain = _terrain
 	_world.add_child(_lemming)
+	_death_report = ""
+	_largest_gap_under_feet = 0.0
+	_lemming.died.connect(_on_lemming_died)
 
 	print("\n[%d/%d] %s (body %s, standing at x=%s)" % [
 		_scenario_index + 1, SCENARIOS.size(), scenario.name, _body_size, scenario.dig_x
 	])
+
+
+## Recorded when it happens, because by evaluation time the body is gone and
+## "it died" alone does not say whether it was the fall or something else.
+func _on_lemming_died(cause: LemmingController.DeathCause) -> void:
+	_death_report = "%s at t=%.2fs, body bottom y=%.1f" % [
+		LemmingController.DeathCause.keys()[cause], _elapsed, _lemming.get_body_rect().end.y
+	]
+
+
+## How far below the feet the shaft is already open, sampled every frame of
+## the dig. Erasing a whole tile before sinking into it left a hole a full
+## tile deep in front of the digger, and lemmings walking past fell into it
+## ahead of him. Digging in stages must keep this to one stage at most.
+func _measure_gap_under_feet() -> void:
+	if not is_instance_valid(_lemming):
+		return
+	if _lemming.state_machine.current_state != LemmingStateMachine.State.DIGGING:
+		return
+	const MAX_SCAN := 64.0
+	var body := _lemming.get_body_rect()
+	var probe := Vector2(body.get_center().x, body.end.y + 0.5)
+	var gap := 0.0
+	while gap < MAX_SCAN and not _terrain.is_solid_at(probe + Vector2(0, gap)):
+		gap += 1.0
+	# Once the floor is dug through the gap is the drop to the catch floor,
+	# which is the skill finishing, not digging ahead of itself.
+	if gap < MAX_SCAN:
+		_largest_gap_under_feet = maxf(_largest_gap_under_feet, gap)
 
 
 func _paint_rect(from_row: int, to_row: int) -> void:
@@ -135,9 +179,11 @@ func _apply_digger() -> void:
 	_lemming.global_position.x = scenario.dig_x
 
 	var digger := SkillDigger.new()
-	digger.skill_id = "digger"
-	_lemming.current_skill = digger
-	digger.apply_to(_lemming)
+	if not _lemming.assign_skill(digger):
+		_fail(SCENARIOS[_scenario_index].name, "the lemming refused the Digger in state %s" % _lemming.state_machine.current_state)
+
+	var floor_thickness := float((FLOOR_BOTTOM_ROW - FLOOR_TOP_ROW + 1) * TILE)
+	_dig_seconds = floor_thickness / digger.dig_speed + FALL_AND_LAND_SECONDS
 
 	# Recorded after apply_to, which lines the body up with its column.
 	# The collision shape sits at an offset from the node origin, so grid
@@ -150,8 +196,8 @@ func _apply_digger() -> void:
 func _evaluate_scenario() -> void:
 	var scenario_name: String = SCENARIOS[_scenario_index].name
 
-	if not is_instance_valid(_lemming):
-		_fail(scenario_name, "the lemming died while digging; it should survive the shaft it dug")
+	if not _death_report.is_empty() or not is_instance_valid(_lemming):
+		_fail(scenario_name, "the lemming died (%s); it should survive the shaft it dug" % _death_report)
 		return
 
 	var final_position := _lemming.global_position
@@ -178,6 +224,12 @@ func _evaluate_scenario() -> void:
 		return
 
 	if not _check_shaft_is_one_column_wide(scenario_name):
+		return
+
+	var stage_height := _terrain.get_dig_stage_height()
+	print("  largest open gap under the feet while digging: %.0fpx (one stage is %.0fpx)" % [_largest_gap_under_feet, stage_height])
+	if _largest_gap_under_feet > stage_height + RESTING_TOLERANCE:
+		_fail(scenario_name, "the shaft opened %.0fpx below the digger's feet; it must stay within one %.0fpx stage so lemmings walking past cannot fall in ahead of it" % [_largest_gap_under_feet, stage_height])
 		return
 
 	if _lemming.state_machine.current_state != LemmingStateMachine.State.WALKING:

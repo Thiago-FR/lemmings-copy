@@ -49,31 +49,10 @@ const TERMINAL_FALL_SPEED: float = 600.0
 # never finish on its own since it's permanently waiting on that one lemming.
 const VOID_FALL_DISTANCE: float = 500.0
 
-# One tile per step, matching the invariant above: a half-tile step would
-# place two consecutive steps inside the same cell, so the staircase the
-# lemming climbs and the staircase actually built would drift apart.
-const BUILDER_STEP_WIDTH: float = TERRAIN_TILE_SIZE
-const BUILDER_STEP_HEIGHT: float = TERRAIN_TILE_SIZE
-const BUILDER_MAX_STEPS: int = 12
-const BUILDER_STEP_INTERVAL_SECONDS: float = 0.3
-
-# Digger/Basher/Miner advance exactly one terrain tile per step (rather than
-# a smaller sub-tile amount) so each tick's carve always targets a fresh
-# cell instead of re-checking one it already cleared, which would otherwise
-# look like "nothing left to dig" after a single tile.
-const DIGGER_DIG_INTERVAL_SECONDS: float = 0.15
-const DIGGER_STEP_HEIGHT: float = TERRAIN_TILE_SIZE
-
-const BASHER_DIG_INTERVAL_SECONDS: float = 0.15
-const BASHER_STEP_WIDTH: float = TERRAIN_TILE_SIZE
-const BASHER_MAX_DURATION_SECONDS: float = 6.0
-
-const MINER_DIG_INTERVAL_SECONDS: float = 0.2
-const MINER_STEP_WIDTH: float = TERRAIN_TILE_SIZE
-const MINER_STEP_HEIGHT: float = TERRAIN_TILE_SIZE
-
-const BOMBER_FUSE_SECONDS: float = 5.0
-const BOMBER_EXPLOSION_RADIUS: float = 24.0
+# Skill tuning (dig speed, step counts, fuse length, ...) is not here on
+# purpose: each skill carries its own values as exported properties (see
+# scripts/skills/), so a skill can be reused and retuned without touching
+# anything shared. Step sizes come from the terrain's own cell size.
 
 # Long enough to register as a death, short enough not to hold up a level
 # that is waiting on its last lemming. Level counts update immediately on

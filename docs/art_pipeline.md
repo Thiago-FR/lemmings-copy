@@ -22,6 +22,11 @@ Para blocos de terreno e ícones simples.
 
 - Os geradores ficam em `tools/` e rodam pelo próprio Godot, sem nenhuma
   dependência externa — hoje é o `build_terrain_tileset.gd`.
+- Exceção: as animações do mago montadas a partir da arte existente
+  (`build_dig_frames.py`, `build_death_frames.py`, com funções em comum em
+  `wizard_art.py`) são em Python, porque é trabalho de máscara pixel a pixel.
+  O que é desenhado novo (pá, poeira) usa a mesma grade de ~7 px da arte
+  original, senão as bordas ficam finas demais perto do personagem.
 - GDScript e não Python de propósito: o projeto fica com uma ferramenta só,
   a mesma que já é necessária para rodar os testes.
 - Vantagem: controle exato de cada pixel, resultado idêntico toda vez que

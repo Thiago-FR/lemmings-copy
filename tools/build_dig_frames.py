@@ -13,27 +13,47 @@ Recipe:
   * erase the backpack and the blur halo around it, refilling with the robe
     colour sampled from the same row so the vertical shading survives;
   * paste the hood opening and glowing eyes from a walk frame, centred;
-  * squash the body vertically over four frames with the feet pinned, which
-    reads as digging without inventing any new shapes.
+  * squash the body vertically over four frames with the feet pinned;
+  * draw a shovel on the coarse art-pixel grid (see wizard_art.py) that is
+    raised, driven into the ground and levered back over the same four
+    frames, held by two hands in the character's skin tone.
+
+The shovel is the one thing that is drawn rather than composited, because
+nothing in the existing art has a tool to borrow. It is drawn on the same
+~7px grid as the character so its edges match.
 
 Python rather than GDScript (unlike tools/build_terrain_tileset.gd) because
 this is per-pixel mask work, which numpy does in a few lines and the Godot
 Image API does not.
 """
 
-from pathlib import Path
-
 import numpy as np
 from PIL import Image, ImageFilter
 
-SPRITE_DIR = Path(__file__).resolve().parent.parent / "assets/sprites/characters/wizard"
+from wizard_art import (
+    ART_PIXEL, METAL, METAL_LIGHT, SKIN, SPRITE_DIR, WOOD, WOOD_LIGHT, ArtCanvas,
+)
 SOURCE_BACK = "climb_aligned_0"
 SOURCE_FACE = "walk_aligned_0"
 OUTPUT_PREFIX = "dig_aligned"
 
 # How much of the body's height each frame keeps. Feet stay planted, so the
 # shrink reads as the lemming bearing down on the floor.
-SQUASH_PER_FRAME = [1.00, 0.93, 0.87, 0.93]
+SQUASH_PER_FRAME = [1.00, 0.96, 0.87, 0.93]
+
+# Shovel pose per frame as (grip, blade_join) in source pixels: where the top
+# of the handle is and where the handle meets the blade. The cycle is lift,
+# swing down, bite into the floor (blade below the feet line), lever back.
+SHOVEL_POSES = [
+    ((175, 63), (175, 154)),
+    ((175, 91), (175, 182)),
+    ((175, 126), (175, 210)),
+    ((196, 98), (168, 196)),
+]
+# Fractions along the handle where the two hands hold it.
+HAND_POSITIONS = (0.42, 0.72)
+BLADE_WIDTH_CELLS = 3
+BLADE_HEIGHT_CELLS = 3
 
 # A pixel counts as "warm" — backpack, straps, or the blurred halo between
 # them and the robe — when it is not clearly more blue than red. The robe
@@ -136,6 +156,32 @@ def _paste_face(front, back_solid):
             front[y, target_x] = walk[y, x]
 
 
+def draw_shovel(size, grip, blade_join):
+    canvas = ArtCanvas(size)
+    canvas.line(grip, blade_join, WOOD)
+    # Short crossbar at the top so it reads as a spade grip, not a stick.
+    canvas.fill_cell(grip[0] - ART_PIXEL, grip[1], WOOD_LIGHT)
+    canvas.fill_cell(grip[0] + ART_PIXEL, grip[1], WOOD_LIGHT)
+
+    # Square blade with a one-cell point below it, lit down its left edge.
+    blade_left = blade_join[0] - (BLADE_WIDTH_CELLS // 2) * ART_PIXEL
+    blade_top = blade_join[1] + ART_PIXEL
+    canvas.rect(blade_left, blade_top, BLADE_WIDTH_CELLS, BLADE_HEIGHT_CELLS, METAL)
+    canvas.rect(blade_left, blade_top, 1, BLADE_HEIGHT_CELLS, METAL_LIGHT)
+    canvas.fill_cell(blade_join[0], blade_top + BLADE_HEIGHT_CELLS * ART_PIXEL, METAL)
+
+    # Each hand is two cells, reaching from the handle back towards the
+    # body, so the shovel reads as held rather than floating beside it.
+    for fraction in HAND_POSITIONS:
+        x = grip[0] + (blade_join[0] - grip[0]) * fraction
+        y = grip[1] + (blade_join[1] - grip[1]) * fraction
+        canvas.fill_cell(x, y, SKIN)
+        canvas.fill_cell(x - ART_PIXEL, y, SKIN)
+
+    canvas.outline()
+    return canvas.to_image()
+
+
 def main():
     front = build_front_facing_body()
     image = Image.fromarray(front.astype(np.uint8))
@@ -152,6 +198,8 @@ def main():
         # Pasted against the original bottom edge so the feet stay on the
         # floor and only the head dips.
         frame.alpha_composite(body.resize((body.width, height), Image.NEAREST), (left, bottom - height))
+        grip, blade_join = SHOVEL_POSES[index]
+        frame.alpha_composite(draw_shovel(image.width, grip, blade_join))
         frame.save(SPRITE_DIR / f"{OUTPUT_PREFIX}_{index}.png")
 
     print(f"wrote {len(SQUASH_PER_FRAME)} {OUTPUT_PREFIX} frames to {SPRITE_DIR}")

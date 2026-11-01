@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_script")
-level_name = "Sandbox"
-instructions = "Todas as 8 habilidades liberadas. A SAIDA (verde) fica do outro lado de um vao fatal - sem Builder ou Floater o lemming cai e morre. Use a parede pra testar Climber e o piso grosso pra testar Digger, Basher e Miner."
+level_name = "Livre (todas as habilidades)"
+instructions = "Todas as 8 habilidades liberadas. A SAIDA (verde) fica do outro lado de um vao fatal - sem Construtor ou Paraquedista o lemming cai e morre. Use a parede pra testar o Escalador e o piso grosso pra testar Escavador, Perfurador e Minerador."
 spawn_rate = 1.0
 total_lemmings = 200
 required_percentage = 0.1

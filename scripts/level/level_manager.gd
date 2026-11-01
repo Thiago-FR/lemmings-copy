@@ -3,6 +3,11 @@ extends Node2D
 ## Root script for level scenes. Starts the SpawnPoint(s), counts lemmings
 ## saved (via ExitPoint) and lost (on death), ticks down the level timer,
 ## and decides victory/defeat once every lemming has spawned and resolved.
+##
+## This is the one place that wires the self-contained pieces together:
+## entrances, exits and lemmings only emit signals, and the level decides
+## what they mean (a click assigns the selected skill, an exit counts as
+## saved, a death counts as lost).
 
 signal counts_changed(saved_count: int, lost_count: int, spawned_count: int, total_count: int)
 signal time_remaining_changed(seconds_remaining: float)
@@ -59,9 +64,10 @@ func _process(delta: float) -> void:
 func _on_lemming_spawned(lemming: LemmingController) -> void:
 	lemmings_spawned_count += 1
 	lemming.died.connect(_on_lemming_died)
+	lemming.clicked.connect(SkillManager.try_assign_to)
 
 
-func _on_lemming_died() -> void:
+func _on_lemming_died(_cause: LemmingController.DeathCause) -> void:
 	lemmings_lost_count += 1
 	_emit_counts_changed()
 	_check_level_resolved()

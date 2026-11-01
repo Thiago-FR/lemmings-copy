@@ -14,6 +14,10 @@
 [ext_resource type="Texture2D" uid="uid://cq2qicl02d6r7" path="res://assets/sprites/characters/wizard/dig_aligned_1.png" id="11_dig1"]
 [ext_resource type="Texture2D" uid="uid://dk2216q7rckw3" path="res://assets/sprites/characters/wizard/dig_aligned_2.png" id="12_dig2"]
 [ext_resource type="Texture2D" uid="uid://cu64x4nxuoxgb" path="res://assets/sprites/characters/wizard/dig_aligned_3.png" id="13_dig3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_0.png" id="14_death0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_1.png" id="15_death1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_2.png" id="16_death2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_3.png" id="17_death3"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_lemming"]
 resource_name = "wizard_placeholder"
@@ -36,6 +40,26 @@ animations = [{
 }],
 "loop": true,
 "name": &"dig",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("14_death0")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("15_death1")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("16_death2")
+},
+{
+"duration": 4.0,
+"texture": ExtResource("17_death3")
+}],
+"loop": false,
+"name": &"death_fall",
 "speed": 10.0
 }, {
 "frames": [{

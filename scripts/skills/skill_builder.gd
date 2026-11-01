@@ -1,11 +1,21 @@
 class_name SkillBuilder
 extends SkillBase
-## Builds a staircase of blocks in the lemming's facing direction, moving it
-## up and forward one step at a time, up to a fixed number of steps, then
-## hands control back so the lemming resumes as WALKING.
+## Builds a staircase in the lemming's facing direction, moving it up and
+## forward one tile per step, up to max_steps, then hands control back so
+## the lemming resumes walking.
+
+## Steps laid before the builder stops.
+@export var max_steps: int = 12
+## Seconds between two consecutive steps.
+@export var step_interval_seconds: float = 0.3
 
 var _steps_built: int = 0
 var _time_since_last_step: float = 0.0
+
+
+func _init() -> void:
+	id = &"builder"
+	display_name = "Construtor"
 
 
 func apply_to(lemming: LemmingController) -> void:
@@ -16,21 +26,20 @@ func apply_to(lemming: LemmingController) -> void:
 func physics_process(lemming: LemmingController, delta: float) -> bool:
 	lemming.velocity = Vector2.ZERO
 
-	if _steps_built >= Constants.BUILDER_MAX_STEPS:
+	if _steps_built >= max_steps:
 		return false
 
 	_time_since_last_step += delta
-	if _time_since_last_step < Constants.BUILDER_STEP_INTERVAL_SECONDS:
+	if _time_since_last_step < step_interval_seconds:
 		return true
 	_time_since_last_step = 0.0
 
-	var terrain: TerrainDestructible = lemming.get_tree().get_first_node_in_group("terrain")
-	if terrain == null:
-		return false
-
-	var step_position := lemming.get_forward_position() + Vector2(0, lemming.get_half_extents().y + Constants.GROUND_PROBE_EPSILON)
-	terrain.build_cell_at(step_position)
-
-	lemming.global_position += Vector2(Constants.BUILDER_STEP_WIDTH * lemming.direction, -Constants.BUILDER_STEP_HEIGHT)
+	# One tile per step: a smaller step would place two consecutive steps in
+	# the same cell, so the staircase climbed and the staircase built would
+	# drift apart.
+	var terrain := lemming.terrain
+	terrain.build_cell_at(lemming.get_forward_feet_position())
+	var tile := terrain.get_cell_size()
+	lemming.global_position += Vector2(tile.x * lemming.direction, -tile.y)
 	_steps_built += 1
 	return true

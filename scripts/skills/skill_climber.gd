@@ -1,10 +1,14 @@
 class_name SkillClimber
 extends SkillBase
 ## Permanent trait: the lemming climbs vertical walls instead of turning
-## around when it hits one. The actual climb (LemmingStateMachine.State.CLIMBING)
-## is driven by LemmingController's own state handling, not by this script's
-## physics_process, since the trait persists for the lemming's whole life
-## instead of occupying its single "active skill" slot.
+## around when it hits one. The climb itself (LemmingStateMachine.State.CLIMBING)
+## is driven by LemmingController's core movement, since the trait lasts the
+## lemming's whole life instead of occupying its single action slot.
+
+
+func _init() -> void:
+	id = &"climber"
+	display_name = "Escalador"
 
 
 func can_apply_to(lemming: LemmingController) -> bool:

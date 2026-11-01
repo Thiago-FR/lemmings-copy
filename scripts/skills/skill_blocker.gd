@@ -6,6 +6,11 @@ extends SkillBase
 ## removed by another skill (e.g. Bomber).
 
 
+func _init() -> void:
+	id = &"blocker"
+	display_name = "Bloqueador"
+
+
 func can_apply_to(lemming: LemmingController) -> bool:
 	return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING
 

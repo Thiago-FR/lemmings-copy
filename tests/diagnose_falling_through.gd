@@ -75,10 +75,7 @@ func _hand_out_diggers() -> void:
 			continue
 		entry.dug = true
 		_dug_count += 1
-		var digger := SkillDigger.new()
-		digger.skill_id = "digger"
-		lemming.current_skill = digger
-		digger.apply_to(lemming)
+		lemming.assign_skill(SkillDigger.new())
 		print("  t=%.1f  digger given to lemming %d at %s" % [_elapsed, entry.index, lemming.global_position])
 		return
 

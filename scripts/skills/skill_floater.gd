@@ -2,7 +2,12 @@ class_name SkillFloater
 extends SkillBase
 ## Permanent trait: the lemming opens a parachute (LemmingStateMachine.State.FLOATING)
 ## instead of FALLING whenever it walks off a ledge, descending slowly and
-## surviving any fall. Handled directly by LemmingController's fall handling.
+## surviving any fall. Handled by LemmingController's fall handling.
+
+
+func _init() -> void:
+	id = &"floater"
+	display_name = "Paraquedista"
 
 
 func can_apply_to(lemming: LemmingController) -> bool:

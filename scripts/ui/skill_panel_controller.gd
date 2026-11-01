@@ -50,4 +50,4 @@ func _on_skill_count_changed(skill_id: String, remaining_count: int) -> void:
 
 
 func _skill_button_text(skill_id: String) -> String:
-	return "%s (%d)" % [skill_id.capitalize(), SkillManager.get_remaining_count(skill_id)]
+	return "%s (%d)" % [SkillManager.get_display_name(skill_id), SkillManager.get_remaining_count(skill_id)]

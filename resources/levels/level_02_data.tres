@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_script")
-level_name = "Digger"
+level_name = "Escavador"
 instructions = "Os lemmings estao presos numa plataforma sem saida. Escolha a habilidade no painel abaixo e clique num lemming para ele cavar ate o andar de baixo. CUIDADO: queda de mais de 80 pixels mata o lemming, entao nao cave logo abaixo da ENTRADA — os proximos a nascer caem direto pelo buraco e morrem."
 spawn_rate = 2.0
 total_lemmings = 5
