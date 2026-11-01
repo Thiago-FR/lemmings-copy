@@ -158,12 +158,22 @@ func _physics_process(delta: float) -> void:
 	_update_animation()
 
 
-## Only the walk/climb cycles exist so far (see lemming.tscn); every other
-## state just falls back to "walk" until dedicated art is added.
+## Walk, climb and dig cycles exist (see lemming.tscn); every other state
+## still falls back to "walk" until it gets dedicated art.
 func _update_animation() -> void:
-	var animation_name := "climb" if state_machine.current_state == LemmingStateMachine.State.CLIMBING else "walk"
+	var animation_name := _animation_for_state()
 	if animated_sprite.animation != animation_name:
 		animated_sprite.play(animation_name)
+
+
+func _animation_for_state() -> StringName:
+	match state_machine.current_state:
+		LemmingStateMachine.State.CLIMBING:
+			return &"climb"
+		LemmingStateMachine.State.DIGGING:
+			return &"dig"
+		_:
+			return &"walk"
 
 
 func _process_falling() -> void:

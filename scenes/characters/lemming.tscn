@@ -10,9 +10,34 @@
 [ext_resource type="Texture2D" uid="uid://i054bx3k7m67" path="res://assets/sprites/characters/wizard/climb_aligned_2.png" id="8_climb2"]
 [ext_resource type="Texture2D" uid="uid://t8c8n0j0lvvr" path="res://assets/sprites/characters/wizard/climb_aligned_3.png" id="9_climb3"]
 
+[ext_resource type="Texture2D" uid="uid://b7u3nclgd1vf7" path="res://assets/sprites/characters/wizard/dig_aligned_0.png" id="10_dig0"]
+[ext_resource type="Texture2D" uid="uid://cq2qicl02d6r7" path="res://assets/sprites/characters/wizard/dig_aligned_1.png" id="11_dig1"]
+[ext_resource type="Texture2D" uid="uid://dk2216q7rckw3" path="res://assets/sprites/characters/wizard/dig_aligned_2.png" id="12_dig2"]
+[ext_resource type="Texture2D" uid="uid://cu64x4nxuoxgb" path="res://assets/sprites/characters/wizard/dig_aligned_3.png" id="13_dig3"]
+
 [sub_resource type="SpriteFrames" id="SpriteFrames_lemming"]
 resource_name = "wizard_placeholder"
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("10_dig0")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("11_dig1")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("12_dig2")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("13_dig3")
+}],
+"loop": true,
+"name": &"dig",
+"speed": 10.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": ExtResource("6_climb0")
