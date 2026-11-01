@@ -31,6 +31,7 @@ func _initialize() -> void:
 	_build_level_04()
 	_build_level_05()
 	_build_level_06()
+	_build_level_07()
 
 	quit()
 
@@ -216,3 +217,25 @@ func _build_level_06() -> void:
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_06.tscn")
+
+
+## Bridge: lemmings walk along a floor broken by a gap six tiles wide with
+## nothing underneath, so a lemming walking into it falls out of the level.
+## The exit is on the floor beyond the gap. Six tiles is six bridge pieces,
+## well within one bridge (12 pieces), so a bridge begun anywhere before the
+## gap reaches the far side. The boundary walls go well above the screen, as
+## in level 6.
+func _build_level_07() -> void:
+	var root := _new_level_root("Level07")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 8, 11, 12)     # floor, entrance side
+	_paint_rect(terrain, 15, 24, 11, 12)   # floor beyond the gap, exit side
+	_paint_rect(terrain, -1, -1, -20, 13)  # left boundary wall
+	_paint_rect(terrain, 25, 25, -20, 13)  # right boundary wall
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_07.tscn")

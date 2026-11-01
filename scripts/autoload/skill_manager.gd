@@ -22,6 +22,7 @@ var _default_skill_types: Array[GDScript] = [
 	SkillFloater,
 	SkillBomber,
 	SkillLadderVertical,
+	SkillBridge,
 ]
 
 var selected_skill_id: String = ""

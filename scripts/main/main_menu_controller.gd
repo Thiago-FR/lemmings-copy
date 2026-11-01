@@ -9,6 +9,7 @@ const LEVEL_DATA_PATHS: Array[String] = [
 	"res://resources/levels/level_04_data.tres",
 	"res://resources/levels/level_05_data.tres",
 	"res://resources/levels/level_06_data.tres",
+	"res://resources/levels/level_07_data.tres",
 ]
 
 @onready var _button_container: VBoxContainer = $CenterContainer/VBoxContainer

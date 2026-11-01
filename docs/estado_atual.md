@@ -15,13 +15,14 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 | Pá (`SkillDigger`) | ✅ fechado, com teste automático |
 | Escada vertical (`SkillLadderVertical`) | ✅ fechado, com teste automático |
 | Escada diagonal (`SkillBuilder`) | ✅ refeita, com teste automático |
+| Ponte (`SkillBridge`) | ✅ nova, com teste automático |
 | Geometria corpo × grade | ✅ regra definida e verificada em tempo de execução |
 | Morte visível | ✅ animação de esmagamento na queda + fade vermelho de 0,35s |
 | Instruções da fase na tela | ✅ |
 | Interface em português | ✅ inclusive nomes das fases e das habilidades |
 | Animação de escavar (frente) | ✅ com pá, mais lenta (20 px/s) |
 | Habilidades, entrada e saída desacopladas | ✅ ver "Arquitetura" abaixo |
-| Demais ferramentas | ⬜ pendentes (escada diagonal, ponte, escada horizontal, ...) |
+| Demais ferramentas | ⬜ pendentes (escada horizontal, ...) |
 
 ## A causa raiz (o que travava tudo)
 
@@ -116,6 +117,10 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 | Teste da morte por queda | `godot --headless res://tests/test_fall_death.tscn` |
 | Teste da escada vertical | `godot --headless res://tests/test_tool_ladder_vertical.tscn` |
 | Jogar a fase da escada vertical sozinho | `godot --headless res://tests/test_level_ladder_vertical.tscn` |
+| Teste da escada diagonal | `godot --headless res://tests/test_tool_ladder_diagonal.tscn` |
+| Jogar a fase da escada diagonal sozinho | `godot --headless res://tests/test_level_ladder_diagonal.tscn` |
+| Teste da ponte | `godot --headless res://tests/test_tool_bridge.tscn` |
+| Jogar a fase da ponte sozinho | `godot --headless res://tests/test_level_bridge.tscn` |
 | Diagnóstico de queda | `godot --headless res://tests/diagnose_falling_through.tscn` |
 | Regerar o terreno | `godot --headless --script res://tools/build_terrain_tileset.gd` |
 | Regerar as fases | `godot --headless --script res://tools/build_test_levels.gd` (regera todas; descarte com `git checkout` as que não mudaram de propósito, porque o Godot reescreve os ids internos) |
@@ -145,6 +150,7 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
 | Pá | "A pá" (fase 2) | `test_skill_digger` | — |
 | Escada diagonal | "Escada diagonal" (fase 3) | `test_tool_ladder_diagonal` | `test_level_ladder_diagonal` |
 | Escada vertical | "Escada vertical" (fase 6) | `test_tool_ladder_vertical` | `test_level_ladder_vertical` |
+| Ponte | "Ponte" (fase 7) | `test_tool_bridge` | `test_level_bridge` |
 
 ### Escada vertical
 
@@ -195,11 +201,49 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
   blocos (96px = 12 degraus) começando a 12 blocos da parede da esquerda.
 - Ainda usa a animação de andar. Falta uma animação de subir/montar escada.
 
+### Ponte
+
+- Começa **na hora do clique**, na direção em que o boneco olha.
+- Peças de **32px de largura por 8px de altura** (um bloco de largura, ¼ de
+  bloco de altura, a mesma espessura do degrau da escada diagonal). Em vez
+  de subir, cada peça fica **pendurada logo abaixo da linha dos pés**, com o
+  topo rente ao chão: o boneco e quem vem depois andam reto por cima.
+- O boneco coloca uma peça, **anda até a ponta dela** (no máximo ~1px por
+  quadro, verificado no teste) e coloca a próxima.
+- **A ponte começa onde o chão acaba.** Quem recebe a ponte andando no chão
+  antes do buraco primeiro anda até a beira (ainda controlado pela
+  ferramenta) e começa ali; quem já está com a ponta do corpo além da beira
+  começa a ponte na beira, atrás dele. Motivo: começar na ponta do corpo
+  faria a primeira peça entrar no chão onde ele pisa (e a ponte pararia na
+  hora), e uma ponte começada alguns pixels depois da beira terminaria
+  alguns pixels antes do outro lado, deixando um vão mais largo que o corpo,
+  onde ele cai.
+- Se aparece uma parede antes da beira, **o boneco recusa a ponte** e a
+  carga não é gasta (não há o que atravessar).
+- Para em `max_pieces` peças, ou antes se o lugar da próxima peça não está
+  vazio: o outro lado do buraco, uma parede, um tijolo ou uma escada. Depois
+  devolve o controle e o boneco segue andando.
+- Buraco mais largo que a ponte: o boneco fica na ponta da última peça,
+  segue andando, cai e morre (o teste verifica isso). Como no Lemmings
+  original, quem chega numa ponte **ainda sendo montada** pode sair pela
+  ponta inacabada e cair.
+- Buraco que não é múltiplo de 32px: a última peça não cabe (entraria no
+  outro lado) e sobra um vão menor que 32px. Até 26px (a largura do corpo)
+  o boneco passa andando; entre 26 e 32px ele cai. As fases devem usar
+  buracos de blocos inteiros.
+- Usa os mesmos tijolos da escada diagonal (`TerrainDestructible.place_brick`).
+- Fase exclusiva: "Ponte" (fase 7): chão, um buraco de 6 blocos sem fundo
+  (cair nele é morte) e o chão continua do outro lado com a saída. Dar a
+  ponte ao **primeiro** boneco salva todos (verificado no teste da fase); os
+  seguintes podem alcançar a ponta da ponte enquanto ela ainda está sendo
+  montada e cair.
+- Ainda usa a animação de andar. Falta uma animação de montar a ponte.
+
 ### Limite de peças
 
-As duas escadas usam `max_pieces` (padrão 12), no topo do arquivo de cada
-ferramenta (`skill_ladder_vertical.gd`, `skill_builder.gd`) e visível no
-Inspector. Para uma fase usar outro valor sem mudar o padrão:
+As duas escadas e a ponte usam `max_pieces` (padrão 12), no topo do arquivo
+de cada ferramenta (`skill_ladder_vertical.gd`, `skill_builder.gd`,
+`skill_bridge.gd`) e visível no Inspector. Para uma fase usar outro valor sem mudar o padrão:
 `var escada := SkillBuilder.new(); escada.max_pieces = 20;
 SkillManager.register_skill(escada)`.
 
