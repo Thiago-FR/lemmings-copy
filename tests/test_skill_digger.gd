@@ -1,6 +1,7 @@
 extends Node
 ## Automated check that a Digger lemming carves a shaft it can actually
-## descend, and survives the trip. Run via:
+## descend, that the shaft is always the same width, and that it survives the
+## trip. Run via:
 ##   godot --headless res://tests/test_skill_digger.tscn
 ## Exits 0 when every scenario passes, 1 otherwise.
 ##
@@ -9,19 +10,18 @@ extends Node
 ## for a normal scene run (same reason tools/level_smoke_launcher.tscn
 ## exists instead of a plain script).
 ##
-## Two scenarios, because the bug this guards against only ever showed up in
-## one of them: a lemming whose body sits exactly inside one terrain column,
-## and one whose body straddles two. Carving a fixed cell count instead of
-## the body's real footprint passes the first and fails the second, which is
-## why the original symptom looked intermittent.
+## Two scenarios, because the bugs this guards against only ever showed up in
+## one of them: a lemming already centred in a terrain column, and one
+## standing half a tile off. Carving whichever cells the body overlapped
+## passed the first and, on the second, dug a hole twice as wide.
 
-const TILE := 16
-const FLOOR_TOP_ROW := 10
-const FLOOR_BOTTOM_ROW := 13
-const CATCH_TOP_ROW := 15
-const CATCH_BOTTOM_ROW := 18
+const TILE := 32
+const FLOOR_TOP_ROW := 5
+const FLOOR_BOTTOM_ROW := 6
+const CATCH_TOP_ROW := 9
+const CATCH_BOTTOM_ROW := 10
 const LEVEL_FIRST_COLUMN := 0
-const LEVEL_LAST_COLUMN := 19
+const LEVEL_LAST_COLUMN := 24
 
 const SETTLE_SECONDS := 0.2
 ## Slack for where the body comes to rest: physics leaves it a fraction of a
@@ -32,12 +32,12 @@ const DIG_SECONDS := 2.5
 const TILE_SET_PATH := "res://resources/tilesets/terrain_tileset.tres"
 const LEMMING_SCENE_PATH := "res://scenes/characters/lemming.tscn"
 
-## Where the body sits when digging starts. The first centres the 16px body
-## inside column 10; the second offsets it by half a tile so it overlaps
-## columns 9 and 10.
+## Where the body stands when the skill is handed over. The first is already
+## centred in column 10; the second is half a tile off, so the skill has to
+## line it up itself before carving.
 const SCENARIOS := [
-	{"name": "body aligned to one terrain column", "dig_x": 168.0},
-	{"name": "body straddling two terrain columns", "dig_x": 160.0},
+	{"name": "body already centred in its column", "dig_x": 336.0},
+	{"name": "body standing half a tile off centre", "dig_x": 320.0},
 ]
 
 var _failures: Array[String] = []
@@ -48,6 +48,7 @@ var _terrain: TerrainDestructible = null
 var _lemming: LemmingController = null
 var _dig_applied := false
 var _dig_start_position := Vector2.ZERO
+var _dig_start_body_centre := Vector2.ZERO
 var _body_size := Vector2.ZERO
 
 
@@ -108,12 +109,12 @@ func _start_scenario() -> void:
 	# origin, so the origin sits half a body above the floor's top edge.
 	# Positioned before entering the tree because LemmingController starts
 	# tracking fall distance from wherever it first lands in the scene —
-	# adding it at the origin and moving it afterwards reads as a 146px
+	# adding it at the origin and moving it afterwards reads as a long
 	# plunge and kills it on landing.
 	_lemming.position = Vector2(scenario.dig_x, FLOOR_TOP_ROW * TILE - _body_size.y / 2.0)
 	_world.add_child(_lemming)
 
-	print("\n[%d/%d] %s (body %s, digging from x=%s)" % [
+	print("\n[%d/%d] %s (body %s, standing at x=%s)" % [
 		_scenario_index + 1, SCENARIOS.size(), scenario.name, _body_size, scenario.dig_x
 	])
 
@@ -127,19 +128,23 @@ func _paint_rect(from_row: int, to_row: int) -> void:
 func _apply_digger() -> void:
 	_dig_applied = true
 
-	# Place the body exactly where the scenario wants it before digging
-	# starts. It walks while settling onto the floor, so where it spawned is
-	# not where it ends up — and how the body sits relative to the terrain
-	# grid is the entire point of these two scenarios.
+	# Put the body exactly where the scenario wants it, including the walk it
+	# does while settling onto the floor. Where it stands relative to the
+	# terrain grid is the entire point of these two scenarios.
 	var scenario: Dictionary = SCENARIOS[_scenario_index]
 	_lemming.global_position.x = scenario.dig_x
-	_dig_start_position = _lemming.global_position
 
 	var digger := SkillDigger.new()
 	digger.skill_id = "digger"
 	_lemming.current_skill = digger
 	digger.apply_to(_lemming)
-	print("  digging starts at %s" % _dig_start_position)
+
+	# Recorded after apply_to, which lines the body up with its column.
+	# The collision shape sits at an offset from the node origin, so grid
+	# questions are asked of the body rectangle and never of the node.
+	_dig_start_position = _lemming.global_position
+	_dig_start_body_centre = _lemming.get_body_rect().get_center()
+	print("  digging starts with body centred at %s" % _dig_start_body_centre)
 
 
 func _evaluate_scenario() -> void:
@@ -164,21 +169,15 @@ func _evaluate_scenario() -> void:
 	# Descending far enough is not the same as arriving: a lemming wedged in
 	# a shaft its own width used to stop at the bottom of the floor and hover
 	# there. Landing on the catch floor is the only proof it came out the
-	# other side under gravity.
-	var expected_resting_y := float(CATCH_TOP_ROW * TILE) - _body_size.y / 2.0
-	if absf(final_position.y - expected_resting_y) > RESTING_TOLERANCE:
-		_fail(scenario_name, "came to rest at y=%.1f instead of landing on the floor below at y=%.1f — it never fell out of the shaft" % [final_position.y, expected_resting_y])
+	# other side under gravity. Measured on the body's feet rather than the
+	# node origin, which sits at an offset from the collision shape.
+	var feet_y := _lemming.get_body_rect().end.y
+	var catch_floor_top := float(CATCH_TOP_ROW * TILE)
+	if absf(feet_y - catch_floor_top) > RESTING_TOLERANCE:
+		_fail(scenario_name, "feet came to rest at y=%.1f instead of on the floor below at y=%.1f — it never fell out of the shaft" % [feet_y, catch_floor_top])
 		return
 
-	# The shaft itself must be clear across the full floor thickness, not
-	# merely wide enough at the single row the lemming happens to be in.
-	var shaft := Rect2(
-		Vector2(_dig_start_position.x - _body_size.x / 2.0, float(FLOOR_TOP_ROW * TILE)),
-		Vector2(_body_size.x, floor_thickness)
-	)
-	var blocking_cells := _terrain.get_solid_cells_in_rect(shaft)
-	if not blocking_cells.is_empty():
-		_fail(scenario_name, "terrain is still solid inside the shaft at cells %s" % [blocking_cells])
+	if not _check_shaft_is_one_column_wide(scenario_name):
 		return
 
 	if _lemming.state_machine.current_state != LemmingStateMachine.State.WALKING:
@@ -186,6 +185,37 @@ func _evaluate_scenario() -> void:
 		return
 
 	print("  PASS")
+
+
+## The shaft must be exactly one terrain column: cleared through the full
+## floor thickness, with the columns on both sides left untouched. Width
+## varying with where the lemming happened to stand is what made the same
+## skill leave visibly different holes.
+func _check_shaft_is_one_column_wide(scenario_name: String) -> bool:
+	var shaft_column := _terrain.local_to_map(_terrain.to_local(_dig_start_body_centre)).x
+
+	var blocking_cells := _terrain.get_solid_cells_in_rect(_column_rect(shaft_column))
+	if not blocking_cells.is_empty():
+		_fail(scenario_name, "terrain is still solid inside the shaft at cells %s" % [blocking_cells])
+		return false
+
+	for neighbour_column in [shaft_column - 1, shaft_column + 1]:
+		if not _terrain.is_solid_in_rect(_column_rect(neighbour_column)):
+			_fail(scenario_name, "column %d next to the shaft was dug out too — the hole is wider than one tile" % neighbour_column)
+			return false
+
+	print("  shaft is exactly one tile wide, at column %d" % shaft_column)
+	return true
+
+
+## World-space rectangle covering one terrain column across the floor's full
+## thickness, inset so it cannot bleed into the columns on either side.
+func _column_rect(column: int) -> Rect2:
+	const EDGE_INSET := 1.0
+	return Rect2(
+		Vector2(column * TILE + EDGE_INSET, float(FLOOR_TOP_ROW * TILE)),
+		Vector2(TILE - 2.0 * EDGE_INSET, float((FLOOR_BOTTOM_ROW - FLOOR_TOP_ROW + 1) * TILE))
+	)
 
 
 func _fail(scenario_name: String, reason: String) -> void:

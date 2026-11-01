@@ -146,22 +146,37 @@ folga dos dois lados.**
 
 | | valor |
 |---|---|
-| Tile do terreno | 16 × 16 |
+| Bloco de terreno | 32 × 32 |
 | Folga mínima por lado | 2 px |
-| Corpo máximo | 12 × 28 |
+| Corpo máximo | 28 × 60 |
+| Corpo atual (mago) | 26 × 30 |
+
+A ordem de causa importa: **o personagem define a grade, não o contrário.**
+O mago tem 26 de largura, então o bloco precisa ter no mínimo 30. Ficou 32.
+Encolher o personagem para caber numa grade de 16 foi tentado e descartado —
+o desenho fica ilegível nesse tamanho.
 
 Dois erros separados vinham disso, e os dois produziam o mesmo sintoma
 ("cavou o buraco mas o lemming não passou"):
 
-1. **Corpo mais largo que um tile** (era 26×30) só cabia quando por acaso
-   ficava entre duas colunas, e a escavação limpava as duas.
-2. **Corpo com exatamente a largura do tile** entala entre as duas paredes
+1. **Corpo mais largo que um bloco** (26 numa grade de 16) só cabia quando
+   por acaso ficava entre duas colunas, e a escavação limpava as duas.
+2. **Corpo com exatamente a largura do bloco** entala entre as duas paredes
    do poço e para de cair mesmo com gravidade total — não sobra espaço para
    a física separar o corpo das laterais.
+3. **Escavar "as colunas que o corpo encosta"** fazia a mesma habilidade
+   abrir um buraco de uma coluna quando o lemming estava alinhado e de duas
+   quando estava entre colunas — buracos visivelmente diferentes para a
+   mesma ação. As habilidades de escavar agora **centralizam o corpo na
+   coluna antes do primeiro corte**, e o poço sai sempre com um bloco.
 
 `LemmingController._assert_body_fits_carved_openings()` verifica isso no
-nascimento do lemming, e a arte placeholder é gerada exatamente nessas
-medidas, então os dois não têm como divergir.
+nascimento de cada lemming, então quebrar a regra acusa na hora em vez de
+virar uma habilidade com comportamento estranho várias etapas depois.
+
+Consequência de aumentar o bloco: `MAX_SAFE_FALL_HEIGHT` subiu de 60 para 80,
+porque um vão vertical precisa ter dois blocos (64px) para um corpo de 30 de
+altura passar, e 60 mataria o lemming no menor vão legal do jogo.
 
 ## 10. Protocolo de Validação das Habilidades
 
@@ -195,6 +210,6 @@ Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
 | 7 | Floater | pendente |
 | 8 | Bomber | pendente |
 
-**Atenção ao chegar no Builder:** o degrau mudou de 8px para 16px (um tile),
-então a geometria da fase 3 e da fase 4 — que foram construídas assumindo
-degrau de 8px — precisa ser refeita em `tools/build_test_levels.gd`.
+**Atenção ao chegar no Builder:** o degrau mudou de 8px para 32px (um bloco),
+então a geometria da fase 3 e da fase 4 — construídas assumindo degrau de
+8px — precisa ser refeita em `tools/build_test_levels.gd`.

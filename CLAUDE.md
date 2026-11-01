@@ -76,27 +76,23 @@ res://
 Crie pastas/scripts conforme as features forem implementadas — não scaffold
 arquivos vazios especulativamente.
 
-## Sprites Placeholder
+## Sprites do Personagem
 
-Os quadros do lemming em `res://assets/sprites/characters/lemming/` são
-**gerados**, não desenhados: `tools/build_lemming_placeholder.gd` os produz
-por código. Para mudar cor ou proporção, edite o script e rode:
+O personagem usa os sprites do mago em
+`res://assets/sprites/characters/wizard/`, desenhados em 250x250 e exibidos
+em `scale = 0.15` pelo `AnimatedSprite2D` de `lemming.tscn` — o que dá
+aproximadamente 26x30 na tela, batendo com a caixa de colisão de 26x30.
 
-```
-godot --headless --script res://tools/build_lemming_placeholder.gd
-```
+**Esse tamanho é o que define a grade do terreno.** O bloco tem 32px porque
+um corpo de 26 de largura precisa de uma abertura de pelo menos 30 para
+passar. Diminuir o personagem para caber numa grade de 16px foi tentado e
+descartado: nesse tamanho o desenho fica ilegível. Ver a seção 9 de
+[docs/game_design.md](docs/game_design.md).
 
-Eles têm **exatamente o tamanho da caixa de colisão** (12×28), e as marcas
-rosa nos cantos indicam os limites dessa caixa. Isso é proposital: o que
-aparece na tela é o que de fato colide. O sprite anterior era um mago em
-escala 0.15, sem relação com a colisão, e foi justamente o que impediu de
-enxergar os bugs das habilidades.
+O `SpriteFrames` se chama `wizard_placeholder`, então trocar a arte não
+exige mexer em código.
 
-O `AnimatedSprite2D` de `lemming.tscn` referencia um `SpriteFrames` chamado
-`lemming_placeholder`, então a arte final entra trocando os PNGs, sem tocar
-em código. As marcas de canto devem sair quando isso acontecer.
-
-Como as imagens são geradas (por código ou por IA local) está em
+Como as imagens são geradas está em
 [docs/art_pipeline.md](docs/art_pipeline.md).
 
 ## Documentação Relacionada

@@ -2,7 +2,7 @@ class_name Constants
 extends RefCounted
 ## Shared gameplay constants. Kept here instead of scattered magic numbers.
 
-const TERRAIN_TILE_SIZE: float = 16.0
+const TERRAIN_TILE_SIZE: float = 32.0
 
 # The single most important invariant in this project. Digging skills carve
 # whole tiles, so every opening a lemming must pass through is tile-aligned
@@ -18,8 +18,12 @@ const TERRAIN_TILE_SIZE: float = 16.0
 # Together those produced the original symptom: the hole got dug, and the
 # lemming sometimes went through it and sometimes did not.
 #
-# LemmingController asserts this on spawn, and the placeholder art is
-# generated at exactly these dimensions so the two cannot drift apart.
+# This is what sets the terrain tile size. The character is 26x30, so a
+# one-tile opening has to be at least 30 wide to take it — which is why the
+# grid is 32 and not the 16 it started as. Shrinking the character to fit a
+# 16px grid was tried and rejected: it made the art unreadable.
+#
+# LemmingController asserts this on spawn.
 const BODY_TILE_CLEARANCE: float = 2.0
 const MAX_BODY_WIDTH: float = TERRAIN_TILE_SIZE - 2.0 * BODY_TILE_CLEARANCE
 const MAX_BODY_HEIGHT: float = 2.0 * TERRAIN_TILE_SIZE - 2.0 * BODY_TILE_CLEARANCE
@@ -27,11 +31,15 @@ const MAX_BODY_HEIGHT: float = 2.0 * TERRAIN_TILE_SIZE - 2.0 * BODY_TILE_CLEARAN
 const GRAVITY: float = 900.0
 # Lemmings spawn 1-2s apart, so this also sets how far apart they look in a
 # crowd: too slow and consecutive lemmings overlap into an unreadable blob.
-# At one body width (16px) per ~0.3s they stay visibly separated.
+# At roughly one body width every half second they stay visibly separated.
 const WALK_SPEED: float = 50.0
 const CLIMB_SPEED: float = 18.0
 const FLOAT_FALL_SPEED: float = 30.0
-const MAX_SAFE_FALL_HEIGHT: float = 60.0
+# Raised from 60 along with the tile size: a vertical gap has to be at least
+# two tiles for a 30px-tall body to pass through it (see MAX_BODY_HEIGHT),
+# which is 64px, and a 60px safe fall would have killed a lemming dropping
+# through the smallest legal gap in the game.
+const MAX_SAFE_FALL_HEIGHT: float = 80.0
 const TERMINAL_FALL_SPEED: float = 600.0
 
 # Safety net for falling into a bottomless gap (e.g. Digger/Miner breaking

@@ -5,7 +5,7 @@ extends SceneTree
 ##   godot --headless --script res://tools/build_terrain_tileset.gd
 ## Replace with real terrain art later; the TileSet itself can stay.
 
-const TILE_SIZE := 16
+const TILE_SIZE := 32
 const TERRAIN_COLLISION_LAYER := 2
 
 

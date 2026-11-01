@@ -89,93 +89,105 @@ func _save_level(root: Node, path: String) -> void:
 	root.free()
 
 
+## Levels are laid out on the 32px terrain grid against the 800x450 viewport,
+## which is 25 columns by 14 rows. Vertical gaps a lemming has to drop through
+## are at least two rows: one row is 32px and the body is 30 tall, which
+## Constants.MAX_BODY_HEIGHT rules out as too tight to pass.
+
+
 ## Tutorial: flat floor, no obstacles, no skills.
 func _build_level_01() -> void:
 	var root := _new_level_root("Level01")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 39, 10, 13)
+	_paint_rect(terrain, 0, 24, 5, 6)
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(40, 120))
-	_add_exit(root, Vector2(560, 136))
+	_add_spawn(root, Vector2(48, 120))
+	_add_exit(root, Vector2(640, 136))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_01.tscn")
 
 
-## Digger: lemmings land on a thick, walled-in platform with no way down
-## except digging through it to a lower floor.
+## Digger: lemmings land on a walled-in platform with no way down except
+## digging through it. The platform is two tiles thick, and the drop to the
+## floor below is two tiles — within the safe fall height, so getting through
+## is a matter of digging rather than of surviving the landing.
 func _build_level_02() -> void:
 	var root := _new_level_root("Level02")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 39, 10, 13)  # upper platform (4 tiles thick, must be dug through)
-	_paint_rect(terrain, 0, 39, 17, 20)  # lower floor
-	_paint_rect(terrain, -1, -1, 0, 20)  # left boundary wall
-	_paint_rect(terrain, 40, 40, 0, 20)  # right boundary wall
+	_paint_rect(terrain, 0, 24, 5, 6)    # upper platform, must be dug through
+	_paint_rect(terrain, 0, 24, 9, 10)   # lower floor
+	_paint_rect(terrain, -1, -1, 0, 13)  # left boundary wall
+	_paint_rect(terrain, 25, 25, 0, 13)  # right boundary wall
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(40, 120))
-	_add_exit(root, Vector2(328, 248))
+	_add_spawn(root, Vector2(48, 120))
+	_add_exit(root, Vector2(400, 264))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_02.tscn")
 
 
-## Builder: a pit lemmings can't cross on foot; the far platform sits higher
-## by exactly 8 builder steps so the ascending staircase lands cleanly on it.
+## Builder: a pit lemmings cannot cross on foot, with the far platform higher
+## than the near one.
+##
+## NOTE: the builder step is now a full tile (32px) rather than the 8px it was
+## when this layout was first sized, so the gap and rise here no longer match
+## the staircase the Builder actually produces. Re-tune when the Builder is
+## the skill being validated — see the protocol in docs/game_design.md.
 func _build_level_03() -> void:
 	var root := _new_level_root("Level03")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 15, 14, 17)   # lower floor (spawn side)
-	_paint_rect(terrain, 20, 39, 10, 13)  # upper floor (exit side)
+	_paint_rect(terrain, 0, 7, 7, 8)    # lower floor (spawn side)
+	_paint_rect(terrain, 12, 24, 5, 6)  # upper floor (exit side)
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(40, 184))
-	_add_exit(root, Vector2(552, 136))
+	_add_spawn(root, Vector2(48, 184))
+	_add_exit(root, Vector2(640, 136))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_03.tscn")
 
 
-## Combination: Climber up a wall onto a short ledge, then Builder across a
-## pit onto a higher ledge (rise/gap sized to match the builder step math,
-## same as level 3) to reach the exit.
+## Combination: Climber up a wall onto a ledge, then Builder across a pit onto
+## a higher ledge to reach the exit. Carries the same Builder caveat as
+## level 3.
 func _build_level_04() -> void:
 	var root := _new_level_root("Level04")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 9, 20, 23)    # Floor A (spawn side)
-	_paint_rect(terrain, 10, 10, 8, 19)   # climbable wall
-	_paint_rect(terrain, 10, 15, 8, 8)    # Ledge B (post-climb landing)
-	_paint_rect(terrain, 20, 39, 4, 4)    # Ledge C (post-builder landing, exit)
+	_paint_rect(terrain, 0, 4, 10, 11)  # Floor A (spawn side)
+	_paint_rect(terrain, 5, 5, 4, 9)    # climbable wall
+	_paint_rect(terrain, 5, 8, 4, 4)    # Ledge B (post-climb landing)
+	_paint_rect(terrain, 12, 24, 2, 2)  # Ledge C (post-builder landing, exit)
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(40, 280))
-	_add_exit(root, Vector2(488, 40))
+	_add_spawn(root, Vector2(48, 280))
+	_add_exit(root, Vector2(600, 40))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_04.tscn")
 
 
 ## Sandbox: all 8 skills unlocked with generous counts. The exit sits on the
-## far side of a gap (fatal without Builder/Floater), NOT on the trivial
-## walking path, so lemmings actually need a skill to survive instead of
-## reaching it (or dying in the gap) within a few steps of spawning. A
-## climbable wall past the gap is there for Climber; the thick main floor
-## works for Digger/Basher/Miner.
+## far side of a gap, NOT on the trivial walking path, so lemmings actually
+## need a skill to get across instead of reaching it within a few steps of
+## spawning. A climbable wall past the gap is there for Climber; the thick
+## main floor works for Digger/Basher/Miner.
 func _build_level_05() -> void:
 	var root := _new_level_root("Level05")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 17, 10, 13)   # main floor, spawn side
-	_paint_rect(terrain, 22, 39, 10, 13)  # main floor, far side (exit)
-	_paint_rect(terrain, 18, 21, 17, 17)  # catch floor under the gap (fatal drop without Floater)
-	_paint_rect(terrain, -1, -1, 0, 20)   # left boundary wall
-	_paint_rect(terrain, 40, 40, 0, 20)   # right boundary wall
-	_paint_rect(terrain, 35, 35, 2, 9)    # climbable wall
-	_paint_rect(terrain, 35, 39, 2, 2)    # ledge after climbing
+	_paint_rect(terrain, 0, 9, 5, 6)     # main floor, spawn side
+	_paint_rect(terrain, 14, 24, 5, 6)   # main floor, far side (exit)
+	_paint_rect(terrain, 10, 13, 9, 9)   # catch floor under the gap
+	_paint_rect(terrain, -1, -1, 0, 13)  # left boundary wall
+	_paint_rect(terrain, 25, 25, 0, 13)  # right boundary wall
+	_paint_rect(terrain, 21, 21, 1, 4)   # climbable wall
+	_paint_rect(terrain, 21, 24, 1, 1)   # ledge after climbing
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(40, 120))
-	_add_exit(root, Vector2(500, 136))
+	_add_spawn(root, Vector2(48, 120))
+	_add_exit(root, Vector2(620, 136))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_05.tscn")

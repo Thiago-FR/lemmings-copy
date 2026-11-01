@@ -18,11 +18,10 @@ A escolha entre os dois caminhos é pelo **tamanho** da imagem:
 
 ## Caminho 1 — Geração por código (GDScript)
 
-Para o personagem (12×28), ícones pequenos e blocos de terreno sólidos.
+Para blocos de terreno e ícones simples.
 
 - Os geradores ficam em `tools/` e rodam pelo próprio Godot, sem nenhuma
-  dependência externa: `build_terrain_tileset.gd` (bloco de terreno) e
-  `build_lemming_placeholder.gd` (quadros do personagem).
+  dependência externa — hoje é o `build_terrain_tileset.gd`.
 - GDScript e não Python de propósito: o projeto fica com uma ferramenta só,
   a mesma que já é necessária para rodar os testes.
 - Vantagem: controle exato de cada pixel, resultado idêntico toda vez que
@@ -51,8 +50,12 @@ Para fundo de fase, textura de terreno e ícones do painel de habilidades.
 
 ## Ordem de execução
 
-Arte entra **depois** do gameplay, nunca antes. Enquanto as habilidades
-estão sendo validadas, o lemming é um retângulo sólido do tamanho exato da
-caixa de colisão — ver a seção de validação em [game_design.md](game_design.md).
-Sprite que não bate com a colisão foi justamente o que impediu de enxergar
-os bugs na primeira tentativa do projeto.
+Arte entra **depois** do gameplay, nunca antes. O personagem continua sendo
+o mago de `assets/sprites/characters/wizard/`, que já existia e já tem o
+tamanho certo em relação à colisão.
+
+Uma lição da primeira tentativa: **o tamanho do personagem define a grade do
+terreno, não o contrário.** Encolher o desenho para caber numa grade menor
+destrói a legibilidade. Se a arte final mudar as proporções do personagem,
+o tamanho do bloco tem que ser recalculado junto — ver seção 9 de
+[game_design.md](game_design.md).

@@ -64,6 +64,18 @@ func get_solid_cells_in_rect(world_rect: Rect2) -> Array[Vector2i]:
 	return solid_cells
 
 
+## Horizontal centre of the terrain column containing world_position.
+##
+## Digging skills line the lemming up with this before carving, so the shaft
+## is always exactly one tile wide. Carving whichever columns the body
+## happened to overlap instead produced a one-tile hole when it was aligned
+## and a two-tile hole when it straddled a boundary — the same action
+## leaving visibly different holes.
+func column_centre_x(world_position: Vector2) -> float:
+	var cell := local_to_map(to_local(world_position))
+	return to_global(map_to_local(cell)).x
+
+
 ## Cell coordinates overlapping a world-space rectangle. The far edge is
 ## pulled back by a hair so a rectangle ending exactly on a cell boundary
 ## does not pick up the next cell along, which would make every carve one
