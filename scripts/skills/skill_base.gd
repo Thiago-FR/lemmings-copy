@@ -43,6 +43,20 @@ func physics_process(_lemming: LemmingController, _delta: float) -> bool:
 	return false
 
 
+## For tools the lemming carries until it walks into a wall (see
+## LemmingController.pending_wall_tool): whether this wall is one the tool
+## can be used on. Returning false makes the lemming turn around as usual
+## and keep the tool for the next wall.
+func can_start_at_wall(_lemming: LemmingController) -> bool:
+	return false
+
+
+## Called when the lemming walks into a wall that can_start_at_wall()
+## accepted. The tool has already become the lemming's current_skill.
+func start_at_wall(_lemming: LemmingController) -> void:
+	pass
+
+
 ## Whether this skill takes exclusive control of the lemming through
 ## LemmingController.current_skill (the default for "action" skills like
 ## Digger/Builder/Basher/Miner/Blocker). Climber and Floater are permanent

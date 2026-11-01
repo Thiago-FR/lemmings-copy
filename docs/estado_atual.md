@@ -2,7 +2,8 @@
 
 Registro de onde o projeto está, o que foi decidido e por quê. Convenções de
 código em [CLAUDE.md](../CLAUDE.md), mecânicas em [game_design.md](game_design.md),
-geração de imagens em [art_pipeline.md](art_pipeline.md).
+geração de imagens em [art_pipeline.md](art_pipeline.md), ideias ainda não
+decididas em [ideias_futuras.md](ideias_futuras.md).
 
 O projeto estava parado desde 1º de agosto de 2026 porque as habilidades não
 funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
@@ -11,14 +12,15 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 
 | Item | Estado |
 |---|---|
-| Escavador vertical (`SkillDigger`) | ✅ fechado, com teste automático |
+| Pá (`SkillDigger`) | ✅ fechado, com teste automático |
+| Escada vertical (`SkillLadderVertical`) | ✅ fechado, com teste automático |
 | Geometria corpo × grade | ✅ regra definida e verificada em tempo de execução |
 | Morte visível | ✅ animação de esmagamento na queda + fade vermelho de 0,35s |
 | Instruções da fase na tela | ✅ |
 | Interface em português | ✅ inclusive nomes das fases e das habilidades |
 | Animação de escavar (frente) | ✅ com pá, mais lenta (20 px/s) |
 | Habilidades, entrada e saída desacopladas | ✅ ver "Arquitetura" abaixo |
-| Demais 7 habilidades | ⬜ pendentes |
+| Demais ferramentas | ⬜ pendentes (escada diagonal, ponte, escada horizontal, ...) |
 
 ## A causa raiz (o que travava tudo)
 
@@ -111,26 +113,68 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 | Rodar os testes | clique duplo em `run_tests.bat` |
 | Um teste só | `godot --headless res://tests/test_skill_digger.tscn` |
 | Teste da morte por queda | `godot --headless res://tests/test_fall_death.tscn` |
+| Teste da escada vertical | `godot --headless res://tests/test_tool_ladder_vertical.tscn` |
+| Jogar a fase da escada vertical sozinho | `godot --headless res://tests/test_level_ladder_vertical.tscn` |
 | Diagnóstico de queda | `godot --headless res://tests/diagnose_falling_through.tscn` |
 | Regerar o terreno | `godot --headless --script res://tools/build_terrain_tileset.gd` |
-| Regerar as fases | `godot --headless --script res://tools/build_test_levels.gd` |
+| Regerar as fases | `godot --headless --script res://tools/build_test_levels.gd` (regera todas; descarte com `git checkout` as que não mudaram de propósito, porque o Godot reescreve os ids internos) |
 | Regerar a animação de escavar | `python tools/build_dig_frames.py` |
 | Regerar a animação de morte | `python tools/build_death_frames.py` |
 
 O Godot está em `C:\Users\Thiago\Desktop\CriarJogos\Godot_v4.6-stable_win64.exe`
 e não está no PATH; os `.bat` já apontam para ele.
 
+## Ferramentas em vez de habilidades
+
+Decidido em 1º de novembro de 2026: o jogador **entrega uma ferramenta** ao
+boneco, e o botão mostra o nome da ferramenta, não de uma profissão. Pá em
+vez de Escavador, Escada diagonal em vez de Construtor. O código continua
+chamando de `skill` (`SkillBase`, `SkillManager`); só o `display_name` muda.
+
+Ferramentas previstas: Pá, Escada vertical, Escada diagonal (o `SkillBuilder`
+de hoje), Ponte e Escada horizontal.
+
+**Uma ferramenta por vez, cada uma com sua fase exclusiva no menu**, onde
+ela é a única disponível e o único jeito de chegar à saída. A fase é criada
+em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
+(`tests/test_level_<ferramenta>`). A fase "Livre" não recebe ferramenta nova.
+
+| Ferramenta | Fase exclusiva | Teste da ferramenta | Teste da fase |
+|---|---|---|---|
+| Pá | "A pá" (fase 2) | `test_skill_digger` | — |
+| Escada vertical | "Escada vertical" (fase 6) | `test_tool_ladder_vertical` | `test_level_ladder_vertical` |
+
+### Escada vertical
+
+- **Não destrói terreno.** Sobe pelo espaço vazio, encostada numa parede,
+  até o topo ficar no nível de cima da parede; o boneco sai para cima dela.
+- **O boneco guarda a escada** quando recebe a ferramenta e a usa sozinho na
+  próxima parede em que encostar (`LemmingController.pending_wall_tool`,
+  ganchos `can_start_at_wall`/`start_at_wall` em `SkillBase`). Motivo: o
+  boneco vira no instante em que toca a parede, então não há momento para o
+  jogador clicar nele parado ali. Parede alta demais (`max_segments`, 12) ou
+  coluna bloqueada acima: ele vira normalmente e guarda a escada para a
+  próxima. Quem já carrega uma escada recusa outra.
+- **Coloca um segmento e sobe nele, coloca o próximo e sobe**, no mesmo
+  ritmo da Pá descendo. Nunca fica mais de um segmento acima do boneco.
+- Depois do último segmento, termina de subir com o comportamento comum a
+  todo boneco (`LemmingController._try_grab_ladder`): quem anda ou cai e
+  passa pelo centro de uma escada agarra e sobe.
+- No topo, sai para o lado que tem chão (para a frente, senão para trás).
+  Se nenhum lado tem chão (escada ainda sendo montada), **espera no último
+  degrau** em vez de cair, e continua quando a escada cresce.
+- A animação de montar ainda é a de costas (que mostra a mochila).
+  Falta uma animação própria de tirar a escada da mochila.
+- Fase exclusiva: "Escada vertical" (fase 6): chão e uma plataforma alta
+  com a saída em cima.
+
 ## Próximo passo
 
-Escavador horizontal (`SkillBasher`), seguindo o protocolo da seção 10 de
-[game_design.md](game_design.md): corrigir, escrever
-`tests/test_skill_basher`, cobrir os dois alinhamentos de grade, verificar
-que o lemming **chega** do outro lado e não só que se moveu, e só então
-passar para o Construtor.
-
-Ao chegar no Construtor, lembrar que as fases 3 e 4 foram montadas assumindo
-degrau de 8px e hoje o degrau é de 32px — a geometria delas precisa ser
-refeita em `tools/build_test_levels.gd`.
+Escada diagonal (`SkillBuilder` hoje). O código atual deu muito problema e
+precisa ser investigado antes de decidir o formato, seguindo o protocolo da
+seção 10 de [game_design.md](game_design.md). Lembrar que as fases 3 e 4
+foram montadas assumindo degrau de 8px e hoje o degrau é de 32px — a
+geometria delas precisa ser refeita em `tools/build_test_levels.gd`.
 
 ## Pendências de arte
 

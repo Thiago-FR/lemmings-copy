@@ -1,5 +1,5 @@
 extends SceneTree
-## One-off build script: generates the 4 MVP test level scenes (terrain +
+## One-off build script: generates the test level scenes (terrain +
 ## spawn/exit points + HUD + skill panel). Building the TileMapLayer's
 ## painted cells through the actual TileMapLayer API avoids hand-authoring
 ## its binary tile_data by hand in a .tscn. Run via:
@@ -30,6 +30,7 @@ func _initialize() -> void:
 	_build_level_03()
 	_build_level_04()
 	_build_level_05()
+	_build_level_06()
 
 	quit()
 
@@ -191,3 +192,25 @@ func _build_level_05() -> void:
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_05.tscn")
+
+
+## Vertical ladder: lemmings walk along a floor towards a platform five
+## tiles tall, and the exit is on top of it. Nothing is in the way to dig
+## through; the only route up is a ladder raised against the platform's wall.
+## The boundary walls go well above the screen so a lemming carrying the
+## ladder into one of them finds it too tall and keeps the ladder for the
+## platform.
+func _build_level_06() -> void:
+	var root := _new_level_root("Level06")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 11, 12)    # floor
+	_paint_rect(terrain, 15, 24, 6, 10)    # high platform, exit on top
+	_paint_rect(terrain, -1, -1, -20, 13)  # left boundary wall
+	_paint_rect(terrain, 25, 25, -20, 13)  # right boundary wall
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(640, 168))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_06.tscn")

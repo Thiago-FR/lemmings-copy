@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_script")
-level_name = "Construtor"
-instructions = "Ha um vao no caminho que nenhum lemming atravessa andando. Clique na habilidade Construtor e depois num lemming perto da beirada para ele construir uma escada e atravessar."
+level_name = "Escada diagonal"
+instructions = "Ha um vao no caminho que nenhum lemming atravessa andando. Clique na Escada diagonal e depois num lemming perto da beirada para ele construir uma escada e atravessar."
 spawn_rate = 2.0
 total_lemmings = 5
 required_percentage = 0.6

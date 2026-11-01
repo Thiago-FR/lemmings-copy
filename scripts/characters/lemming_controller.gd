@@ -27,6 +27,10 @@ const DEATH_FADE_COLOUR := Color(1.0, 0.25, 0.2, 0.0)
 const STATE_ANIMATIONS := {
 	LemmingStateMachine.State.CLIMBING: &"climb",
 	LemmingStateMachine.State.DIGGING: &"dig",
+	# Back view, which shows the backpack the ladder comes out of. Stands in
+	# for a dedicated "pulling the ladder out" animation until that exists.
+	LemmingStateMachine.State.LADDER_PLACING: &"climb",
+	LemmingStateMachine.State.LADDER_CLIMBING: &"climb",
 }
 const DEFAULT_ANIMATION := &"walk"
 
@@ -49,10 +53,20 @@ var terrain: TerrainDestructible = null
 var direction: int = 1
 var current_skill: SkillBase = null
 
+## Pixels per second this lemming climbs a ladder. Read by the ladder tool
+## while it builds too, so building and climbing move at the same pace.
+var ladder_climb_speed: float = Constants.LADDER_CLIMB_SPEED
+
 # Persistent traits (Climber/Floater): unlike other skills, these don't
 # occupy current_skill or a single active state; they permanently change how
 # WALKING/FALLING behave. See SkillClimber/SkillFloater.
 var has_climber_skill: bool = false
+
+## A tool the lemming carries until it walks into a wall (the vertical
+## ladder). Handing it over on click and using it on arrival is what makes it
+## usable at all: a lemming turns around the instant it touches a wall, so
+## there is no moment for the player to click on it while it stands there.
+var pending_wall_tool: SkillBase = null
 var has_floater_skill: bool = false
 
 # Bomber ticks independently of current_skill/state so the lemming keeps
@@ -127,6 +141,18 @@ func get_body_rect() -> Rect2:
 	return Rect2(_collision_shape.global_position - half, half * 2.0)
 
 
+## Moves the lemming sideways so its collision box is centred on the terrain
+## column it is standing in. Tools that work in a single column (shovel,
+## vertical ladder) call this first: the body is narrower than a tile, so
+## once centred it only ever overlaps that one column.
+func snap_to_column_centre() -> void:
+	# Centre the collision box, not the node: the shape sits at a small
+	# offset from the node origin, and snapping the origin would leave the
+	# body itself off-centre in the column.
+	var body_centre := get_body_rect().get_center()
+	global_position.x += terrain.column_centre_x(body_centre) - body_centre.x
+
+
 ## World position at the lemming's feet, used by digging skills to find
 ## which terrain cell to remove next. Nudged past the collision boundary
 ## (see Constants.GROUND_PROBE_EPSILON) so it reliably lands inside the
@@ -181,6 +207,9 @@ func _physics_process(delta: float) -> void:
 			_process_climbing()
 		LemmingStateMachine.State.FLOATING:
 			_process_floating()
+		LemmingStateMachine.State.LADDER_CLIMBING:
+			_process_ladder_climbing(delta)
+			uses_physics_movement = false
 		_:
 			_process_skill(delta)
 			uses_physics_movement = false
@@ -216,6 +245,8 @@ func _update_animation() -> void:
 
 func _process_falling() -> void:
 	velocity.x = 0.0
+	if _try_grab_ladder():
+		return
 	if is_on_floor():
 		_land()
 	elif _fell_into_void():
@@ -268,6 +299,11 @@ func _process_walking() -> void:
 	# sides, so when the wall check came first it turned around every frame
 	# and never reached the floor check — hovering in mid-air at the bottom
 	# of the shaft it had just dug instead of falling down it.
+	# Before the floor check, so a lemming walking past a ladder that starts
+	# at its own feet takes it instead of just walking by.
+	if _try_grab_ladder():
+		return
+
 	if not is_on_floor():
 		_start_falling()
 		return
@@ -280,6 +316,8 @@ func _process_walking() -> void:
 	var step_height := _forward_step_height()
 
 	if step_height < 0.0:
+		if _try_start_wall_tool():
+			return
 		if has_climber_skill:
 			state_machine.change_state(LemmingStateMachine.State.CLIMBING)
 			return
@@ -335,6 +373,84 @@ func _process_skill(delta: float) -> void:
 		current_skill = null
 		if state_machine.is_alive():
 			state_machine.change_state(LemmingStateMachine.State.WALKING)
+
+
+## Any walking or falling lemming whose body centre reaches a ladder takes
+## it, so a ladder placed by one lemming is used by every lemming that comes
+## along afterwards. A lemming that walks off the top edge into the ladder's
+## shaft grabs it on the way down and climbs back out instead of dropping.
+func _try_grab_ladder() -> bool:
+	var centre := get_body_rect().get_center()
+	if not terrain.is_ladder_at(centre):
+		return false
+	if absf(terrain.column_centre_x(centre) - centre.x) > Constants.LADDER_GRAB_DISTANCE:
+		return false
+	snap_to_column_centre()
+	velocity = Vector2.ZERO
+	state_machine.change_state(LemmingStateMachine.State.LADDER_CLIMBING)
+	return true
+
+
+## Climbs straight up until the feet clear the top rung, then steps off to
+## the side. Position is driven directly, like the action skills, because a
+## ladder cell has no collision for physics to rest the body on.
+func _process_ladder_climbing(delta: float) -> void:
+	velocity = Vector2.ZERO
+	global_position.y -= ladder_climb_speed * delta
+
+	var body := get_body_rect()
+	var just_above_feet := Vector2(body.get_center().x, body.end.y - Constants.GROUND_PROBE_EPSILON)
+	if not terrain.is_ladder_at(just_above_feet):
+		# Feet exactly level with the top rung, so stepping sideways lands
+		# the body on the surrounding ground rather than slightly inside it.
+		var top_rung_y := terrain.cell_rect_at(just_above_feet).end.y
+		global_position.y += top_rung_y - body.end.y
+		_step_off_ladder_top()
+
+
+## The top rung has nothing to stand on itself, so the lemming moves one tile
+## sideways onto ground: ahead if there is ground there, otherwise behind.
+## With ground on neither side (a ladder still being built, or one leading
+## nowhere) it holds on at the top rung instead of stepping into a fall, and
+## carries on as soon as the ladder grows. Same one-tile step Climber takes
+## onto a ledge.
+func _step_off_ladder_top() -> void:
+	var tile_width := terrain.get_cell_size().x
+	for side in [direction, -direction]:
+		if _can_stand_at(Vector2(tile_width * side, 0.0)):
+			if side != direction:
+				turn_around()
+			global_position.x += tile_width * side
+			_fall_start_y = position.y
+			state_machine.change_state(LemmingStateMachine.State.WALKING)
+			return
+
+
+## Whether the body, moved by offset, would be clear of terrain and standing
+## on solid ground.
+func _can_stand_at(offset: Vector2) -> bool:
+	if _is_body_blocked_at(offset):
+		return false
+	return terrain.is_solid_at(get_feet_position() + offset)
+
+
+func _try_start_wall_tool() -> bool:
+	if pending_wall_tool == null or not pending_wall_tool.can_start_at_wall(self):
+		return false
+	var tool := pending_wall_tool
+	pending_wall_tool = null
+	current_skill = tool
+	tool.start_at_wall(self)
+	return true
+
+
+## Whether the body would overlap solid terrain if moved by offset. Inset by
+## a pixel so merely touching a surface does not count as overlapping it.
+func _is_body_blocked_at(offset: Vector2) -> bool:
+	const INSET := 1.0
+	var moved_body := get_body_rect()
+	moved_body.position += offset
+	return terrain.is_solid_in_rect(moved_body.grow(-INSET))
 
 
 func turn_around() -> void:

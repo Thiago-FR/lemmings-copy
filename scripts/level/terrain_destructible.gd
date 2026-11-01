@@ -9,8 +9,13 @@ extends TileMapLayer
 ## stage (see tools/build_terrain_tileset.gd): stage 0 is a full block and
 ## each later stage has more of its top removed, with matching collision.
 ## Every query here only counts the part of a cell that is still there.
+##
+## A cell can also hold a ladder (a second atlas source with no collision).
+## Ladders are not solid: lemmings pass through them, and climbing is decided
+## by is_ladder_at(). Digging and carving leave them alone.
 
 const TERRAIN_SOURCE_ID := 0
+const LADDER_SOURCE_ID := 1
 
 
 func _ready() -> void:
@@ -40,7 +45,7 @@ func dig_stage_in_rect(world_rect: Rect2) -> int:
 	var last_stage := get_dig_stage_count() - 1
 	var touched_count := 0
 	for cell in _cells_overlapping(world_rect):
-		if get_cell_source_id(cell) == -1:
+		if not _is_terrain_cell(cell):
 			continue
 		var stage := _dig_stage_of(cell)
 		if stage >= last_stage:
@@ -57,13 +62,32 @@ func dig_stage_in_rect(world_rect: Rect2) -> int:
 func solid_top_y_at(world_position: Vector2) -> float:
 	var rect := cell_rect_at(world_position)
 	var cell := local_to_map(to_local(world_position))
-	if get_cell_source_id(cell) == -1:
+	if not _is_terrain_cell(cell):
 		return rect.end.y
 	return rect.position.y + _dig_stage_of(cell) * get_dig_stage_height()
 
 
 func _dig_stage_of(cell: Vector2i) -> int:
 	return get_cell_atlas_coords(cell).x
+
+
+func _is_terrain_cell(cell: Vector2i) -> bool:
+	return get_cell_source_id(cell) == TERRAIN_SOURCE_ID
+
+
+## Whether the cell containing world_position holds a ladder.
+func is_ladder_at(world_position: Vector2) -> bool:
+	return get_cell_source_id(local_to_map(to_local(world_position))) == LADDER_SOURCE_ID
+
+
+## Turns the cell containing world_position into a ladder, replacing
+## whatever terrain was there. Returns whether that cell was terrain before,
+## which is how a ladder tool knows it has been tunnelling through rock.
+func place_ladder_at(world_position: Vector2) -> bool:
+	var cell := local_to_map(to_local(world_position))
+	var was_terrain := _is_terrain_cell(cell)
+	set_cell(cell, LADDER_SOURCE_ID, Vector2i.ZERO)
+	return was_terrain
 
 
 ## Size of one terrain cell in pixels. Skills step and carve in multiples of
@@ -82,14 +106,14 @@ func cell_rect_at(world_position: Vector2) -> Rect2:
 
 func is_solid_at(world_position: Vector2) -> bool:
 	var cell := local_to_map(to_local(world_position))
-	if get_cell_source_id(cell) == -1:
+	if not _is_terrain_cell(cell):
 		return false
 	return world_position.y >= solid_top_y_at(world_position)
 
 
 func destroy_cell_at(world_position: Vector2) -> bool:
 	var cell := local_to_map(to_local(world_position))
-	if get_cell_source_id(cell) == -1:
+	if not _is_terrain_cell(cell):
 		return false
 	erase_cell(cell)
 	return true
@@ -113,7 +137,7 @@ func build_cell_at(world_position: Vector2) -> void:
 func destroy_rect(world_rect: Rect2) -> int:
 	var destroyed_count := 0
 	for cell in _cells_overlapping(world_rect):
-		if get_cell_source_id(cell) != -1:
+		if _is_terrain_cell(cell):
 			erase_cell(cell)
 			destroyed_count += 1
 	return destroyed_count
@@ -131,7 +155,7 @@ func is_solid_in_rect(world_rect: Rect2) -> bool:
 func get_solid_cells_in_rect(world_rect: Rect2) -> Array[Vector2i]:
 	var solid_cells: Array[Vector2i] = []
 	for cell in _cells_overlapping(world_rect):
-		if get_cell_source_id(cell) == -1:
+		if not _is_terrain_cell(cell):
 			continue
 		# A partly dug cell only counts if the rectangle reaches down into
 		# the part that is still there, not just into the dug-out top.

@@ -201,9 +201,10 @@ Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
 
 | Ordem | Habilidade | Estado |
 |---|---|---|
-| 1 | Digger (vertical) | ✅ fechado |
+| 1 | Digger (vertical) — botão "Pá" | ✅ fechado |
+| 1b | Escada vertical (nova) | ✅ fechado |
 | 2 | Basher (horizontal) | pendente |
-| 3 | Builder (escada) | pendente |
+| 3 | Builder — botão "Escada diagonal" | pendente, precisa de investigação |
 | 4 | Miner (diagonal) | pendente |
 | 5 | Climber | pendente |
 | 6 | Blocker | pendente |

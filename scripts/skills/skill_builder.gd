@@ -15,7 +15,7 @@ var _time_since_last_step: float = 0.0
 
 func _init() -> void:
 	id = &"builder"
-	display_name = "Construtor"
+	display_name = "Escada diagonal"
 
 
 func apply_to(lemming: LemmingController) -> void:

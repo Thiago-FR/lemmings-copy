@@ -16,26 +16,16 @@ var _descent_remaining: float = 0.0
 
 func _init() -> void:
 	id = &"digger"
-	display_name = "Escavador"
+	display_name = "Pá"
 
 
 func apply_to(lemming: LemmingController) -> void:
 	lemming.velocity = Vector2.ZERO
-	_centre_body_on_column(lemming)
+	# Every shaft comes out exactly one column wide only if the body is
+	# centred first. Without it the same tool dug a one-tile hole from one
+	# standing position and a two-tile hole from another, half a tile away.
+	lemming.snap_to_column_centre()
 	lemming.state_machine.change_state(LemmingStateMachine.State.DIGGING)
-
-
-## The body is narrower than a tile, so once centred it only ever overlaps
-## one column and every shaft comes out the same width. Without this the
-## same skill dug a one-tile hole from one standing position and a two-tile
-## hole from another, half a tile away.
-func _centre_body_on_column(lemming: LemmingController) -> void:
-	# Centre the collision box, not the node: the shape sits at a small
-	# offset from the node origin, and snapping the origin would leave the
-	# body itself off-centre inside the shaft.
-	var body_centre := lemming.get_body_rect().get_center()
-	var shape_offset := lemming.global_position.x - body_centre.x
-	lemming.global_position.x = lemming.terrain.column_centre_x(body_centre) + shape_offset
 
 
 func physics_process(lemming: LemmingController, delta: float) -> bool:

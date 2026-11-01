@@ -34,6 +34,14 @@ const GRAVITY: float = 900.0
 # At roughly one body width every half second they stay visibly separated.
 const WALK_SPEED: float = 50.0
 const CLIMB_SPEED: float = 18.0
+# Ladders are a deliberate route, not a struggle up a bare wall, so they are
+# climbed faster than Climber climbs rock.
+const LADDER_CLIMB_SPEED: float = 30.0
+# How close to a ladder's centre a lemming has to be before it grabs it.
+# A walker moves under a pixel per frame, so it always passes within this;
+# grabbing anywhere in the ladder's cell would snap the body sideways by up
+# to half a tile.
+const LADDER_GRAB_DISTANCE: float = 4.0
 const FLOAT_FALL_SPEED: float = 30.0
 # Raised from 60 along with the tile size: a vertical gap has to be at least
 # two tiles for a 30px-tall body to pass through it (see MAX_BODY_HEIGHT),

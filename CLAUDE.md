@@ -103,3 +103,5 @@ pronto, as armadilhas que já custaram tempo e os comandos para rodar tudo.
 - `docs/game_design.md` — mecânicas, fases, a regra de geometria (seção 9) e
   o protocolo de validação das habilidades (seção 10).
 - `docs/art_pipeline.md` — como as imagens são geradas e o que foi descartado.
+- `docs/ideias_futuras.md` — ideias anotadas para analisar depois (nada ali
+  é para implementar sem o usuário pedir).

@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1_script")
-level_name = "Livre (todas as habilidades)"
-instructions = "Todas as 8 habilidades liberadas. A SAIDA (verde) fica do outro lado de um vao fatal - sem Construtor ou Paraquedista o lemming cai e morre. Use a parede pra testar o Escalador e o piso grosso pra testar Escavador, Perfurador e Minerador."
+level_name = "Livre (todas as ferramentas)"
+instructions = "Todas as ferramentas liberadas. A SAIDA (verde) fica do outro lado de um vao fatal - sem Escada diagonal ou Paraquedista o lemming cai e morre. Use a parede pra testar o Escalador e o piso grosso pra testar Pá, Perfurador e Minerador. Use a Escada vertical embaixo de um teto pra subir atraves dele."
 spawn_rate = 1.0
 total_lemmings = 200
 required_percentage = 0.1
 time_limit_seconds = 240
-available_skills = Array[String](["climber", "floater", "blocker", "builder", "basher", "miner", "digger", "bomber"])
+available_skills = Array[String](["climber", "floater", "blocker", "builder", "basher", "miner", "digger", "bomber", "ladder_vertical"])
 skill_counts = {
 "climber": 50,
 "floater": 50,
@@ -19,6 +19,7 @@ skill_counts = {
 "basher": 50,
 "miner": 50,
 "digger": 50,
-"bomber": 50
+"bomber": 50,
+"ladder_vertical": 50
 }
 scene_path = "res://scenes/levels/level_05.tscn"
