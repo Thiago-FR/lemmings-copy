@@ -28,10 +28,14 @@ func _initialize() -> void:
 	_build_level_01()
 	_build_level_02()
 	_build_level_03()
-	_build_level_04()
-	_build_level_05()
 	_build_level_06()
 	_build_level_07()
+	_build_level_08()
+	_build_level_09()
+	_build_level_10()
+	_build_level_11()
+	_build_level_12()
+	_build_level_13()
 
 	quit()
 
@@ -154,49 +158,6 @@ func _build_level_03() -> void:
 	_save_level(root, "res://scenes/levels/level_03.tscn")
 
 
-## Combination: Climber up a wall onto a ledge, then Builder across a pit onto
-## a higher ledge to reach the exit. Carries the same Builder caveat as
-## level 3.
-func _build_level_04() -> void:
-	var root := _new_level_root("Level04")
-	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 4, 10, 11)  # Floor A (spawn side)
-	_paint_rect(terrain, 5, 5, 4, 9)    # climbable wall
-	_paint_rect(terrain, 5, 8, 4, 4)    # Ledge B (post-climb landing)
-	_paint_rect(terrain, 12, 24, 2, 2)  # Ledge C (post-builder landing, exit)
-	_add_child_owned(root, terrain)
-
-	_add_spawn(root, Vector2(48, 280))
-	_add_exit(root, Vector2(600, 40))
-	_add_ui(root)
-
-	_save_level(root, "res://scenes/levels/level_04.tscn")
-
-
-## Sandbox: all 8 skills unlocked with generous counts. The exit sits on the
-## far side of a gap, NOT on the trivial walking path, so lemmings actually
-## need a skill to get across instead of reaching it within a few steps of
-## spawning. A climbable wall past the gap is there for Climber; the thick
-## main floor works for Digger/Basher/Miner.
-func _build_level_05() -> void:
-	var root := _new_level_root("Level05")
-	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 9, 5, 6)     # main floor, spawn side
-	_paint_rect(terrain, 14, 24, 5, 6)   # main floor, far side (exit)
-	_paint_rect(terrain, 10, 13, 9, 9)   # catch floor under the gap
-	_paint_rect(terrain, -1, -1, 0, 13)  # left boundary wall
-	_paint_rect(terrain, 25, 25, 0, 13)  # right boundary wall
-	_paint_rect(terrain, 21, 21, 1, 4)   # climbable wall
-	_paint_rect(terrain, 21, 24, 1, 1)   # ledge after climbing
-	_add_child_owned(root, terrain)
-
-	_add_spawn(root, Vector2(48, 120))
-	_add_exit(root, Vector2(620, 136))
-	_add_ui(root)
-
-	_save_level(root, "res://scenes/levels/level_05.tscn")
-
-
 ## Vertical ladder: lemmings walk along a floor towards a platform five
 ## tiles tall, and the exit is on top of it. Nothing is in the way to dig
 ## through; the only route up is a ladder raised against the platform's wall.
@@ -239,3 +200,123 @@ func _build_level_07() -> void:
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_07.tscn")
+
+
+## The boundary walls every level from 6 on uses: they go well above the
+## screen so nothing walks or climbs out over them.
+func _paint_boundary_walls(terrain: TileMapLayer) -> void:
+	_paint_rect(terrain, -1, -1, -20, 13)  # left boundary wall
+	_paint_rect(terrain, 25, 25, -20, 13)  # right boundary wall
+
+
+## Parachute: the entrance is on a ledge eight tiles (256px) above the floor
+## the exit stands on, far beyond the safe fall height. Lemmings walk off the
+## ledge's end; only the ones holding a parachute survive the drop.
+func _build_level_08() -> void:
+	var root := _new_level_root("Level08")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 7, 3, 4)      # high ledge, entrance side
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor, exit side
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 40))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_08.tscn")
+
+
+## Climber: the same layout as the vertical ladder's level, a platform five
+## tiles tall with the exit on top, but nothing gets built: a lemming with
+## the climber goes straight up the platform's wall. The exit is reached
+## before the right boundary wall, which a climber would otherwise go up too.
+func _build_level_09() -> void:
+	var root := _new_level_root("Level09")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor
+	_paint_rect(terrain, 15, 24, 6, 10)   # high platform, exit on top
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(640, 168))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_09.tscn")
+
+
+## Blocker: lemmings start in the middle of the floor walking right, towards
+## a gap with nothing under it at the floor's end. The exit is behind them,
+## at the left. A blocker placed between the entrance and the gap turns
+## everyone else back towards the exit. The gap starts eight tiles past the
+## entrance, giving the player a few seconds to react.
+func _build_level_10() -> void:
+	var root := _new_level_root("Level10")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 19, 11, 12)   # floor, bottomless gap beyond it
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(400, 296))
+	_add_exit(root, Vector2(80, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_10.tscn")
+
+
+## Bomber: lemmings drop into a pen two tiles wide, closed on the left by a
+## thick block and on the right by a wall one tile thick; the exit is beyond
+## that wall. The pen is narrow on purpose: a bomber keeps walking while its
+## fuse burns, and in here it is never far from the thin wall when it goes
+## off, so the blast always opens it.
+func _build_level_11() -> void:
+	var root := _new_level_root("Level11")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor
+	_paint_rect(terrain, 0, 9, 7, 10)     # thick block, left side of the pen
+	_paint_rect(terrain, 12, 12, 7, 10)   # thin wall, right side of the pen
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(352, 296))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_11.tscn")
+
+
+## Basher: a wall three tiles thick and six tall stands on the floor between
+## the entrance and the exit, too tall to climb onto and too thick for
+## anything but a tunnel.
+func _build_level_12() -> void:
+	var root := _new_level_root("Level12")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor
+	_paint_rect(terrain, 14, 16, 5, 10)   # thick wall
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_12.tscn")
+
+
+## Pickaxe: a hill of earth four tiles thick and six tall stands on the
+## floor between the entrance and the exit, too tall to climb onto; the way
+## through is a tunnel dug straight ahead at walking height.
+func _build_level_13() -> void:
+	var root := _new_level_root("Level13")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor
+	_paint_rect(terrain, 13, 16, 5, 10)   # hill of earth
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_13.tscn")

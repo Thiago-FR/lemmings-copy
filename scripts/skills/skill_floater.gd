@@ -7,7 +7,7 @@ extends SkillBase
 
 func _init() -> void:
 	id = &"floater"
-	display_name = "Paraquedista"
+	display_name = "Paraquedas"
 
 
 func can_apply_to(lemming: LemmingController) -> bool:
@@ -16,6 +16,11 @@ func can_apply_to(lemming: LemmingController) -> bool:
 
 func apply_to(lemming: LemmingController) -> void:
 	lemming.has_floater_skill = true
+	# The trait only takes effect when a fall starts, so a lemming handed the
+	# parachute already falling kept falling and died on landing, even though
+	# the tool was accepted and its charge spent. It opens right away instead.
+	if lemming.state_machine.current_state == LemmingStateMachine.State.FALLING:
+		lemming.state_machine.change_state(LemmingStateMachine.State.FLOATING)
 
 
 func occupies_skill_slot() -> bool:

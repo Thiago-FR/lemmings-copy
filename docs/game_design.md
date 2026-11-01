@@ -47,7 +47,7 @@ Sugestão de `enum LemmingState`:
 | Blocker  | Para no lugar e vira barreira; outros lemmings que o encontram invertem a direção. |
 | Builder  | Constrói uma escada/ponte de blocos na direção do movimento (número limitado de degraus). |
 | Basher   | Escava horizontalmente através de terreno destrutível. |
-| Miner    | Escava na diagonal, para baixo e para frente. |
+| Miner    | No original, escava na diagonal. Aqui é a Picareta: a Pá na horizontal (túnel reto de um bloco de altura). |
 | Digger   | Escava um túnel verticalmente para baixo. |
 | Bomber   | Detona o lemming após uma contagem (5s), destruindo o terreno ao redor num raio. Também serve como forma de eliminar lemmings excedentes. |
 
@@ -203,14 +203,14 @@ Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
 |---|---|---|
 | 1 | Digger (vertical) — botão "Pá" | ✅ fechado |
 | 1b | Escada vertical (nova) | ✅ fechado |
-| 2 | Basher (horizontal) | pendente |
+| 2 | Basher (horizontal) — botão "Britadeira" | ✅ fechado (fase 12) |
 | 3 | Builder — botão "Escada diagonal" | ✅ refeita (degraus de 8px) |
-| 4 | Miner (diagonal) | pendente |
-| 5 | Climber | pendente |
-| 6 | Blocker | pendente |
-| 7 | Floater | pendente |
-| 8 | Bomber | pendente |
+| 4 | Miner — botão "Picareta", refeita como Pá na horizontal | ✅ fechado (fase 13) |
+| 5 | Climber — botão "Garras" | ✅ fechado (fase 9) |
+| 6 | Blocker — botão "Escudo" | ✅ fechado (fase 10) |
+| 7 | Floater — botão "Paraquedas" | ✅ fechado (fase 8) |
+| 8 | Bomber — botão "Bomba" | ✅ fechado (fase 11) |
 
 **Builder (Escada diagonal):** voltou a ter degraus de 8px, agora como
 tijolos fora da grade (ver `estado_atual.md`). A fase 3 foi refeita para
-ele. A fase 4 (Escalador + Escada diagonal) ainda não foi revista.
+ele. A antiga fase 4 (Escalador + Escada diagonal) foi removida.

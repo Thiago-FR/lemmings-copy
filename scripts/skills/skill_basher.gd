@@ -4,14 +4,22 @@ extends SkillBase
 ## tile at a time, until it breaks into open space, loses its footing, or
 ## max_duration_seconds runs out (real terrain is always finite, but this
 ## guards against pathological cases).
+##
+## Given to a walking lemming, it is carried until the lemming walks into a
+## wall and used there (see LemmingController.pending_wall_tool), like the
+## vertical ladder. It used to start on the spot, which made it unusable: a
+## lemming turns around the instant it touches a wall, so it is never
+## standing against one for the player to click, and started anywhere else
+## it found nothing ahead to dig and stopped at once.
 
 ## Seconds between two consecutive tiles being cleared.
 @export var dig_interval_seconds: float = 0.15
 ## Safety cap on how long a single bash can run.
 @export var max_duration_seconds: float = 6.0
-## How many tiles tall the tunnel is, so the lemming (and anyone following
-## it) has headroom to walk through.
-@export var tunnel_height_tiles: int = 2
+## How many tiles tall the tunnel is. One is enough headroom: the body is
+## 30px tall and a block 32px. Two broke the block above the lemming too,
+## which looked wrong.
+@export var tunnel_height_tiles: int = 1
 
 var _time_since_last_bash: float = 0.0
 var _elapsed_seconds: float = 0.0
@@ -19,10 +27,29 @@ var _elapsed_seconds: float = 0.0
 
 func _init() -> void:
 	id = &"basher"
-	display_name = "Perfurador"
+	display_name = "Britadeira"
 
 
+func can_apply_to(lemming: LemmingController) -> bool:
+	return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING \
+		and lemming.pending_wall_tool == null
+
+
+## Carried, not used yet: the bashing starts at the next wall.
 func apply_to(lemming: LemmingController) -> void:
+	lemming.pending_wall_tool = self
+
+
+func occupies_skill_slot() -> bool:
+	return false
+
+
+## Any wall will do: there is always something ahead to dig.
+func can_start_at_wall(_lemming: LemmingController) -> bool:
+	return true
+
+
+func start_at_wall(lemming: LemmingController) -> void:
 	lemming.velocity.x = 0.0
 	lemming.state_machine.change_state(LemmingStateMachine.State.BASHING)
 

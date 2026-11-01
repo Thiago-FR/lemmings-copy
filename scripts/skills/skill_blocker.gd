@@ -8,7 +8,7 @@ extends SkillBase
 
 func _init() -> void:
 	id = &"blocker"
-	display_name = "Bloqueador"
+	display_name = "Escudo"
 
 
 func can_apply_to(lemming: LemmingController) -> bool:

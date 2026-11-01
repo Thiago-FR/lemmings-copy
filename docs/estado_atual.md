@@ -18,11 +18,15 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 | Ponte (`SkillBridge`) | ✅ nova, com teste automático |
 | Geometria corpo × grade | ✅ regra definida e verificada em tempo de execução |
 | Morte visível | ✅ animação de esmagamento na queda + fade vermelho de 0,35s |
-| Instruções da fase na tela | ✅ |
+| Instruções da fase | ✅ num botão "i" do HUD, aparecem ao passar o mouse (`InfoButton`) |
 | Interface em português | ✅ inclusive nomes das fases e das habilidades |
 | Animação de escavar (frente) | ✅ com pá, mais lenta (20 px/s) |
 | Habilidades, entrada e saída desacopladas | ✅ ver "Arquitetura" abaixo |
-| Demais ferramentas | ⬜ pendentes (escada horizontal, ...) |
+| Garras, Escudo, Bomba, Britadeira, Picareta, Paraquedas | ✅ cada uma com fase e testes (ver abaixo) |
+| Botões Pausar/Continuar, Reiniciar, Menu | ✅ em toda fase (`GameControlsController`, no HUD) |
+| Menu com rolagem | ✅ Tutorial, Modo livre e uma fase por ferramenta |
+| Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
+| Animação de paraquedas | ✅ `float`, no estado FLOATING |
 
 ## A causa raiz (o que travava tudo)
 
@@ -74,6 +78,15 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
   ter uma animação em `DEATH_ANIMATIONS`; hoje só a queda tem.
 
 ## Armadilhas que custaram tempo (não repetir)
+
+- **Teste que não compila fica rodando para sempre.** Com erro de sintaxe
+  num script de teste o Godot não sai sozinho. E `| head` na saída do Godot
+  também trava (o processo fica bloqueado escrevendo). Rodar os testes com
+  `timeout 240 <godot> ...` e mandar a saída para um arquivo.
+- **Parâmetro tipado com boneco morto.** Passar um boneco já liberado a um
+  parâmetro `LemmingController` é erro de script que aborta a função **sem
+  falhar o teste**: um boneco que morreu passava. Os auxiliares de teste
+  recebem `Variant` e checam `is_instance_valid` primeiro.
 
 - **Buracos de tamanhos diferentes.** Escavar "as colunas que o corpo
   encosta" abre um buraco de uma coluna quando o lemming está alinhado e de
@@ -133,17 +146,30 @@ e não está no PATH; os `.bat` já apontam para ele.
 ## Ferramentas em vez de habilidades
 
 Decidido em 1º de novembro de 2026: o jogador **entrega uma ferramenta** ao
-boneco, e o botão mostra o nome da ferramenta, não de uma profissão. Pá em
-vez de Escavador, Escada diagonal em vez de Construtor. O código continua
-chamando de `skill` (`SkillBase`, `SkillManager`); só o `display_name` muda.
+boneco, e o botão mostra o nome da ferramenta, não de uma profissão. O código
+continua chamando de `skill` (`SkillBase`, `SkillManager`); só o
+`display_name` muda:
 
-Ferramentas previstas: Pá, Escada vertical, Escada diagonal (o `SkillBuilder`
-de hoje), Ponte e Escada horizontal.
+| id | Botão |
+|---|---|
+| `digger` | Pá |
+| `builder` | Escada diagonal |
+| `ladder_vertical` | Escada vertical |
+| `bridge` | Ponte |
+| `floater` | Paraquedas |
+| `climber` | Garras |
+| `blocker` | Escudo |
+| `bomber` | Bomba |
+| `basher` | Britadeira |
+| `miner` | Picareta |
 
 **Uma ferramenta por vez, cada uma com sua fase exclusiva no menu**, onde
 ela é a única disponível e o único jeito de chegar à saída. A fase é criada
 em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
-(`tests/test_level_<ferramenta>`). A fase "Livre" não recebe ferramenta nova.
+(`tests/test_level_<ferramenta>`).
+
+As antigas fases 4 ("Escalador + Escada diagonal") e 5 ("Livre") foram
+removidas: o modo livre virou o editor.
 
 | Ferramenta | Fase exclusiva | Teste da ferramenta | Teste da fase |
 |---|---|---|---|
@@ -151,6 +177,75 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
 | Escada diagonal | "Escada diagonal" (fase 3) | `test_tool_ladder_diagonal` | `test_level_ladder_diagonal` |
 | Escada vertical | "Escada vertical" (fase 6) | `test_tool_ladder_vertical` | `test_level_ladder_vertical` |
 | Ponte | "Ponte" (fase 7) | `test_tool_bridge` | `test_level_bridge` |
+| Paraquedas | "Paraquedas" (fase 8) | `test_tool_floater` | `test_level_floater` |
+| Garras | "Garras" (fase 9) | `test_tool_climber` | `test_level_climber` |
+| Escudo | "Escudo" (fase 10) | `test_tool_blocker` | `test_level_blocker` |
+| Bomba | "Bomba" (fase 11) | `test_tool_bomber` | `test_level_bomber` |
+| Britadeira | "Britadeira" (fase 12) | `test_tool_basher` | `test_level_basher` |
+| Picareta | "Picareta" (fase 13) | `test_tool_miner` | `test_level_miner` |
+
+Os testes novos usam bases comuns: `tests/tool_scenario_test.gd` (monta
+terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
+(carrega a fase pelo `GameManager` e entrega a ferramenta pelo
+`SkillManager`, como um clique).
+
+### Paraquedas, Garras, Escudo, Bomba, Britadeira e Picareta
+
+- **Garras (climber) e Escudo (blocker)** já funcionavam; só ganharam teste e fase.
+- **Paraquedas** (antes "Paraquedista"): dado a um boneco **já caindo**,
+  era aceito e gastava a carga, mas o boneco continuava caindo e morria.
+  Agora abre na hora.
+- **Bomba (bomber)**: a explosão era um círculo de 24px em volta da origem do
+  nó e só apagava blocos com o centro dentro dele, então nunca alcançava
+  o bloco ao lado do boneco. Agora apaga todo bloco a até 40px
+  (`blast_reach`) do corpo, **menos o chão** sob os pés: na grade de 32px
+  uma cratera vira um poço de um bloco de onde ninguém sai andando.
+- **Britadeira (basher)**: começava na hora e, sem parede encostada, parava no
+  primeiro golpe; como o boneco vira no instante em que toca a parede,
+  nunca dava para usar. Agora funciona como a Escada vertical: o boneco
+  **guarda a ferramenta** e cava na próxima parede em que encostar. O túnel
+  tem **um bloco de altura** (`tunnel_height_tiles` = 1): com dois, quebrava
+  também o bloco acima do boneco, o que o usuário achou estranho.
+- **Picareta (miner)**: era uma escavação na diagonal (a do Lemmings
+  original). O usuário decidiu que a Picareta é **a Pá na horizontal**: o
+  boneco guarda a ferramenta, e na próxima parede cava um túnel reto de um
+  bloco de altura, **um estágio de 8px por vez**, andando para dentro de
+  cada fatia a 20 px/s (mesmo ritmo da Pá). Para quando fura para o vazio.
+  Teste: `test_tool_miner` mede o maior movimento por quadro.
+- **Estágios de lado** (`TerrainDestructible.dig_side_stage_at`): os mesmos
+  tiles de estágio da Pá, desenhados **transpostos** (perde a parte da
+  esquerda) ou **transpostos e espelhados** (perde a direita). O Godot
+  transforma a colisão junto, então não houve tile novo. Todas as consultas
+  (`is_solid_at`, `get_solid_cells_in_rect`, `solid_top_y_at`) passam por
+  `_solid_rect_of(cell)`, que lê o lado pelo transform da célula. Uma célula
+  cavada por um lado e depois por outro some de uma vez.
+- Fase do Escudo: quem recebe o Escudo nunca sai, então a fase só termina
+  quando o tempo acaba (60 s nessa fase).
+- A Britadeira ainda avança um bloco inteiro por golpe e não tem animação
+  própria (anotado em `ideias_futuras.md`).
+
+### Garras (escalar)
+
+- No topo da parede o boneco agora **sobe até os pés passarem da borda e dá
+  um passo de 6px andando** para cima dela. Antes parava quando o meio do
+  corpo passava da borda e era jogado um bloco inteiro para o lado num
+  quadro, caindo com as pernas dentro do bloco: parecia teletransporte.
+- A sonda dos pés usa meio pixel, não `GROUND_PROBE_EPSILON` (2px): com 2px
+  o passo começava com os pés ainda abaixo da borda, o corpo empurrava a
+  quina, escorregava e caía até morrer. `test_tool_climber` pega isso (foi
+  conferido trocando de volta).
+- O passo é o mesmo do topo da escada vertical
+  (`_start_ledge_step` / `_continue_ledge_step`, `LEDGE_STEP_FOOTING`).
+
+### Animações por estado
+
+| Estado | Animação |
+|---|---|
+| CLIMBING (Garras) | `climb`: vista de lado, garras na parede |
+| LADDER_PLACING / LADDER_CLIMBING | `ladder`: a vista de costas que antes se chamava `climb` |
+| FLOATING (Paraquedas) | `float`: paraquedas balançando, braços nas cordas, pés chutando |
+| MINING (Picareta) | `pickaxe`: golpe de picareta para a frente |
+| DIGGING (Pá) | `dig` |
 
 ### Escada vertical
 
@@ -186,8 +281,13 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
 - Para em `max_pieces` degraus, ou antes se o próximo tijolo entraria numa
   parede ou se não houver espaço para a cabeça.
 - Os tijolos não ficam na grade de 32px: são uma camada do terreno
-  (`TerrainDestructible.place_brick`), com colisão, contada por todas as
-  consultas e removida pelas mesmas funções que destroem terreno.
+  (`TerrainDestructible.place_brick`), contada por todas as consultas e
+  removida pelas mesmas funções que destroem terreno.
+- **Os tijolos só colidem por cima** (`one_way_collision`), como plataforma:
+  quem anda por baixo da escada atravessa os tijolos na altura da cabeça em
+  vez de tomá-los por parede e voltar. A checagem de "cabeça bloqueada" do
+  andar (`_is_head_blocked_ahead`) também ignora tijolos. Teste:
+  `test_brick_underpass`.
 - Os outros bonecos sobem a escada andando, como qualquer degrau baixo, sem
   quicar (o teste mede o sprite do segundo boneco: nunca desce e nunca sobe
   mais de 2px num quadro).
@@ -195,8 +295,7 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
   (0,25 = 8px; 0,125 = 4px) e `step_width_fraction_of_tile` (1,0 = um
   bloco).
 - Quem chega numa escada **ainda sendo montada** pode sair pela ponta
-  inacabada e cair, como no Lemmings original. Quem chegou na plataforma
-  antes da escada fica **preso embaixo dela** até o tempo da fase acabar.
+  inacabada e cair, como no Lemmings original.
 - Fase exclusiva: "Escada diagonal" (fase 3): chão e uma plataforma de 3
   blocos (96px = 12 degraus) começando a 12 blocos da parede da esquerda.
 - Ainda usa a animação de andar. Falta uma animação de subir/montar escada.
@@ -259,13 +358,54 @@ SkillManager.register_skill(escada)`.
 - O corpo sobe num quadro, mas o **sprite desliza** até ele
   (`_smooth_sprite_after_lift`). Sem isso o boneco parecia quicar a cada
   degrau.
-- Obstáculo na altura da cabeça agora conta como parede. Antes um boneco
-  andando por baixo da escada diagonal empurrava os tijolos para sempre.
+- Terreno na altura da cabeça conta como parede; tijolos não (eles só
+  colidem por cima, ver "Escada diagonal").
+
+### Topo da escada vertical
+
+Ao chegar no topo, o boneco **dá um passo andando** (~9px, na velocidade de
+andar) até pisar no chão ao lado e segue andando. Antes ele era movido um
+bloco inteiro num quadro, o que parecia sumir da escada e aparecer no bloco
+seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
+
+## Botões da fase e menu
+
+- Toda fase tem, no canto superior direito, **Pausar/Continuar** (tecla P),
+  **Reiniciar** (R) e **Menu** (Esc), que funcionam mesmo pausado. Ficam no
+  HUD (`scenes/ui/hud.tscn`, `GameControlsController`), então nenhuma fase
+  precisa incluí-los. Reiniciar e Menu passam por
+  `GameManager.restart_level()` / `go_to_main_menu()`, que despausam antes
+  de trocar de cena (senão a cena nova começava congelada). Teste:
+  `test_game_controls`.
+- O menu (`MainMenuController`) rola e lista: Tutorial, Modo livre (editor)
+  e a seção "Ferramentas", com uma fase por ferramenta
+  (`TOOL_LEVEL_PATHS`).
+
+## Modo livre (editor)
+
+`scenes/editor/level_editor.tscn`, scripts em `scripts/editor/`.
+
+- Barra de cima: **Bloco** (chão e parede são o mesmo bloco), **Escada**,
+  **Ponte** (tijolo 32x8, alinhado às colunas e a linhas de 8px),
+  **Borracha**, **Entrada**, **Saída**; **Jogar**, **Pausar**, **Reiniciar**;
+  **Quantidades** e **Menu**.
+- Clique e arraste para pintar; botão direito sempre apaga.
+- Contadores de 0 a 50: bonecos e cada ferramenta.
+- **Jogar** monta uma fase separada a partir de **cópias** do desenho (um
+  `LevelManager` normal, terreno copiado com tijolos, entrada, saída e o
+  painel de ferramentas). **Reiniciar** descarta a cópia e devolve o
+  desenho original, exatamente como foi pintado. Jogar depois de Pausar
+  continua de onde parou.
+- Precisa de uma entrada para jogar; a saída é opcional. Sem paredes
+  automáticas nas bordas. Sem salvar/carregar (por enquanto).
+- Teste: `test_level_editor` (não usa mouse de verdade).
 
 ## Próximo passo
 
 A definir com o usuário. Pendências conhecidas: animação de colocar escada
-(as duas escadas usam animações provisórias) e as ideias em
+(as duas escadas usam animações provisórias); Ponte recusada quando não há
+buraco à frente (o usuário vai decidir: guardar até o próximo buraco, avisar
+na tela ou começar na hora); e as ideias em
 [ideias_futuras.md](ideias_futuras.md).
 
 ## Pendências de arte

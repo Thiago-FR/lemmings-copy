@@ -1,0 +1,41 @@
+[gd_scene format=4]
+
+[ext_resource type="Script" path="res://scripts/level/level_manager.gd" id="1_yje5r"]
+[ext_resource type="TileSet" path="res://resources/tilesets/terrain_tileset.tres" id="2_0hwde"]
+[ext_resource type="Script" path="res://scripts/level/terrain_destructible.gd" id="3_yudpf"]
+[ext_resource type="PackedScene" path="res://scenes/level/spawn_point.tscn" id="4_f63os"]
+[ext_resource type="Script" path="res://scripts/level/spawn_point.gd" id="5_6kbmn"]
+[ext_resource type="PackedScene" path="res://scenes/level/exit_point.tscn" id="6_ivm0h"]
+[ext_resource type="Script" path="res://scripts/level/exit_point.gd" id="7_sdqae"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_2kfw6"]
+[ext_resource type="Script" path="res://scripts/ui/hud_controller.gd" id="9_k1t7b"]
+[ext_resource type="PackedScene" path="res://scenes/ui/skill_panel.tscn" id="10_yjwdp"]
+[ext_resource type="Script" path="res://scripts/ui/skill_panel_controller.gd" id="11_sk212"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_result_screen.tscn" id="12_p1gnp"]
+[ext_resource type="Script" path="res://scripts/ui/level_result_controller.gd" id="13_q3qkq"]
+
+[node name="Level13" type="Node2D" unique_id=972381244]
+script = ExtResource("1_yje5r")
+
+[node name="Terrain" type="TileMapLayer" parent="." unique_id=1536407284]
+tile_map_data = PackedByteArray("AAAAAAsAAAAAAAAAAAAAAAwAAAAAAAAAAAABAAsAAAAAAAAAAAABAAwAAAAAAAAAAAACAAsAAAAAAAAAAAACAAwAAAAAAAAAAAADAAsAAAAAAAAAAAADAAwAAAAAAAAAAAAEAAsAAAAAAAAAAAAEAAwAAAAAAAAAAAAFAAsAAAAAAAAAAAAFAAwAAAAAAAAAAAAGAAsAAAAAAAAAAAAGAAwAAAAAAAAAAAAHAAsAAAAAAAAAAAAHAAwAAAAAAAAAAAAIAAsAAAAAAAAAAAAIAAwAAAAAAAAAAAAJAAsAAAAAAAAAAAAJAAwAAAAAAAAAAAAKAAsAAAAAAAAAAAAKAAwAAAAAAAAAAAALAAsAAAAAAAAAAAALAAwAAAAAAAAAAAAMAAsAAAAAAAAAAAAMAAwAAAAAAAAAAAANAAsAAAAAAAAAAAANAAwAAAAAAAAAAAAOAAsAAAAAAAAAAAAOAAwAAAAAAAAAAAAPAAsAAAAAAAAAAAAPAAwAAAAAAAAAAAAQAAsAAAAAAAAAAAAQAAwAAAAAAAAAAAARAAsAAAAAAAAAAAARAAwAAAAAAAAAAAASAAsAAAAAAAAAAAASAAwAAAAAAAAAAAATAAsAAAAAAAAAAAATAAwAAAAAAAAAAAAUAAsAAAAAAAAAAAAUAAwAAAAAAAAAAAAVAAsAAAAAAAAAAAAVAAwAAAAAAAAAAAAWAAsAAAAAAAAAAAAWAAwAAAAAAAAAAAAXAAsAAAAAAAAAAAAXAAwAAAAAAAAAAAAYAAsAAAAAAAAAAAAYAAwAAAAAAAAAAAANAAUAAAAAAAAAAAANAAYAAAAAAAAAAAANAAcAAAAAAAAAAAANAAgAAAAAAAAAAAANAAkAAAAAAAAAAAANAAoAAAAAAAAAAAAOAAUAAAAAAAAAAAAOAAYAAAAAAAAAAAAOAAcAAAAAAAAAAAAOAAgAAAAAAAAAAAAOAAkAAAAAAAAAAAAOAAoAAAAAAAAAAAAPAAUAAAAAAAAAAAAPAAYAAAAAAAAAAAAPAAcAAAAAAAAAAAAPAAgAAAAAAAAAAAAPAAkAAAAAAAAAAAAPAAoAAAAAAAAAAAAQAAUAAAAAAAAAAAAQAAYAAAAAAAAAAAAQAAcAAAAAAAAAAAAQAAgAAAAAAAAAAAAQAAkAAAAAAAAAAAAQAAoAAAAAAAAAAAD//+z/AAAAAAAAAAD//+3/AAAAAAAAAAD//+7/AAAAAAAAAAD//+//AAAAAAAAAAD///D/AAAAAAAAAAD///H/AAAAAAAAAAD///L/AAAAAAAAAAD///P/AAAAAAAAAAD///T/AAAAAAAAAAD///X/AAAAAAAAAAD///b/AAAAAAAAAAD///f/AAAAAAAAAAD///j/AAAAAAAAAAD///n/AAAAAAAAAAD///r/AAAAAAAAAAD///v/AAAAAAAAAAD///z/AAAAAAAAAAD///3/AAAAAAAAAAD///7/AAAAAAAAAAD/////AAAAAAAAAAD//wAAAAAAAAAAAAD//wEAAAAAAAAAAAD//wIAAAAAAAAAAAD//wMAAAAAAAAAAAD//wQAAAAAAAAAAAD//wUAAAAAAAAAAAD//wYAAAAAAAAAAAD//wcAAAAAAAAAAAD//wgAAAAAAAAAAAD//wkAAAAAAAAAAAD//woAAAAAAAAAAAD//wsAAAAAAAAAAAD//wwAAAAAAAAAAAD//w0AAAAAAAAAAAAZAOz/AAAAAAAAAAAZAO3/AAAAAAAAAAAZAO7/AAAAAAAAAAAZAO//AAAAAAAAAAAZAPD/AAAAAAAAAAAZAPH/AAAAAAAAAAAZAPL/AAAAAAAAAAAZAPP/AAAAAAAAAAAZAPT/AAAAAAAAAAAZAPX/AAAAAAAAAAAZAPb/AAAAAAAAAAAZAPf/AAAAAAAAAAAZAPj/AAAAAAAAAAAZAPn/AAAAAAAAAAAZAPr/AAAAAAAAAAAZAPv/AAAAAAAAAAAZAPz/AAAAAAAAAAAZAP3/AAAAAAAAAAAZAP7/AAAAAAAAAAAZAP//AAAAAAAAAAAZAAAAAAAAAAAAAAAZAAEAAAAAAAAAAAAZAAIAAAAAAAAAAAAZAAMAAAAAAAAAAAAZAAQAAAAAAAAAAAAZAAUAAAAAAAAAAAAZAAYAAAAAAAAAAAAZAAcAAAAAAAAAAAAZAAgAAAAAAAAAAAAZAAkAAAAAAAAAAAAZAAoAAAAAAAAAAAAZAAsAAAAAAAAAAAAZAAwAAAAAAAAAAAAZAA0AAAAAAAAAAAA=")
+tile_set = ExtResource("2_0hwde")
+script = ExtResource("3_yudpf")
+
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=748247687 instance=ExtResource("4_f63os")]
+position = Vector2(80, 296)
+script = ExtResource("5_6kbmn")
+
+[node name="ExitPoint" type="Area2D" parent="." unique_id=1847831063 instance=ExtResource("6_ivm0h")]
+position = Vector2(640, 328)
+script = ExtResource("7_sdqae")
+
+[node name="Hud" type="CanvasLayer" parent="." unique_id=2139702669 instance=ExtResource("8_2kfw6")]
+script = ExtResource("9_k1t7b")
+
+[node name="SkillPanel" type="CanvasLayer" parent="." unique_id=1711304303 instance=ExtResource("10_yjwdp")]
+script = ExtResource("11_sk212")
+
+[node name="LevelResultScreen" type="CanvasLayer" parent="." unique_id=392179165 instance=ExtResource("12_p1gnp")]
+process_mode = 3
+script = ExtResource("13_q3qkq")

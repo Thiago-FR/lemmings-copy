@@ -21,16 +21,21 @@ signal exited
 ## Tint a dying lemming fades towards: red, so a death reads as a death and
 ## not as the lemming simply walking off-screen.
 const DEATH_FADE_COLOUR := Color(1.0, 0.25, 0.2, 0.0)
+## Body overlap checks shrink the body by this much, so merely touching a
+## surface does not count as overlapping it.
+const BODY_OVERLAP_INSET := 1.0
 
 ## Animation played for each state. States missing here fall back to "walk"
 ## until they get dedicated art.
 const STATE_ANIMATIONS := {
 	LemmingStateMachine.State.CLIMBING: &"climb",
 	LemmingStateMachine.State.DIGGING: &"dig",
+	LemmingStateMachine.State.FLOATING: &"float",
+	LemmingStateMachine.State.MINING: &"pickaxe",
 	# Back view, which shows the backpack the ladder comes out of. Stands in
 	# for a dedicated "pulling the ladder out" animation until that exists.
-	LemmingStateMachine.State.LADDER_PLACING: &"climb",
-	LemmingStateMachine.State.LADDER_CLIMBING: &"climb",
+	LemmingStateMachine.State.LADDER_PLACING: &"ladder",
+	LemmingStateMachine.State.LADDER_CLIMBING: &"ladder",
 }
 const DEFAULT_ANIMATION := &"walk"
 
@@ -74,6 +79,11 @@ var has_floater_skill: bool = false
 var armed_bomber: SkillBomber = null
 
 var _fall_start_y: float = 0.0
+## While stepping from the top of a ladder or a climbed wall onto the ground
+## beside it: which way, and how many pixels of the step are left. Zero when
+## not stepping.
+var _ledge_step_side: int = 0
+var _ledge_step_remaining: float = 0.0
 var _sprite_rest_y: float = 0.0
 var _sprite_lift_tween: Tween = null
 
@@ -207,7 +217,7 @@ func _physics_process(delta: float) -> void:
 		LemmingStateMachine.State.WALKING:
 			_process_walking()
 		LemmingStateMachine.State.CLIMBING:
-			_process_climbing()
+			_process_climbing(delta)
 		LemmingStateMachine.State.FLOATING:
 			_process_floating()
 		LemmingStateMachine.State.LADDER_CLIMBING:
@@ -272,7 +282,11 @@ func _fell_into_void() -> bool:
 	return position.y - _fall_start_y > Constants.VOID_FALL_DISTANCE
 
 
-func _process_climbing() -> void:
+func _process_climbing(delta: float) -> void:
+	if _ledge_step_remaining > 0.0:
+		velocity = Vector2.ZERO
+		_continue_ledge_step(delta)
+		return
 	velocity = Vector2(0.0, -Constants.CLIMB_SPEED)
 
 	# Terrain-grid checks instead of is_on_ceiling()/is_on_wall(): a wall
@@ -288,12 +302,21 @@ func _process_climbing() -> void:
 		state_machine.change_state(LemmingStateMachine.State.WALKING)
 		return
 
-	if not terrain.is_solid_at(get_forward_position()):
-		# Reached the top of the wall: step a full tile onto the ledge so
-		# the lemming clears the wall's edge instead of hovering right at
-		# it (and doesn't immediately re-detect the same wall next frame).
-		global_position.x += Constants.TERRAIN_TILE_SIZE * direction
-		state_machine.change_state(LemmingStateMachine.State.WALKING)
+	# Climbs until the feet are level with the top of the wall, then walks a
+	# short step onto it. It used to stop as soon as the middle of the body
+	# cleared the top and jump a whole tile sideways in one frame, landing
+	# with its legs inside the ledge: it looked like a teleport.
+	# Half a pixel, not GROUND_PROBE_EPSILON: with the larger margin the feet
+	# were still below the top when the step began, so the body pushed into
+	# the wall's edge, slid off it and fell.
+	const PROBE_INSET := 0.5
+	var just_above_feet_ahead := Vector2(get_forward_position().x, get_body_rect().end.y - PROBE_INSET)
+	if not terrain.is_solid_at(just_above_feet_ahead):
+		# The feet are now less than a frame's climb below the top; lift them
+		# clear of it so the step slides over the edge instead of into it.
+		global_position.y -= PROBE_INSET + Constants.CLIMB_SPEED * delta
+		velocity = Vector2.ZERO
+		_start_ledge_step(direction, Constants.LEDGE_STEP_FOOTING)
 
 
 func _process_walking() -> void:
@@ -358,13 +381,15 @@ func _process_walking() -> void:
 ## probe to find clearance, but also didn't hit the (differently placed)
 ## wall probe, so the lemming neither turned around nor stepped up and just
 ## froze walking into solid terrain.
-## Whether something ahead blocks the body above its feet, even though the
-## ground at foot level is clear or only a low step. The foot-level probe
-## alone missed it: walking back underneath a diagonal ladder, the bricks are
-## at head height, so the lemming saw open ground and pushed into them
-## forever instead of turning around.
+## Whether terrain ahead blocks the body above its feet, even though the
+## ground at foot level is clear or only a low step (an overhang at head
+## height). Bricks are left out: they only collide from above, so a lemming
+## walking underneath a diagonal ladder passes through them. Counting them
+## turned it around under the staircase as if it had hit a wall.
 func _is_head_blocked_ahead(step_height: float) -> bool:
-	return is_body_blocked_at(Vector2(direction * Constants.STEP_UP_FORWARD_NUDGE, -step_height))
+	var moved_body := get_body_rect()
+	moved_body.position += Vector2(direction * Constants.STEP_UP_FORWARD_NUDGE, -step_height)
+	return terrain.is_terrain_solid_in_rect(moved_body.grow(-BODY_OVERLAP_INSET))
 
 
 func _forward_step_height() -> float:
@@ -422,6 +447,9 @@ func _try_grab_ladder() -> bool:
 ## ladder cell has no collision for physics to rest the body on.
 func _process_ladder_climbing(delta: float) -> void:
 	velocity = Vector2.ZERO
+	if _ledge_step_remaining > 0.0:
+		_continue_ledge_step(delta)
+		return
 	global_position.y -= ladder_climb_speed * delta
 
 	var body := get_body_rect()
@@ -434,22 +462,48 @@ func _process_ladder_climbing(delta: float) -> void:
 		_step_off_ladder_top()
 
 
-## The top rung has nothing to stand on itself, so the lemming moves one tile
-## sideways onto ground: ahead if there is ground there, otherwise behind.
-## With ground on neither side (a ladder still being built, or one leading
-## nowhere) it holds on at the top rung instead of stepping into a fall, and
-## carries on as soon as the ladder grows. Same one-tile step Climber takes
-## onto a ledge.
+## The top rung has nothing to stand on itself, so the lemming steps sideways
+## onto ground: ahead if there is ground there, otherwise behind. With ground
+## on neither side (a ladder still being built, or one leading nowhere) it
+## holds on at the top rung instead of stepping into a fall, and carries on as
+## soon as the ladder grows.
+##
+## The step is walked at walking pace, only as far as it takes to have firm
+## footing. It used to be a whole tile in a single frame, which looked like
+## the lemming vanishing from the ladder and reappearing on the next block.
 func _step_off_ladder_top() -> void:
 	var tile_width := terrain.get_cell_size().x
 	for side in [direction, -direction]:
 		if _can_stand_at(Vector2(tile_width * side, 0.0)):
 			if side != direction:
 				turn_around()
-			global_position.x += tile_width * side
-			_fall_start_y = position.y
-			state_machine.change_state(LemmingStateMachine.State.WALKING)
+			_start_ledge_step(side, _ladder_step_off_distance())
 			return
+
+
+## Far enough that the body's leading edge rests on the ground beside the
+## ladder's column and its centre is past the grab distance, so it neither
+## falls back into the shaft nor grabs the same ladder again.
+func _ladder_step_off_distance() -> float:
+	var to_column_edge := terrain.get_cell_size().x / 2.0 - get_half_extents().x
+	return maxf(to_column_edge, 0.0) + Constants.LEDGE_STEP_FOOTING
+
+
+func _start_ledge_step(side: int, distance: float) -> void:
+	_ledge_step_side = side
+	_ledge_step_remaining = distance
+
+
+## Walks the step at walking pace, then carries on walking from there.
+func _continue_ledge_step(delta: float) -> void:
+	var step := minf(Constants.WALK_SPEED * delta, _ledge_step_remaining)
+	global_position.x += step * _ledge_step_side
+	_ledge_step_remaining -= step
+	if _ledge_step_remaining > 0.0:
+		return
+	_ledge_step_remaining = 0.0
+	_fall_start_y = position.y
+	state_machine.change_state(LemmingStateMachine.State.WALKING)
 
 
 ## Whether the body, moved by offset, would be clear of terrain and standing
@@ -473,10 +527,9 @@ func _try_start_wall_tool() -> bool:
 ## Whether the body would overlap solid terrain if moved by offset. Inset by
 ## a pixel so merely touching a surface does not count as overlapping it.
 func is_body_blocked_at(offset: Vector2) -> bool:
-	const INSET := 1.0
 	var moved_body := get_body_rect()
 	moved_body.position += offset
-	return terrain.is_solid_in_rect(moved_body.grow(-INSET))
+	return terrain.is_solid_in_rect(moved_body.grow(-BODY_OVERLAP_INSET))
 
 
 ## The body is lifted onto a step in one frame, which on a staircase read as

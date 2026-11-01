@@ -23,10 +23,49 @@ Para blocos de terreno e ícones simples.
 - Os geradores ficam em `tools/` e rodam pelo próprio Godot, sem nenhuma
   dependência externa — hoje é o `build_terrain_tileset.gd`.
 - Exceção: as animações do mago montadas a partir da arte existente
-  (`build_dig_frames.py`, `build_death_frames.py`, com funções em comum em
-  `wizard_art.py`) são em Python, porque é trabalho de máscara pixel a pixel.
+  (`build_dig_frames.py`, `build_death_frames.py`, `build_float_frames.py`,
+  `build_climb_frames.py`, `build_pickaxe_frames.py`, com funções em comum
+  em `wizard_art.py`) são em Python, porque é trabalho de máscara pixel a pixel.
   O que é desenhado novo (pá, poeira) usa a mesma grade de ~7 px da arte
   original, senão as bordas ficam finas demais perto do personagem.
+- O paraquedas (`build_float_frames.py` → `float_0..3.png`, animação
+  `float`, 6 fps) é o quadro de andar de lado, sem a mão da cintura e com
+  os dois braços levantados segurando as cordas, pendurado sob uma cúpula
+  listrada creme/vermelha de 30x9 células, com só quatro cordas (mais que
+  isso vira borrão na escala do jogo). A cúpula balança uma célula para
+  cada lado e inclina junto; o corpo balança como pêndulo (±5° em torno do
+  centro da caixa de colisão), os pés chutam devagar — um desce enquanto o
+  outro sobe — e a barra da túnica fica uma célula atrás do balanço. Esses
+  quadros têm 250x404 em vez de 250x250: o `AnimatedSprite2D` centraliza
+  cada quadro, então o espaço extra é acrescentado igual em cima e embaixo —
+  o corpo fica exatamente na mesma posição dos quadros de andar (alinhado
+  com a colisão 26x30) e a cúpula ocupa as linhas de cima. Mudar a altura
+  de um lado só desalinha o corpo.
+- A escalada com garras (`build_climb_frames.py` → `climb_side_0..3.png`,
+  animação `climb`, 7 fps) é vista de lado, olhando para a parede à direita
+  (o jogo espelha com `flip_h` quando anda para a esquerda). O corpo de
+  andar inclina 6° para a parede e recua duas células; os braços são
+  curtos, saem do ombro e as mãos, com garras pequenas, encostam na borda
+  direita da caixa de colisão, onde fica a parede. Uma mão segura na altura
+  da cabeça e a outra perto do peito, e elas trocam; quem carrega a subida
+  é o corpo, que sobe uma célula entre uma
+  pegada e outra, e os pés, que se revezam empurrando a parede. Mãos acima
+  do capuz foram descartadas: o braço ficava com o dobro do comprimento que
+  o corpo permite e o mago parecia um boneco de borracha. A vista de costas
+  antiga (`climb_aligned_*`) continua no `SpriteFrames` como animação
+  `ladder`, usada pela escada vertical.
+- A picareta (`build_pickaxe_frames.py` → `pickaxe_0..3.png`, animação
+  `pickaxe`, 5 fps) é a versão de lado da pá: mesmo corpo de andar sem a
+  mão da cintura, com a ferramenta, o braço e as lascas desenhados na grade
+  de ~7 px. A picareta sai de trás do capuz, passa por cima, crava na
+  parede na altura do peito (a ponta passa um pouco da borda direita da
+  colisão) e recua; o corpo balança em torno dos pés (para trás na
+  preparação, para a frente no golpe) e lascas saem da parede no golpe e no
+  recuo. Uma mão só no cabo: duas mãos de 2x2 viravam um palito cor de pele
+  na escala do jogo.
+- As funções em comum desses três (corpo sem a mão, separar os pés, braço
+  com mão e garras, girar um ponto junto com o corpo) estão em
+  `wizard_art.py`.
 - GDScript e não Python de propósito: o projeto fica com uma ferramenta só,
   a mesma que já é necessária para rodar os testes.
 - Vantagem: controle exato de cada pixel, resultado idêntico toda vez que

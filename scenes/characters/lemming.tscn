@@ -18,10 +18,42 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_1.png" id="15_death1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_2.png" id="16_death2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/death_fall_3.png" id="17_death3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/float_0.png" id="18_float0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/float_1.png" id="19_float1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/float_2.png" id="20_float2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/float_3.png" id="21_float3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/climb_side_0.png" id="22_climbside0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/climb_side_1.png" id="23_climbside1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/climb_side_2.png" id="24_climbside2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/climb_side_3.png" id="25_climbside3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_0.png" id="26_pickaxe0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_1.png" id="27_pickaxe1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_2.png" id="28_pickaxe2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_3.png" id="29_pickaxe3"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_lemming"]
 resource_name = "wizard_placeholder"
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("18_float0")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("19_float1")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("20_float2")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("21_float3")
+}],
+"loop": true,
+"name": &"float",
+"speed": 6.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": ExtResource("10_dig0")
@@ -76,8 +108,42 @@ animations = [{
 "texture": ExtResource("9_climb3")
 }],
 "loop": true,
-"name": &"climb",
+"name": &"ladder",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("22_climbside0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_climbside1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_climbside2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_climbside3")
+}],
+"loop": true,
+"name": &"climb",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("26_pickaxe0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_pickaxe1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_pickaxe2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_pickaxe3")
+}],
+"loop": true,
+"name": &"pickaxe",
+"speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,

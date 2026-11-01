@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+level_name = "Paraquedas"
+instructions = "A SAIDA fica la embaixo, e a queda da beirada e alta demais: quem cai sem protecao morre. Escolha o Paraquedas e clique em cada lemming antes de ele chegar a beirada (ou mesmo durante a queda): ele abre o paraquedas e desce devagar. Cada lemming precisa do seu."
+spawn_rate = 2.0
+total_lemmings = 5
+required_percentage = 0.6
+time_limit_seconds = 120
+available_skills = Array[String](["floater"])
+skill_counts = {
+"floater": 5
+}
+scene_path = "res://scenes/levels/level_08.tscn"

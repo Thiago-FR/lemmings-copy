@@ -16,12 +16,19 @@ extends Node
 ##     before placing the next (never more than one cell ahead of it);
 ##   - the lemming that built it ends up walking on top of the platform;
 ##   - a second lemming that walks up afterwards climbs it too;
+##   - nobody moves more than a couple of pixels in a frame on the way up,
+##     stepping off the top included (it used to jump a whole tile there);
 ##   - nobody dies.
 ## The second scenario sends the lemming into the too-tall wall first: it must
 ## turn around, keep the ladder, and use it on the platform.
 ## A lemming already carrying a ladder must refuse a second one.
 
 const TILE := 32
+## Largest believable movement in one frame. Walking and climbing are both
+## under a pixel per frame; grabbing a ladder snaps the body onto its column,
+## up to Constants.LADDER_GRAB_DISTANCE. Stepping off the top used to move a
+## whole tile (32px) in one frame.
+const MAX_FRAME_MOVE := Constants.LADDER_GRAB_DISTANCE + 1.0
 const FLOOR_TOP_ROW := 8
 const FLOOR_BOTTOM_ROW := 9
 const PLATFORM_FIRST_COLUMN := 12
@@ -64,6 +71,10 @@ var _deaths: Array[String] = []
 ## Furthest the ladder ever reached above the placer while it was building,
 ## in cells. One means it only ever put up the segment it was about to climb.
 var _largest_lead_cells := 0
+## Per lemming label: its position last frame, and the largest distance it
+## moved in a single frame before reaching the top.
+var _last_positions := {}
+var _largest_frame_moves := {}
 
 
 func _ready() -> void:
@@ -79,6 +90,8 @@ func _physics_process(delta: float) -> void:
 	if _walker == null and _elapsed >= WALKER_SPAWN_SECONDS:
 		_walker = _spawn_lemming(WALKER_START_X, 1, "walker")
 
+	# Moves first: the frame a lemming lands on the platform counts too.
+	_measure_frame_moves()
 	_record_arrivals()
 	_measure_ladder_lead()
 
@@ -96,6 +109,8 @@ func _start_scenario() -> void:
 	_reached_top = {}
 	_deaths = []
 	_largest_lead_cells = 0
+	_last_positions = {}
+	_largest_frame_moves = {}
 
 	_world = Node2D.new()
 	add_child(_world)
@@ -163,6 +178,23 @@ func _record_arrivals() -> void:
 			_reached_top[label] = _elapsed
 
 
+func _measure_frame_moves() -> void:
+	# Lemmings spawn a hair above the floor and drop onto it at first.
+	if _elapsed < SETTLE_SECONDS:
+		return
+	for candidate in [_placer, _walker]:
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		var lemming := candidate as LemmingController
+		var label: String = lemming.get_meta("label")
+		if _reached_top.has(label):
+			continue
+		if _last_positions.has(label):
+			var moved: float = lemming.global_position.distance_to(_last_positions[label])
+			_largest_frame_moves[label] = maxf(_largest_frame_moves.get(label, 0.0), moved)
+		_last_positions[label] = lemming.global_position
+
+
 func _measure_ladder_lead() -> void:
 	if _placer == null or not is_instance_valid(_placer):
 		return
@@ -212,6 +244,11 @@ func _evaluate() -> void:
 			_fail(scenario_name, "the %s never came out walking on top of the platform (%s)" % [label, _describe(label)])
 			return
 		print("  %s reached the top at t=%.1fs" % [label, _reached_top[label]])
+		var largest_move: float = _largest_frame_moves.get(label, 0.0)
+		print("  %s moved at most %.2fpx in a frame" % [label, largest_move])
+		if largest_move > MAX_FRAME_MOVE:
+			_fail(scenario_name, "the %s jumped %.1fpx in one frame on the way up" % [label, largest_move])
+			return
 	print("  PASS")
 
 

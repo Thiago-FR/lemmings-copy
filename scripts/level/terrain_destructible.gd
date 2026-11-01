@@ -10,6 +10,12 @@ extends TileMapLayer
 ## each later stage has more of its top removed, with matching collision.
 ## Every query here only counts the part of a cell that is still there.
 ##
+## The same stage tiles also serve horizontal digging (the pickaxe): drawn
+## transposed, a tile has its left side dug away instead of its top, and
+## transposed and flipped, its right side. Godot transforms the collision
+## with the tile, so no extra tiles are needed. Which way a cell has been
+## dug is read back from its transform flags.
+##
 ## A cell can also hold a ladder (a second atlas source with no collision).
 ## Ladders are not solid: lemmings pass through them, and climbing is decided
 ## by is_ladder_at(). Digging and carving leave them alone.
@@ -17,12 +23,19 @@ extends TileMapLayer
 ## On top of the tile grid, the terrain holds bricks: small solid rectangles
 ## the diagonal ladder lays (see SkillBuilder). They are not tied to the 32px
 ## grid, so a staircase can be built from wherever the lemming stands, with
-## steps a fraction of a tile tall. Bricks collide like terrain, count as
-## solid in every query here, and are removed by the same carving calls.
+## steps a fraction of a tile tall. Bricks count as solid in every query
+## here and are removed by the same carving calls, but they only collide from
+## above, like a platform: a lemming stands and walks on them, while one
+## walking underneath a staircase passes through the bricks at head height
+## instead of taking them for a wall.
 
 const TERRAIN_SOURCE_ID := 0
 const LADDER_SOURCE_ID := 1
 const BRICK_COLOUR := Color(0.80, 0.55, 0.30)
+## Tile transforms for a cell dug from the side; plain tiles are dug from
+## the top.
+const DUG_FROM_LEFT := TileSetAtlasSource.TRANSFORM_TRANSPOSE
+const DUG_FROM_RIGHT := TileSetAtlasSource.TRANSFORM_TRANSPOSE | TileSetAtlasSource.TRANSFORM_FLIP_H
 
 ## Bricks in world space, with the nodes that give each one collision and a
 ## visual, at the same index.
@@ -55,6 +68,7 @@ func place_brick(world_rect: Rect2) -> bool:
 	rect_shape.size = local_rect.size
 	var collision := CollisionShape2D.new()
 	collision.shape = rect_shape
+	collision.one_way_collision = true
 	collision.position = local_rect.get_center()
 	_brick_body.add_child(collision)
 
@@ -131,7 +145,9 @@ func dig_stage_in_rect(world_rect: Rect2) -> int:
 		if not _is_terrain_cell(cell):
 			continue
 		var stage := _dig_stage_of(cell)
-		if stage >= last_stage:
+		# A cell already dug from the side cannot also be dug from the top
+		# with these tiles, so it goes in one go.
+		if stage >= last_stage or _dug_side_of(cell) != 0:
 			erase_cell(cell)
 		else:
 			set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, 0))
@@ -139,19 +155,62 @@ func dig_stage_in_rect(world_rect: Rect2) -> int:
 	return touched_count
 
 
+## Removes one dig stage from the side of the cell containing world_position
+## that faces a lemming digging in direction (its left side when digging
+## right), erasing the cell on its last stage. Returns false if there is no
+## terrain there. A cell already dug from another side goes in one go.
+func dig_side_stage_at(world_position: Vector2, direction: int) -> bool:
+	var cell := local_to_map(to_local(world_position))
+	if not _is_terrain_cell(cell):
+		return false
+	var side := DUG_FROM_LEFT if direction > 0 else DUG_FROM_RIGHT
+	var stage := _dig_stage_of(cell)
+	var already_dug_other_way := stage > 0 and _dug_side_of(cell) != side
+	if stage >= get_dig_stage_count() - 1 or already_dug_other_way:
+		erase_cell(cell)
+	else:
+		set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, 0), side)
+	return true
+
+
 ## World y of the top of the solid part of the cell containing
 ## world_position: the cell's top edge for a full block, lower for a partly
 ## dug one, and its bottom edge once it has been dug out completely.
 func solid_top_y_at(world_position: Vector2) -> float:
-	var rect := cell_rect_at(world_position)
 	var cell := local_to_map(to_local(world_position))
 	if not _is_terrain_cell(cell):
-		return rect.end.y
-	return rect.position.y + _dig_stage_of(cell) * get_dig_stage_height()
+		return cell_rect_at(world_position).end.y
+	return _solid_rect_of(cell).position.y
 
 
 func _dig_stage_of(cell: Vector2i) -> int:
 	return get_cell_atlas_coords(cell).x
+
+
+## DUG_FROM_LEFT, DUG_FROM_RIGHT, or 0 for a cell dug from the top (or not
+## dug at all).
+func _dug_side_of(cell: Vector2i) -> int:
+	var transform_flags := get_cell_alternative_tile(cell) & (DUG_FROM_LEFT | TileSetAtlasSource.TRANSFORM_FLIP_H)
+	if transform_flags == DUG_FROM_LEFT or transform_flags == DUG_FROM_RIGHT:
+		return transform_flags
+	return 0
+
+
+## World rectangle of what is left of a terrain cell after digging.
+func _solid_rect_of(cell: Vector2i) -> Rect2:
+	var size := get_cell_size()
+	var rect := Rect2(to_global(map_to_local(cell)) - size / 2.0, size)
+	var dug := _dig_stage_of(cell) * get_dig_stage_height()
+	match _dug_side_of(cell):
+		DUG_FROM_LEFT:
+			rect.position.x += dug
+			rect.size.x -= dug
+		DUG_FROM_RIGHT:
+			rect.size.x -= dug
+		_:
+			rect.position.y += dug
+			rect.size.y -= dug
+	return rect
 
 
 func _is_terrain_cell(cell: Vector2i) -> bool:
@@ -193,7 +252,8 @@ func is_solid_at(world_position: Vector2) -> bool:
 	var cell := local_to_map(to_local(world_position))
 	if not _is_terrain_cell(cell):
 		return false
-	return world_position.y >= solid_top_y_at(world_position)
+	var solid := _solid_rect_of(cell)
+	return world_position.y >= solid.position.y 		and world_position.x >= solid.position.x and world_position.x <= solid.end.x
 
 
 func destroy_cell_at(world_position: Vector2) -> bool:
@@ -232,7 +292,13 @@ func destroy_rect(world_rect: Rect2) -> int:
 ## Whether any cell overlapping world_rect is solid. Used to check that an
 ## opening a lemming is about to move into is genuinely clear.
 func is_solid_in_rect(world_rect: Rect2) -> bool:
-	return _bricks_overlap(world_rect) or not get_solid_cells_in_rect(world_rect).is_empty()
+	return _bricks_overlap(world_rect) or is_terrain_solid_in_rect(world_rect)
+
+
+## Like is_solid_in_rect() but ignoring bricks, for checks that bricks should
+## not take part in because they only block from above.
+func is_terrain_solid_in_rect(world_rect: Rect2) -> bool:
+	return not get_solid_cells_in_rect(world_rect).is_empty()
 
 
 ## Every still-solid cell overlapping world_rect. Separate from
@@ -243,10 +309,10 @@ func get_solid_cells_in_rect(world_rect: Rect2) -> Array[Vector2i]:
 	for cell in _cells_overlapping(world_rect):
 		if not _is_terrain_cell(cell):
 			continue
-		# A partly dug cell only counts if the rectangle reaches down into
-		# the part that is still there, not just into the dug-out top.
-		var solid_top := solid_top_y_at(to_global(map_to_local(cell)))
-		if world_rect.end.y > solid_top:
+		# A partly dug cell only counts if the rectangle reaches into the
+		# part that is still there, not just into the dug-out top or side.
+		var solid := _solid_rect_of(cell)
+		if world_rect.end.y > solid.position.y and world_rect.end.x > solid.position.x and world_rect.position.x < solid.end.x:
 			solid_cells.append(cell)
 	return solid_cells
 

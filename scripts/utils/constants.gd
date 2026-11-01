@@ -42,6 +42,11 @@ const LADDER_CLIMB_SPEED: float = 30.0
 # grabbing anywhere in the ladder's cell would snap the body sideways by up
 # to half a tile.
 const LADDER_GRAB_DISTANCE: float = 4.0
+## How far onto the ground a lemming walks when stepping off the top of a
+## ladder (past the ladder's column) or of a climbed wall (past its edge)
+## before it carries on walking normally: enough for firm footing, and to be
+## clear of LADDER_GRAB_DISTANCE.
+const LEDGE_STEP_FOOTING: float = 6.0
 const FLOAT_FALL_SPEED: float = 30.0
 # Raised from 60 along with the tile size: a vertical gap has to be at least
 # two tiles for a 30px-tall body to pass through it (see MAX_BODY_HEIGHT),
