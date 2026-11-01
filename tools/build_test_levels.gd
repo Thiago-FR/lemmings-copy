@@ -130,22 +130,24 @@ func _build_level_02() -> void:
 	_save_level(root, "res://scenes/levels/level_02.tscn")
 
 
-## Builder: a pit lemmings cannot cross on foot, with the far platform higher
-## than the near one.
-##
-## NOTE: the builder step is now a full tile (32px) rather than the 8px it was
-## when this layout was first sized, so the gap and rise here no longer match
-## the staircase the Builder actually produces. Re-tune when the Builder is
-## the skill being validated — see the protocol in docs/game_design.md.
+## Diagonal ladder: lemmings walk along a floor towards a platform exactly
+## three tiles high, which is one full staircase (12 steps, each a quarter
+## tile tall and a full tile wide, so 12 tiles long), with the exit on top.
+## The platform starts 12 tiles from the left wall, so a staircase begun by a
+## lemming walking right near the entrance ends at the platform's edge. Begun
+## further along, it stops at the platform's wall; if that leaves less than a
+## step's worth of wall above it, the lemming walks up the rest.
 func _build_level_03() -> void:
 	var root := _new_level_root("Level03")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 7, 7, 8)    # lower floor (spawn side)
-	_paint_rect(terrain, 12, 24, 5, 6)  # upper floor (exit side)
+	_paint_rect(terrain, 0, 24, 11, 12)    # floor
+	_paint_rect(terrain, 15, 24, 8, 10)    # platform, three tiles high
+	_paint_rect(terrain, -1, -1, -20, 13)  # left boundary wall
+	_paint_rect(terrain, 25, 25, -20, 13)  # right boundary wall
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(48, 184))
-	_add_exit(root, Vector2(640, 136))
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(640, 232))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_03.tscn")

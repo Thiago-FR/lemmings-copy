@@ -14,6 +14,7 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 |---|---|
 | Pá (`SkillDigger`) | ✅ fechado, com teste automático |
 | Escada vertical (`SkillLadderVertical`) | ✅ fechado, com teste automático |
+| Escada diagonal (`SkillBuilder`) | ✅ refeita, com teste automático |
 | Geometria corpo × grade | ✅ regra definida e verificada em tempo de execução |
 | Morte visível | ✅ animação de esmagamento na queda + fade vermelho de 0,35s |
 | Instruções da fase na tela | ✅ |
@@ -142,6 +143,7 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
 | Ferramenta | Fase exclusiva | Teste da ferramenta | Teste da fase |
 |---|---|---|---|
 | Pá | "A pá" (fase 2) | `test_skill_digger` | — |
+| Escada diagonal | "Escada diagonal" (fase 3) | `test_tool_ladder_diagonal` | `test_level_ladder_diagonal` |
 | Escada vertical | "Escada vertical" (fase 6) | `test_tool_ladder_vertical` | `test_level_ladder_vertical` |
 
 ### Escada vertical
@@ -152,7 +154,7 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
   próxima parede em que encostar (`LemmingController.pending_wall_tool`,
   ganchos `can_start_at_wall`/`start_at_wall` em `SkillBase`). Motivo: o
   boneco vira no instante em que toca a parede, então não há momento para o
-  jogador clicar nele parado ali. Parede alta demais (`max_segments`, 12) ou
+  jogador clicar nele parado ali. Parede alta demais (`max_pieces`, 12) ou
   coluna bloqueada acima: ele vira normalmente e guarda a escada para a
   próxima. Quem já carrega uma escada recusa outra.
 - **Coloca um segmento e sobe nele, coloca o próximo e sobe**, no mesmo
@@ -168,13 +170,59 @@ em `tools/build_test_levels.gd` e tem um teste que a joga do começo ao fim
 - Fase exclusiva: "Escada vertical" (fase 6): chão e uma plataforma alta
   com a saída em cima.
 
+### Escada diagonal
+
+- Começa **na hora do clique**, na direção em que o boneco olha.
+- Degraus de **8px de altura por 32px de largura** (¼ de bloco de altura,
+  um bloco de largura): 12 degraus sobem 96px em 384px. A cada tijolo o
+  boneco coloca e **anda subindo** até ele (no máximo ~1px por quadro,
+  verificado no teste), depois coloca o próximo.
+- Para em `max_pieces` degraus, ou antes se o próximo tijolo entraria numa
+  parede ou se não houver espaço para a cabeça.
+- Os tijolos não ficam na grade de 32px: são uma camada do terreno
+  (`TerrainDestructible.place_brick`), com colisão, contada por todas as
+  consultas e removida pelas mesmas funções que destroem terreno.
+- Os outros bonecos sobem a escada andando, como qualquer degrau baixo, sem
+  quicar (o teste mede o sprite do segundo boneco: nunca desce e nunca sobe
+  mais de 2px num quadro).
+- Altura e largura do degrau são parâmetros: `step_height_fraction_of_tile`
+  (0,25 = 8px; 0,125 = 4px) e `step_width_fraction_of_tile` (1,0 = um
+  bloco).
+- Quem chega numa escada **ainda sendo montada** pode sair pela ponta
+  inacabada e cair, como no Lemmings original. Quem chegou na plataforma
+  antes da escada fica **preso embaixo dela** até o tempo da fase acabar.
+- Fase exclusiva: "Escada diagonal" (fase 3): chão e uma plataforma de 3
+  blocos (96px = 12 degraus) começando a 12 blocos da parede da esquerda.
+- Ainda usa a animação de andar. Falta uma animação de subir/montar escada.
+
+### Limite de peças
+
+As duas escadas usam `max_pieces` (padrão 12), no topo do arquivo de cada
+ferramenta (`skill_ladder_vertical.gd`, `skill_builder.gd`) e visível no
+Inspector. Para uma fase usar outro valor sem mudar o padrão:
+`var escada := SkillBuilder.new(); escada.max_pieces = 20;
+SkillManager.register_skill(escada)`.
+
+### Mudanças no andar de todo boneco (por causa da escada diagonal)
+
+- A subida de degrau agora mede a altura pixel a pixel. Antes arredondava
+  para o próximo múltiplo de 8 e jogava o boneco 16px num degrau de 8.
+  O limite do que é parede não mudou (30px ou mais).
+- Ao subir um degrau, o corpo sobe exatamente a altura do degrau **e avança
+  ~2,5px** (`STEP_UP_FORWARD_NUDGE`), ficando em cima dele. Antes ficava um
+  quadro no ar ao lado do degrau, isso contava como queda, e quem cai perde
+  o movimento para a frente: travava na quina do degrau.
+- O corpo sobe num quadro, mas o **sprite desliza** até ele
+  (`_smooth_sprite_after_lift`). Sem isso o boneco parecia quicar a cada
+  degrau.
+- Obstáculo na altura da cabeça agora conta como parede. Antes um boneco
+  andando por baixo da escada diagonal empurrava os tijolos para sempre.
+
 ## Próximo passo
 
-Escada diagonal (`SkillBuilder` hoje). O código atual deu muito problema e
-precisa ser investigado antes de decidir o formato, seguindo o protocolo da
-seção 10 de [game_design.md](game_design.md). Lembrar que as fases 3 e 4
-foram montadas assumindo degrau de 8px e hoje o degrau é de 32px — a
-geometria delas precisa ser refeita em `tools/build_test_levels.gd`.
+A definir com o usuário. Pendências conhecidas: animação de colocar escada
+(as duas escadas usam animações provisórias) e as ideias em
+[ideias_futuras.md](ideias_futuras.md).
 
 ## Pendências de arte
 

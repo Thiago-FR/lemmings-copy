@@ -15,7 +15,9 @@ const TOOL_ID := "ladder_vertical"
 ## platform. It carries the ladder until it walks into the platform's wall.
 const MIN_X := 64.0
 const MAX_X := 440.0
-const TIMEOUT_SECONDS := 100.0
+## A little past the level's own time limit: a lemming trapped somewhere (for
+## example under a staircase) only resolves when the level's timer runs out.
+const TIMEOUT_MARGIN_SECONDS := 5.0
 
 var _level_manager: LevelManager = null
 var _tool_given := false
@@ -43,7 +45,7 @@ func _physics_process(delta: float) -> void:
 
 	if _result != "":
 		_finish(_result.begins_with("won"))
-	elif _elapsed >= TIMEOUT_SECONDS:
+	elif _elapsed >= GameManager.current_level_data.time_limit_seconds + TIMEOUT_MARGIN_SECONDS:
 		_result = "level never ended (saved %d, lost %d)" % [_level_manager.lemmings_saved_count, _level_manager.lemmings_lost_count]
 		_finish(false)
 

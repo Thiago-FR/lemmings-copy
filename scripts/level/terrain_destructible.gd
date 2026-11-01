@@ -13,13 +13,96 @@ extends TileMapLayer
 ## A cell can also hold a ladder (a second atlas source with no collision).
 ## Ladders are not solid: lemmings pass through them, and climbing is decided
 ## by is_ladder_at(). Digging and carving leave them alone.
+##
+## On top of the tile grid, the terrain holds bricks: small solid rectangles
+## the diagonal ladder lays (see SkillBuilder). They are not tied to the 32px
+## grid, so a staircase can be built from wherever the lemming stands, with
+## steps a fraction of a tile tall. Bricks collide like terrain, count as
+## solid in every query here, and are removed by the same carving calls.
 
 const TERRAIN_SOURCE_ID := 0
 const LADDER_SOURCE_ID := 1
+const BRICK_COLOUR := Color(0.80, 0.55, 0.30)
+
+## Bricks in world space, with the nodes that give each one collision and a
+## visual, at the same index.
+var _bricks: Array[Rect2] = []
+var _brick_nodes: Array[Array] = []
+var _brick_body: StaticBody2D = null
 
 
 func _ready() -> void:
 	add_to_group("terrain")
+	_brick_body = StaticBody2D.new()
+	_brick_body.name = "Bricks"
+	# Same physics layer as the tiles, so lemmings stand on bricks exactly as
+	# they stand on terrain.
+	_brick_body.collision_layer = tile_set.get_physics_layer_collision_layer(0)
+	_brick_body.collision_mask = 0
+	add_child(_brick_body)
+
+
+## Lays a solid brick covering world_rect. Refused (returns false) if the
+## space is already taken by terrain or another brick, so a staircase stops
+## at a wall instead of being pushed into it.
+func place_brick(world_rect: Rect2) -> bool:
+	const OVERLAP_TOLERANCE := 0.5
+	if is_solid_in_rect(world_rect.grow(-OVERLAP_TOLERANCE)):
+		return false
+
+	var local_rect := Rect2(to_local(world_rect.position), world_rect.size)
+	var rect_shape := RectangleShape2D.new()
+	rect_shape.size = local_rect.size
+	var collision := CollisionShape2D.new()
+	collision.shape = rect_shape
+	collision.position = local_rect.get_center()
+	_brick_body.add_child(collision)
+
+	var visual := ColorRect.new()
+	visual.color = BRICK_COLOUR
+	visual.position = local_rect.position
+	visual.size = local_rect.size
+	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(visual)
+
+	_bricks.append(world_rect)
+	_brick_nodes.append([collision, visual])
+	return true
+
+
+func get_bricks() -> Array[Rect2]:
+	return _bricks.duplicate()
+
+
+func _is_brick_at(world_position: Vector2) -> bool:
+	for brick in _bricks:
+		if brick.has_point(world_position):
+			return true
+	return false
+
+
+func _bricks_overlap(world_rect: Rect2) -> bool:
+	for brick in _bricks:
+		if brick.intersects(world_rect):
+			return true
+	return false
+
+
+## Removes every brick overlapping world_rect; returns how many.
+func _remove_bricks_in(world_rect: Rect2) -> int:
+	var removed_count := 0
+	for index in range(_bricks.size() - 1, -1, -1):
+		if _bricks[index].intersects(world_rect):
+			_remove_brick(index)
+			removed_count += 1
+	return removed_count
+
+
+func _remove_brick(index: int) -> void:
+	for node: Node in _brick_nodes[index]:
+		node.queue_free()
+	_bricks.remove_at(index)
+	_brick_nodes.remove_at(index)
 
 
 ## How many stages a cell goes through before it is gone, read from the
@@ -105,6 +188,8 @@ func cell_rect_at(world_position: Vector2) -> Rect2:
 
 
 func is_solid_at(world_position: Vector2) -> bool:
+	if _is_brick_at(world_position):
+		return true
 	var cell := local_to_map(to_local(world_position))
 	if not _is_terrain_cell(cell):
 		return false
@@ -112,9 +197,10 @@ func is_solid_at(world_position: Vector2) -> bool:
 
 
 func destroy_cell_at(world_position: Vector2) -> bool:
+	var removed_bricks := _remove_bricks_in(cell_rect_at(world_position))
 	var cell := local_to_map(to_local(world_position))
 	if not _is_terrain_cell(cell):
-		return false
+		return removed_bricks > 0
 	erase_cell(cell)
 	return true
 
@@ -135,7 +221,7 @@ func build_cell_at(world_position: Vector2) -> void:
 ## part of itself still embedded in rock whenever its body happened to
 ## straddle a cell boundary.
 func destroy_rect(world_rect: Rect2) -> int:
-	var destroyed_count := 0
+	var destroyed_count := _remove_bricks_in(world_rect)
 	for cell in _cells_overlapping(world_rect):
 		if _is_terrain_cell(cell):
 			erase_cell(cell)
@@ -146,7 +232,7 @@ func destroy_rect(world_rect: Rect2) -> int:
 ## Whether any cell overlapping world_rect is solid. Used to check that an
 ## opening a lemming is about to move into is genuinely clear.
 func is_solid_in_rect(world_rect: Rect2) -> bool:
-	return not get_solid_cells_in_rect(world_rect).is_empty()
+	return _bricks_overlap(world_rect) or not get_solid_cells_in_rect(world_rect).is_empty()
 
 
 ## Every still-solid cell overlapping world_rect. Separate from
@@ -198,6 +284,10 @@ func _cells_overlapping(world_rect: Rect2) -> Array[Vector2i]:
 
 
 func destroy_circle(world_position: Vector2, radius: float) -> void:
+	for index in range(_bricks.size() - 1, -1, -1):
+		if world_position.distance_to(_bricks[index].get_center()) <= radius:
+			_remove_brick(index)
+
 	var center_cell := local_to_map(to_local(world_position))
 	var cell_size := get_cell_size()
 	var radius_in_cells := ceili(radius / minf(cell_size.x, cell_size.y))

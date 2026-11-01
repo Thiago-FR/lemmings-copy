@@ -204,13 +204,13 @@ Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
 | 1 | Digger (vertical) — botão "Pá" | ✅ fechado |
 | 1b | Escada vertical (nova) | ✅ fechado |
 | 2 | Basher (horizontal) | pendente |
-| 3 | Builder — botão "Escada diagonal" | pendente, precisa de investigação |
+| 3 | Builder — botão "Escada diagonal" | ✅ refeita (degraus de 8px) |
 | 4 | Miner (diagonal) | pendente |
 | 5 | Climber | pendente |
 | 6 | Blocker | pendente |
 | 7 | Floater | pendente |
 | 8 | Bomber | pendente |
 
-**Atenção ao chegar no Builder:** o degrau mudou de 8px para 32px (um bloco),
-então a geometria da fase 3 e da fase 4 — construídas assumindo degrau de
-8px — precisa ser refeita em `tools/build_test_levels.gd`.
+**Builder (Escada diagonal):** voltou a ter degraus de 8px, agora como
+tijolos fora da grade (ver `estado_atual.md`). A fase 3 foi refeita para
+ele. A fase 4 (Escalador + Escada diagonal) ainda não foi revista.

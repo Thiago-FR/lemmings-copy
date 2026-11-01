@@ -83,3 +83,9 @@ const GROUND_PROBE_EPSILON: float = 2.0
 # that needs Climber. One terrain tile, matching the original game not
 # needing a skill for a single step.
 const STEP_MAX_HEIGHT: float = TERRAIN_TILE_SIZE
+
+# How far forward a step-up moves the body along with lifting it, so it lands
+# standing on the step instead of hanging beside it. Steps are detected
+# GROUND_PROBE_EPSILON ahead of the body, so a little more than that puts the
+# leading edge just over the step.
+const STEP_UP_FORWARD_NUDGE: float = GROUND_PROBE_EPSILON + 0.5

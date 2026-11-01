@@ -8,7 +8,7 @@ extends SkillBase
 ## wall. Then it steps onto the wall.
 ##
 ## The ladder never destroys terrain: it only goes into empty cells. A wall
-## that is too tall (more than max_segments), or a column blocked above, is
+## that is too tall (more than max_pieces), or a column blocked above, is
 ## not used; the lemming turns around and keeps the ladder for the next wall.
 ##
 ## After the last segment the lemming finishes climbing with the ordinary
@@ -18,7 +18,7 @@ extends SkillBase
 ## Seconds spent pulling out and fixing each segment before climbing onto it.
 @export var segment_interval_seconds: float = 0.35
 ## Tallest ladder, in cells. Walls taller than this are not used.
-@export var max_segments: int = 12
+@export var max_pieces: int = 12
 
 ## Centre of the cell the ladder starts from. Segments are placed relative
 ## to this, not to the lemming, because the lemming moves up as it builds.
@@ -97,11 +97,11 @@ func _climb(lemming: LemmingController, delta: float) -> void:
 ## How many segments reach the top of the wall directly ahead, or 0 if this
 ## wall cannot be climbed this way: no wall right in front, a cell in the
 ## ladder's own column already solid (the ladder does not dig), or the wall
-## taller than max_segments. The top segment is the one level with the
+## taller than max_pieces. The top segment is the one level with the
 ## wall's last solid cell, so its top rung is level with the wall's top.
 func _count_segments_to_wall_top(lemming: LemmingController, base: Vector2) -> int:
 	var terrain := lemming.terrain
-	for segment_index in max_segments:
+	for segment_index in max_pieces:
 		if terrain.is_solid_at(_cell_centre(lemming, base, 0, segment_index)):
 			return 0
 		if not terrain.is_solid_at(_cell_centre(lemming, base, lemming.direction, segment_index)):

@@ -74,6 +74,8 @@ var has_floater_skill: bool = false
 var armed_bomber: SkillBomber = null
 
 var _fall_start_y: float = 0.0
+var _sprite_rest_y: float = 0.0
+var _sprite_lift_tween: Tween = null
 
 
 func _ready() -> void:
@@ -82,6 +84,7 @@ func _ready() -> void:
 	collision_mask = Constants.TERRAIN_COLLISION_LAYER
 	_blocker_zone.collision_mask = Constants.LEMMING_COLLISION_LAYER
 	_fall_start_y = position.y
+	_sprite_rest_y = animated_sprite.position.y
 	if terrain == null:
 		terrain = get_tree().get_first_node_in_group("terrain")
 	assert(terrain != null, "LemmingController needs a TerrainDestructible: assign one or add it to the 'terrain' group")
@@ -314,6 +317,8 @@ func _process_walking() -> void:
 	# the same wall next frame and immediately flip back, oscillating in
 	# place forever).
 	var step_height := _forward_step_height()
+	if step_height >= 0.0 and _is_head_blocked_ahead(step_height):
+		step_height = -1.0
 
 	if step_height < 0.0:
 		if _try_start_wall_tool():
@@ -323,7 +328,14 @@ func _process_walking() -> void:
 			return
 		turn_around()
 	elif step_height > 0.0:
-		global_position.y -= step_height
+		# Lifted flush onto the step AND moved onto it. The step is seen a
+		# couple of pixels before the body reaches it; lifted in place, the
+		# body hung beside the step for a frame, which read as falling, and a
+		# falling lemming loses its forward motion, so it dropped back and
+		# stuck on the step's corner. Lifting extra height to clear the gap
+		# had the same problem.
+		global_position += Vector2(direction * Constants.STEP_UP_FORWARD_NUDGE, -step_height)
+		_smooth_sprite_after_lift(step_height)
 
 	velocity.x = Constants.WALK_SPEED * direction
 
@@ -346,20 +358,34 @@ func _process_walking() -> void:
 ## probe to find clearance, but also didn't hit the (differently placed)
 ## wall probe, so the lemming neither turned around nor stepped up and just
 ## froze walking into solid terrain.
-func _forward_step_height() -> float:
-	var half := get_half_extents()
-	var forward_x := get_forward_position().x
-	var foot_y := _collision_shape.global_position.y + half.y + Constants.GROUND_PROBE_EPSILON
-	var probe_increment := Constants.STEP_MAX_HEIGHT / 4.0
+## Whether something ahead blocks the body above its feet, even though the
+## ground at foot level is clear or only a low step. The foot-level probe
+## alone missed it: walking back underneath a diagonal ladder, the bricks are
+## at head height, so the lemming saw open ground and pushed into them
+## forever instead of turning around.
+func _is_head_blocked_ahead(step_height: float) -> bool:
+	return is_body_blocked_at(Vector2(direction * Constants.STEP_UP_FORWARD_NUDGE, -step_height))
 
-	if not terrain.is_solid_at(Vector2(forward_x, foot_y - probe_increment)):
+
+func _forward_step_height() -> float:
+	var feet_y := get_body_rect().end.y
+	var forward_x := get_forward_position().x
+	# Half a pixel above each candidate height, so the probe sits just inside
+	# an obstacle of that height rather than on its top edge.
+	const PROBE_INSET := 0.5
+
+	if not terrain.is_solid_at(Vector2(forward_x, feet_y - PROBE_INSET)):
 		return 0.0
 
-	var climbed := probe_increment
-	while climbed < Constants.STEP_MAX_HEIGHT:
-		climbed += probe_increment
-		if not terrain.is_solid_at(Vector2(forward_x, foot_y - climbed)):
-			return climbed
+	# Measured a pixel at a time: the diagonal ladder's steps are a quarter
+	# of a tile, and the old quarter-tile probe rounded every obstacle up to
+	# the next probe, lifting the lemming 16px onto an 8px step and dropping
+	# it back. Anything from 30px up is a wall, same threshold as
+	# before, so which ledges are walkable did not change.
+	var wall_height := int(Constants.STEP_MAX_HEIGHT - Constants.GROUND_PROBE_EPSILON)
+	for rise in range(1, wall_height):
+		if not terrain.is_solid_at(Vector2(forward_x, feet_y - rise - PROBE_INSET)):
+			return float(rise)
 	return -1.0
 
 
@@ -429,7 +455,7 @@ func _step_off_ladder_top() -> void:
 ## Whether the body, moved by offset, would be clear of terrain and standing
 ## on solid ground.
 func _can_stand_at(offset: Vector2) -> bool:
-	if _is_body_blocked_at(offset):
+	if is_body_blocked_at(offset):
 		return false
 	return terrain.is_solid_at(get_feet_position() + offset)
 
@@ -446,11 +472,23 @@ func _try_start_wall_tool() -> bool:
 
 ## Whether the body would overlap solid terrain if moved by offset. Inset by
 ## a pixel so merely touching a surface does not count as overlapping it.
-func _is_body_blocked_at(offset: Vector2) -> bool:
+func is_body_blocked_at(offset: Vector2) -> bool:
 	const INSET := 1.0
 	var moved_body := get_body_rect()
 	moved_body.position += offset
 	return terrain.is_solid_in_rect(moved_body.grow(-INSET))
+
+
+## The body is lifted onto a step in one frame, which on a staircase read as
+## the lemming hopping up and down. The sprite is left where it was and
+## slides up to the body over a few frames instead, so the climb looks like
+## walking up the step while the physics stays exact.
+func _smooth_sprite_after_lift(lift: float) -> void:
+	if _sprite_lift_tween != null:
+		_sprite_lift_tween.kill()
+	animated_sprite.position.y += lift
+	_sprite_lift_tween = create_tween()
+	_sprite_lift_tween.tween_property(animated_sprite, "position:y", _sprite_rest_y, lift / Constants.WALK_SPEED)
 
 
 func turn_around() -> void:
