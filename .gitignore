@@ -3,3 +3,4 @@
 /android/
 prints/
 __pycache__/
+.claude/worktrees/
