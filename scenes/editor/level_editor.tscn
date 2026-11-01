@@ -1,0 +1,22 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/editor/level_editor_controller.gd" id="1_controller"]
+[ext_resource type="TileSet" path="res://resources/tilesets/terrain_tileset.tres" id="2_tileset"]
+[ext_resource type="Script" path="res://scripts/level/terrain_destructible.gd" id="3_terrain"]
+[ext_resource type="Script" path="res://scripts/editor/editor_grid_overlay.gd" id="4_grid"]
+[ext_resource type="PackedScene" path="res://scenes/editor/editor_toolbar.tscn" id="5_toolbar"]
+
+[node name="LevelEditor" type="Node2D"]
+process_mode = 3
+script = ExtResource("1_controller")
+
+[node name="EditLayer" type="Node2D" parent="."]
+
+[node name="Terrain" type="TileMapLayer" parent="EditLayer"]
+tile_set = ExtResource("2_tileset")
+script = ExtResource("3_terrain")
+
+[node name="GridOverlay" type="Node2D" parent="EditLayer"]
+script = ExtResource("4_grid")
+
+[node name="Toolbar" parent="." instance=ExtResource("5_toolbar")]

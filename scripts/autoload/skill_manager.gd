@@ -42,6 +42,14 @@ func register_skill(template: SkillBase) -> void:
 	_skill_templates[String(template.id)] = template
 
 
+## Every registered skill id, in registration order, for screens that list
+## all tools (like the level editor) instead of one level's selection.
+func get_skill_ids() -> Array[String]:
+	var skill_ids: Array[String] = []
+	skill_ids.assign(_skill_templates.keys())
+	return skill_ids
+
+
 func has_skill(skill_id: String) -> bool:
 	return _skill_templates.has(skill_id)
 
