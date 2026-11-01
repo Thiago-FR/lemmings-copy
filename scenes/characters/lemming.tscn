@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://d3odtrlw5dquy"]
+
+[ext_resource type="Script" uid="uid://blyt1mq1o13r8" path="res://scripts/characters/lemming_controller.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bgjc8mbowi0vx" path="res://assets/sprites/characters/wizard/walk_aligned_0.png" id="2_walk0"]
+[ext_resource type="Texture2D" uid="uid://bjr841b41a5ms" path="res://assets/sprites/characters/wizard/walk_aligned_1.png" id="3_walk1"]
+[ext_resource type="Texture2D" uid="uid://702n3lgwmr8n" path="res://assets/sprites/characters/wizard/walk_aligned_2.png" id="4_walk2"]
+[ext_resource type="Texture2D" uid="uid://mklho46dpca8" path="res://assets/sprites/characters/wizard/walk_aligned_3.png" id="5_walk3"]
+[ext_resource type="Texture2D" uid="uid://biuthl42gmn1u" path="res://assets/sprites/characters/wizard/climb_aligned_0.png" id="6_climb0"]
+[ext_resource type="Texture2D" uid="uid://cxb1iqx4y1ri7" path="res://assets/sprites/characters/wizard/climb_aligned_1.png" id="7_climb1"]
+[ext_resource type="Texture2D" uid="uid://i054bx3k7m67" path="res://assets/sprites/characters/wizard/climb_aligned_2.png" id="8_climb2"]
+[ext_resource type="Texture2D" uid="uid://t8c8n0j0lvvr" path="res://assets/sprites/characters/wizard/climb_aligned_3.png" id="9_climb3"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_lemming"]
+resource_name = "wizard_placeholder"
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_climb0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_climb1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_climb2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_climb3")
+}],
+"loop": true,
+"name": &"climb",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_walk0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_walk1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_walk2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_walk3")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lemming"]
+size = Vector2(26, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_blocker_zone"]
+size = Vector2(30, 34)
+
+[node name="Lemming" type="CharacterBody2D" unique_id=843850481]
+input_pickable = true
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1098470528]
+scale = Vector2(0.15, 0.15)
+sprite_frames = SubResource("SpriteFrames_lemming")
+animation = &"walk"
+autoplay = "walk"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1149958183]
+position = Vector2(1, 2)
+shape = SubResource("RectangleShape2D_lemming")
+
+[node name="BlockerZone" type="Area2D" parent="." unique_id=468859171]
+position = Vector2(1, 2)
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BlockerZone"]
+shape = SubResource("RectangleShape2D_blocker_zone")

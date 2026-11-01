@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Godot: Launch project",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}",
+            "port": 6007,
+            "address": "127.0.0.1",
+            "launch_scene": false
+        },
+        {
+            "name": "Godot: Launch current scene",
+            "type": "godot",
+            "request": "launch",
+            "project": "${workspaceFolder}",
+            "port": 6007,
+            "address": "127.0.0.1",
+            "launch_scene": true
+        }
+    ]
+}
