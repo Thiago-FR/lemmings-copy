@@ -7,6 +7,10 @@ extends CharacterBody2D
 signal died
 signal exited
 
+## Tint a dying lemming fades towards: red, so a death reads as a death and
+## not as the lemming simply walking off-screen.
+const DEATH_FADE_COLOUR := Color(1.0, 0.25, 0.2, 0.0)
+
 @onready var state_machine: LemmingStateMachine = LemmingStateMachine.new()
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var _collision_shape: CollisionShape2D = $CollisionShape2D
@@ -29,6 +33,7 @@ var _fall_start_y: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("lemmings")
 	collision_layer = Constants.LEMMING_COLLISION_LAYER
 	collision_mask = Constants.TERRAIN_COLLISION_LAYER
 	_blocker_zone.collision_mask = Constants.LEMMING_COLLISION_LAYER
@@ -298,8 +303,28 @@ func die() -> void:
 	if not state_machine.is_alive():
 		return
 	state_machine.change_state(LemmingStateMachine.State.DEAD)
+	# Emitted before the fade so the level's counts and its win/lose check
+	# resolve on the frame the lemming actually died, not a third of a second
+	# later once the body has finished disappearing.
 	died.emit()
-	queue_free()
+	_play_death_fade()
+
+
+## A dying lemming used to be freed on the same frame, so it vanished at the
+## instant of impact with nothing to show why. Landing a fatal fall and
+## falling straight through the floor looked identical, and the second is
+## what it got reported as. Fading the body out over a few frames makes the
+## death readable without needing dedicated art, and should be replaced by a
+## real death animation when art lands.
+func _play_death_fade() -> void:
+	set_physics_process(false)
+	input_pickable = false
+	_blocker_zone.monitoring = false
+	_collision_shape.set_deferred("disabled", true)
+
+	var tween := create_tween()
+	tween.tween_property(animated_sprite, "modulate", DEATH_FADE_COLOUR, Constants.DEATH_FADE_SECONDS)
+	tween.tween_callback(queue_free)
 
 
 func exit() -> void:

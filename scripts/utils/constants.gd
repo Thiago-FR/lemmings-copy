@@ -75,6 +75,11 @@ const MINER_STEP_HEIGHT: float = TERRAIN_TILE_SIZE
 const BOMBER_FUSE_SECONDS: float = 5.0
 const BOMBER_EXPLOSION_RADIUS: float = 24.0
 
+# Long enough to register as a death, short enough not to hold up a level
+# that is waiting on its last lemming. Level counts update immediately on
+# death regardless — only the body lingers.
+const DEATH_FADE_SECONDS: float = 0.35
+
 const LEMMING_COLLISION_LAYER: int = 1
 const TERRAIN_COLLISION_LAYER: int = 2
 
