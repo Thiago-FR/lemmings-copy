@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://t8c8n0j0lvvr"
-path="res://.godot/imported/climb_aligned_3.png-e8b55bc32c25116f3f55e076b99978de.ctex"
+uid="uid://dlcolm046d4di"
+path="res://.godot/imported/walk_0.png-9cf0b51fdd22be9d511fca51cdc1de1f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/characters/wizard/climb_aligned_3.png"
-dest_files=["res://.godot/imported/climb_aligned_3.png-e8b55bc32c25116f3f55e076b99978de.ctex"]
+source_file="res://assets/sprites/characters/lemming/walk_0.png"
+dest_files=["res://.godot/imported/walk_0.png-9cf0b51fdd22be9d511fca51cdc1de1f.ctex"]
 
 [params]
 

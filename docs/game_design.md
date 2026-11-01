@@ -133,3 +133,68 @@ pelo `LevelLoader` a partir de um menu de seleção.
 8. Implementar terreno destrutível via `TileMap`.
 9. Criar 3-4 níveis de teste (tutorial + uma fase por skill nova) usando `LevelData`.
 10. Polir: sons, animações de transição de estado, tela de vitória/derrota.
+
+## 9. Geometria do Corpo e da Grade (invariante)
+
+Esta seção existe porque o descumprimento dela foi o que travou o projeto na
+primeira tentativa.
+
+As habilidades de escavar removem **tiles inteiros**, então toda abertura por
+onde um lemming precisa passar é alinhada à grade e tem tamanho múltiplo do
+tile. Daí o invariante: **o corpo tem que ser menor que essa abertura, com
+folga dos dois lados.**
+
+| | valor |
+|---|---|
+| Tile do terreno | 16 × 16 |
+| Folga mínima por lado | 2 px |
+| Corpo máximo | 12 × 28 |
+
+Dois erros separados vinham disso, e os dois produziam o mesmo sintoma
+("cavou o buraco mas o lemming não passou"):
+
+1. **Corpo mais largo que um tile** (era 26×30) só cabia quando por acaso
+   ficava entre duas colunas, e a escavação limpava as duas.
+2. **Corpo com exatamente a largura do tile** entala entre as duas paredes
+   do poço e para de cair mesmo com gravidade total — não sobra espaço para
+   a física separar o corpo das laterais.
+
+`LemmingController._assert_body_fits_carved_openings()` verifica isso no
+nascimento do lemming, e a arte placeholder é gerada exatamente nessas
+medidas, então os dois não têm como divergir.
+
+## 10. Protocolo de Validação das Habilidades
+
+Uma habilidade por vez. Só passa para a próxima quando a atual estiver
+fechada por um teste automático que roda sem abrir a janela do jogo.
+
+Para cada habilidade:
+
+1. Corrigir a habilidade.
+2. Escrever `tests/test_skill_<nome>.gd` + `.tscn`, cobrindo **no mínimo**
+   dois casos de alinhamento: corpo dentro de uma coluna/linha da grade, e
+   corpo entre duas. Era exatamente essa diferença que fazia o bug parecer
+   intermitente.
+3. O teste tem que verificar **chegada**, não só movimento — "desceu 64px"
+   não prova nada se o lemming terminou flutuando. Verifique que ele
+   aterrissou em chão sólido e voltou para `WALKING`.
+4. Rodar: `godot --headless res://tests/test_skill_<nome>.tscn`
+   (sai com código 0 se passou, 1 se falhou).
+5. Só então passar para a próxima.
+
+Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
+
+| Ordem | Habilidade | Estado |
+|---|---|---|
+| 1 | Digger (vertical) | ✅ fechado |
+| 2 | Basher (horizontal) | pendente |
+| 3 | Builder (escada) | pendente |
+| 4 | Miner (diagonal) | pendente |
+| 5 | Climber | pendente |
+| 6 | Blocker | pendente |
+| 7 | Floater | pendente |
+| 8 | Bomber | pendente |
+
+**Atenção ao chegar no Builder:** o degrau mudou de 8px para 16px (um tile),
+então a geometria da fase 3 e da fase 4 — que foram construídas assumindo
+degrau de 8px — precisa ser refeita em `tools/build_test_levels.gd`.

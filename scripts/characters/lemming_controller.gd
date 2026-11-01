@@ -35,6 +35,21 @@ func _ready() -> void:
 	_fall_start_y = position.y
 	input_event.connect(_on_input_event)
 	_blocker_zone.body_entered.connect(_on_blocker_zone_body_entered)
+	_assert_body_fits_carved_openings()
+
+
+## Guards the invariant documented on Constants.MAX_BODY_WIDTH. Checked at
+## spawn rather than left to surface later as a skill that carves an opening
+## the lemming cannot pass through, which is how the bug originally
+## presented and why it was so hard to trace back to the body size.
+func _assert_body_fits_carved_openings() -> void:
+	var body_size := get_half_extents() * 2.0
+	assert(
+		body_size.x <= Constants.MAX_BODY_WIDTH and body_size.y <= Constants.MAX_BODY_HEIGHT,
+		"Lemming collision box is %s but must be at most %sx%s to pass through the tile-aligned openings the digging skills carve." % [
+			body_size, Constants.MAX_BODY_WIDTH, Constants.MAX_BODY_HEIGHT
+		]
+	)
 
 
 func _on_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
@@ -52,6 +67,15 @@ func set_blocker_zone_active(active: bool) -> void:
 func get_half_extents() -> Vector2:
 	var rect_shape: RectangleShape2D = _collision_shape.shape
 	return rect_shape.size / 2.0
+
+
+## World-space rectangle of the body that actually collides. Digging and
+## building skills size their carves from this instead of from constants, so
+## the opening they make always matches the body that has to pass through it
+## even if the collision shape is resized in the editor.
+func get_body_rect() -> Rect2:
+	var half := get_half_extents()
+	return Rect2(_collision_shape.global_position - half, half * 2.0)
 
 
 ## World position at the lemming's feet, used by digging skills to find
@@ -190,6 +214,15 @@ func _process_climbing() -> void:
 
 
 func _process_walking() -> void:
+	# Losing the floor is resolved before anything ahead. A lemming standing
+	# in a shaft exactly as wide as its own body has solid wall on both
+	# sides, so when the wall check came first it turned around every frame
+	# and never reached the floor check — hovering in mid-air at the bottom
+	# of the shaft it had just dug instead of falling down it.
+	if not is_on_floor():
+		_start_falling()
+		return
+
 	# Resolve direction (wall turn/climb/step-up) BEFORE computing
 	# velocity.x, so this same frame's move_and_slide() already pushes the
 	# right way instead of one frame later (which let a lemming re-detect
@@ -202,13 +235,9 @@ func _process_walking() -> void:
 		if has_climber_skill:
 			state_machine.change_state(LemmingStateMachine.State.CLIMBING)
 			return
-		else:
-			turn_around()
+		turn_around()
 	elif step_height > 0.0:
 		global_position.y -= step_height
-	elif not is_on_floor():
-		_start_falling()
-		return
 
 	velocity.x = Constants.WALK_SPEED * direction
 

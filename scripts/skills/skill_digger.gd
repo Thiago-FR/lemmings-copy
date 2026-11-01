@@ -24,15 +24,20 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 	if terrain == null:
 		return false
 
-	# Clear the lemming's full width, not just a single point, so the hole
-	# is actually wide enough for a body to fall through instead of other
-	# lemmings bridging over a hole narrower than they are.
-	var feet := lemming.get_feet_position()
-	var half_width := lemming.get_half_extents().x
-	var destroyed_center := terrain.destroy_cell_at(feet)
-	terrain.destroy_cell_at(feet + Vector2(-half_width, 0))
-	terrain.destroy_cell_at(feet + Vector2(half_width, 0))
-	if not destroyed_center:
+	# One step's worth of terrain directly beneath the feet, exactly as wide
+	# as the body. Taking the width from the body rather than from a
+	# constant is what guarantees the shaft is always wide enough to descend
+	# into: a fixed-width carve left the lemming wedged against the side of
+	# its own tunnel whenever its body straddled a cell boundary.
+	var body := lemming.get_body_rect()
+	var slice := Rect2(
+		Vector2(body.position.x, body.end.y),
+		Vector2(body.size.x, Constants.DIGGER_STEP_HEIGHT)
+	)
+
+	if terrain.destroy_rect(slice) == 0:
+		# Nothing solid left below — broken through into open space, so hand
+		# control back and let LemmingController resume walking or falling.
 		return false
 
 	lemming.global_position.y += Constants.DIGGER_STEP_HEIGHT

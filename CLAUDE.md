@@ -78,12 +78,26 @@ arquivos vazios especulativamente.
 
 ## Sprites Placeholder
 
-Os sprites atuais do personagem jogável (`sprite_wizard_0.png`,
-`sprite_wizard_1.png`) ficam em
-`res://assets/sprites/characters/wizard/` e servem apenas como placeholder —
-serão substituídos pelos sprites reais do lemming futuramente. O
-`AnimatedSprite2D` de `lemming.tscn` referencia um `SpriteFrames` chamado
-`wizard_placeholder`, permitindo trocar os sprites sem alterar código.
+Os quadros do lemming em `res://assets/sprites/characters/lemming/` são
+**gerados**, não desenhados: `tools/build_lemming_placeholder.gd` os produz
+por código. Para mudar cor ou proporção, edite o script e rode:
+
+```
+godot --headless --script res://tools/build_lemming_placeholder.gd
+```
+
+Eles têm **exatamente o tamanho da caixa de colisão** (12×28), e as marcas
+rosa nos cantos indicam os limites dessa caixa. Isso é proposital: o que
+aparece na tela é o que de fato colide. O sprite anterior era um mago em
+escala 0.15, sem relação com a colisão, e foi justamente o que impediu de
+enxergar os bugs das habilidades.
+
+O `AnimatedSprite2D` de `lemming.tscn` referencia um `SpriteFrames` chamado
+`lemming_placeholder`, então a arte final entra trocando os PNGs, sem tocar
+em código. As marcas de canto devem sair quando isso acontecer.
+
+Como as imagens são geradas (por código ou por IA local) está em
+[docs/art_pipeline.md](docs/art_pipeline.md).
 
 ## Documentação Relacionada
 

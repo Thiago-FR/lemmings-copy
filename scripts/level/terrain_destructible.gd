@@ -29,6 +29,57 @@ func build_cell_at(world_position: Vector2) -> void:
 	set_cell(cell, 0, Vector2i.ZERO)
 
 
+## Erases every cell overlapping world_rect and returns how many were
+## actually removed (0 meaning the area was already clear).
+##
+## Digging skills carve through this rather than through destroy_cell_at()
+## so the opening is always derived from the lemming's real body rectangle:
+## whichever cells the body overlaps get cleared, whether that is one column
+## or two. Clearing a fixed cell count instead was what left a lemming with
+## part of itself still embedded in rock whenever its body happened to
+## straddle a cell boundary.
+func destroy_rect(world_rect: Rect2) -> int:
+	var destroyed_count := 0
+	for cell in _cells_overlapping(world_rect):
+		if get_cell_source_id(cell) != -1:
+			erase_cell(cell)
+			destroyed_count += 1
+	return destroyed_count
+
+
+## Whether any cell overlapping world_rect is solid. Used to check that an
+## opening a lemming is about to move into is genuinely clear.
+func is_solid_in_rect(world_rect: Rect2) -> bool:
+	return not get_solid_cells_in_rect(world_rect).is_empty()
+
+
+## Every still-solid cell overlapping world_rect. Separate from
+## is_solid_in_rect() so a failing check can name the exact cells that are
+## blocking rather than only reporting that something is.
+func get_solid_cells_in_rect(world_rect: Rect2) -> Array[Vector2i]:
+	var solid_cells: Array[Vector2i] = []
+	for cell in _cells_overlapping(world_rect):
+		if get_cell_source_id(cell) != -1:
+			solid_cells.append(cell)
+	return solid_cells
+
+
+## Cell coordinates overlapping a world-space rectangle. The far edge is
+## pulled back by a hair so a rectangle ending exactly on a cell boundary
+## does not pick up the next cell along, which would make every carve one
+## tile wider than the body that asked for it.
+func _cells_overlapping(world_rect: Rect2) -> Array[Vector2i]:
+	const EDGE_BIAS := 0.001
+	var first_cell := local_to_map(to_local(world_rect.position))
+	var last_cell := local_to_map(to_local(world_rect.end - Vector2(EDGE_BIAS, EDGE_BIAS)))
+
+	var cells: Array[Vector2i] = []
+	for y in range(first_cell.y, last_cell.y + 1):
+		for x in range(first_cell.x, last_cell.x + 1):
+			cells.append(Vector2i(x, y))
+	return cells
+
+
 func destroy_circle(world_position: Vector2, radius: float) -> void:
 	var center_cell := local_to_map(to_local(world_position))
 	var cell_size := tile_set.tile_size if tile_set != null else Vector2i(16, 16)

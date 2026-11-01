@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cjrjjq8hak38w"
-path="res://.godot/imported/sprite_wizard_0.png-2cf4124898d3f3b9b44dd064618b6c1a.ctex"
+uid="uid://cd72s7u87ktv"
+path="res://.godot/imported/climb_3.png-a5998c115f6721397125973f760b534d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/characters/wizard/sprite_wizard_0.png"
-dest_files=["res://.godot/imported/sprite_wizard_0.png-2cf4124898d3f3b9b44dd064618b6c1a.ctex"]
+source_file="res://assets/sprites/characters/lemming/climb_3.png"
+dest_files=["res://.godot/imported/climb_3.png-a5998c115f6721397125973f760b534d.ctex"]
 
 [params]
 
