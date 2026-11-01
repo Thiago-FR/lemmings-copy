@@ -1,14 +1,14 @@
 class_name HudController
 extends CanvasLayer
 ## Displays lemming counts, time remaining, the required save percentage and
-## the level's instructions. Reads everything from LevelManager via signals.
+## an "i" button that shows the level's instructions on hover. Reads everything from LevelManager via signals.
 ## Label text is Portuguese because it is player-facing; the code around it
 ## stays English like the rest of the project.
 
 @onready var _lemmings_label: Label = $MarginContainer/VBoxContainer/HBoxContainer/LemmingsLabel
 @onready var _time_label: Label = $MarginContainer/VBoxContainer/HBoxContainer/TimeLabel
 @onready var _required_label: Label = $MarginContainer/VBoxContainer/HBoxContainer/RequiredLabel
-@onready var _instructions_label: Label = $MarginContainer/VBoxContainer/InstructionsLabel
+@onready var _info_button: InfoButton = $MarginContainer/VBoxContainer/HBoxContainer/InfoButton
 
 var _level_manager: LevelManager
 
@@ -21,10 +21,9 @@ func _ready() -> void:
 	_level_manager.time_remaining_changed.connect(_on_time_remaining_changed)
 
 	_required_label.text = "Meta: %d%%" % round(_level_manager.level_data.required_percentage * 100.0)
-	# LevelData has carried per-level instructions all along with nothing
-	# displaying them, so the rules of each level were only ever readable in
-	# the .tres file.
-	_instructions_label.text = _level_manager.level_data.instructions
+	# Behind a hover button rather than written on screen: as a label the
+	# instructions covered a good part of the level.
+	_info_button.tooltip_text = _level_manager.level_data.instructions
 	_on_counts_changed(0, 0, 0, _level_manager.level_data.total_lemmings)
 	_on_time_remaining_changed(_level_manager.time_remaining)
 

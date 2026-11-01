@@ -4,8 +4,6 @@ extends CanvasLayer
 ## / level_failed) and offers retry-or-menu. Its own process_mode is ALWAYS
 ## so the buttons stay clickable while gameplay is paused behind it.
 
-const MAIN_MENU_SCENE_PATH := "res://scenes/main/main_menu.tscn"
-
 @onready var _panel: Control = $Panel
 @onready var _title_label: Label = $Panel/VBoxContainer/TitleLabel
 @onready var _percentage_label: Label = $Panel/VBoxContainer/PercentageLabel
@@ -43,10 +41,8 @@ func _show_result(title: String, percentage_saved: float) -> void:
 
 
 func _on_retry_pressed() -> void:
-	get_tree().paused = false
-	LevelLoader.reload_current_level()
+	GameManager.restart_level()
 
 
 func _on_menu_pressed() -> void:
-	get_tree().paused = false
-	get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
+	GameManager.go_to_main_menu()

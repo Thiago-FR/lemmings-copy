@@ -1,13 +1,15 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud_controller.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ui/game_controls_controller.gd" id="2_controls"]
+[ext_resource type="Script" path="res://scripts/ui/info_button.gd" id="3_info"]
 
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 anchor_right = 1.0
-offset_right = -8.0
+offset_right = -272.0
 offset_bottom = 72.0
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
@@ -22,6 +24,14 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_constants/separation = 24
 
+[node name="InfoButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 16
+text = "i"
+script = ExtResource("3_info")
+
 [node name="LemmingsLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "Na fase: 0   Salvos: 0   Perdidos: 0   Total: 0"
@@ -34,9 +44,31 @@ text = "00:00"
 layout_mode = 2
 text = "Meta: 0%"
 
-[node name="InstructionsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="GameControls" type="HBoxContainer" parent="."]
+process_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 39.0
+grow_horizontal = 0
+alignment = 2
+theme_override_constants/separation = 6
+script = ExtResource("2_controls")
+
+[node name="PauseButton" type="Button" parent="GameControls"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.73, 0.78, 0.84, 1)
-theme_override_font_sizes/font_size = 13
-text = ""
-autowrap_mode = 3
+focus_mode = 0
+text = "Pausar"
+
+[node name="RestartButton" type="Button" parent="GameControls"]
+layout_mode = 2
+focus_mode = 0
+text = "Reiniciar"
+
+[node name="MenuButton" type="Button" parent="GameControls"]
+layout_mode = 2
+focus_mode = 0
+text = "Menu"
