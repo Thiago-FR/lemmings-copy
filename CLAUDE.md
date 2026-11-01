@@ -97,5 +97,9 @@ Como as imagens são geradas está em
 
 ## Documentação Relacionada
 
-Mecânicas de jogo, fases e dificuldade ficam em `docs/game_design.md`
-(mudam com mais frequência e não precisam ser recarregadas em toda sessão).
+**Comece por [docs/estado_atual.md](docs/estado_atual.md)** — tem o que está
+pronto, as armadilhas que já custaram tempo e os comandos para rodar tudo.
+
+- `docs/game_design.md` — mecânicas, fases, a regra de geometria (seção 9) e
+  o protocolo de validação das habilidades (seção 10).
+- `docs/art_pipeline.md` — como as imagens são geradas e o que foi descartado.
