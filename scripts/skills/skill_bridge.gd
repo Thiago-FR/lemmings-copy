@@ -16,6 +16,13 @@ extends SkillBase
 ## lemming given the tool on solid floor first walks to the floor's edge
 ## (still under the tool's control) and starts there; one already leaning
 ## over the edge starts the bridge at that edge, behind its leading edge.
+##
+## With no gap ahead before a wall, the lemming keeps the tool (see
+## LemmingController.pending_wall_tool) and starts the bridge as soon as a
+## gap opens up ahead of it, after turning at walls if need be, like the
+## tools that wait for a wall. It used to refuse the tool there, which read
+## as the click doing nothing: after a gap was bridged, no other lemming
+## could be given a bridge at all.
 ## Starting at the leading edge instead would make the first piece run into
 ## the floor the lemming stands on, and a bridge started a few pixels past
 ## the edge would end a few pixels short of the far side: a gap wider than
@@ -60,16 +67,35 @@ func _init() -> void:
 	display_name = "Ponte"
 
 
-## Refused when a wall comes before the floor's edge: there is nothing to
-## bridge, so the charge is not spent.
+## Refused only by a lemming already carrying a tool, like the other
+## carried tools.
 func can_apply_to(lemming: LemmingController) -> bool:
-	if lemming.state_machine.current_state != LemmingStateMachine.State.WALKING:
-		return false
+	return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING \
+		and lemming.pending_wall_tool == null
+
+
+## Takes control itself when it starts (now or later), so the lemming walks
+## normally while carrying it.
+func occupies_skill_slot() -> bool:
+	return false
+
+
+## Starts at once if there is a gap ahead before any wall; otherwise the
+## lemming carries the tool to the next gap.
+func apply_to(lemming: LemmingController) -> void:
+	if can_start_while_walking(lemming):
+		lemming.current_skill = self
+		start_while_walking(lemming)
+	else:
+		lemming.pending_wall_tool = self
+
+
+func can_start_while_walking(lemming: LemmingController) -> bool:
 	var floor_y := roundf(lemming.get_body_rect().end.y)
 	return not is_nan(_find_floor_edge(lemming, floor_y))
 
 
-func apply_to(lemming: LemmingController) -> void:
+func start_while_walking(lemming: LemmingController) -> void:
 	lemming.velocity = Vector2.ZERO
 	var tile := lemming.terrain.get_cell_size()
 	_piece_width = tile.x * step_width_fraction_of_tile

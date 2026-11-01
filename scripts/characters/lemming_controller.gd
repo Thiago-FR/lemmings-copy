@@ -68,10 +68,12 @@ var ladder_climb_speed: float = Constants.LADDER_CLIMB_SPEED
 # WALKING/FALLING behave. See SkillClimber/SkillFloater.
 var has_climber_skill: bool = false
 
-## A tool the lemming carries until it walks into a wall (the vertical
-## ladder). Handing it over on click and using it on arrival is what makes it
-## usable at all: a lemming turns around the instant it touches a wall, so
-## there is no moment for the player to click on it while it stands there.
+## A tool the lemming carries until it reaches the spot it is used at: a
+## wall for the vertical ladder, the pickaxe and the jackhammer, a gap ahead
+## for the bridge. Handing it over on click and using it on arrival is what
+## makes them usable at all: a lemming turns around the instant it touches a
+## wall, so there is no moment for the player to click on it while it
+## stands there. The charge is spent on the click, as with any tool.
 var pending_wall_tool: SkillBase = null
 var has_floater_skill: bool = false
 
@@ -325,6 +327,9 @@ func _process_walking() -> void:
 		_start_falling()
 		return
 
+	if _try_start_carried_tool_on_the_way():
+		return
+
 	# Resolve direction (wall turn/climb/step-up) BEFORE computing
 	# velocity.x, so this same frame's move_and_slide() already pushes the
 	# right way instead of one frame later (which let a lemming re-detect
@@ -503,6 +508,18 @@ func _can_stand_at(offset: Vector2) -> bool:
 	if is_body_blocked_at(offset):
 		return false
 	return terrain.is_solid_at(get_feet_position() + offset)
+
+
+## A carried tool that starts by itself while walking (the bridge, when a
+## gap opens up ahead), not only at a wall.
+func _try_start_carried_tool_on_the_way() -> bool:
+	if pending_wall_tool == null or not pending_wall_tool.can_start_while_walking(self):
+		return false
+	var tool := pending_wall_tool
+	pending_wall_tool = null
+	current_skill = tool
+	tool.start_while_walking(self)
+	return true
 
 
 func _try_start_wall_tool() -> bool:

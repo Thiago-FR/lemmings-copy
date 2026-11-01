@@ -37,6 +37,11 @@ Dúvida em aberto: **isso vira parte de um modo de jogo?**
 Relaciona com a ideia 1: carregar a ferramenta visível no sprite resolveria
 o "não dá para saber que ele está com a escada".
 
+Confirmado pelo usuário em 1º de novembro de 2026: é isso que ele quer
+dizer com "clicar e voltar a habilitar" (clicar de novo no boneco reusa a
+ferramenta que ele carrega). **Não aplicar ainda**: depende de como o jogo
+vai ficar se virar roguelike (ideia 3).
+
 ## 3. Virar um roguelike (algo na linha de Megabonk)
 
 Ideia inicial, sem formato definido. Só para explorar depois. Perguntas para

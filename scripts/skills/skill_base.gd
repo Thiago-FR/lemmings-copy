@@ -57,6 +57,19 @@ func start_at_wall(_lemming: LemmingController) -> void:
 	pass
 
 
+## For tools the lemming carries that start by themselves on the way rather
+## than at a wall (the bridge, at the next gap ahead): checked on every frame
+## the lemming walks with the tool.
+func can_start_while_walking(_lemming: LemmingController) -> bool:
+	return false
+
+
+## Called when can_start_while_walking() said yes. The tool has already
+## become the lemming's current_skill.
+func start_while_walking(_lemming: LemmingController) -> void:
+	pass
+
+
 ## Whether this skill takes exclusive control of the lemming through
 ## LemmingController.current_skill (the default for "action" skills like
 ## Digger/Builder/Basher/Miner/Blocker). Climber and Floater are permanent

@@ -360,8 +360,13 @@ Substituíram a Bomba antiga (`SkillBomber`, apagada). Decisões do usuário:
   hora), e uma ponte começada alguns pixels depois da beira terminaria
   alguns pixels antes do outro lado, deixando um vão mais largo que o corpo,
   onde ele cai.
-- Se aparece uma parede antes da beira, **o boneco recusa a ponte** e a
-  carga não é gasta (não há o que atravessar).
+- Sem buraco à frente antes de uma parede, **o boneco guarda a ponte** e a
+  monta assim que um buraco aparece à frente dele, virando nas paredes se
+  preciso, como as ferramentas que esperam uma parede. A carga é gasta no
+  clique. Antes ele recusava, e depois de uma ponte cobrir o buraco nenhum
+  outro boneco aceitava ponte (parecia que o clique não fazia nada).
+  Gancho: `SkillBase.can_start_while_walking` / `start_while_walking`,
+  checado a cada quadro de andar. Teste: `test_bridge_carried`.
 - Para em `max_pieces` peças, ou antes se o lugar da próxima peça não está
   vazio: o outro lado do buraco, uma parede, um tijolo ou uma escada. Depois
   devolve o controle e o boneco segue andando.
@@ -448,9 +453,8 @@ seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
 ## Próximo passo
 
 A definir com o usuário. Pendências conhecidas: animação de colocar escada
-(as duas escadas usam animações provisórias); Ponte recusada quando não há
-buraco à frente (o usuário vai decidir: guardar até o próximo buraco, avisar
-na tela ou começar na hora); e as ideias em
+(as duas escadas usam animações provisórias); redefinir o Escudo; e as
+ideias em
 [ideias_futuras.md](ideias_futuras.md).
 
 ## Pendências de arte
