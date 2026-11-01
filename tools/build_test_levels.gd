@@ -36,6 +36,7 @@ func _initialize() -> void:
 	_build_level_11()
 	_build_level_12()
 	_build_level_13()
+	_build_level_14()
 
 	quit()
 
@@ -55,10 +56,10 @@ func _new_terrain() -> TileMapLayer:
 	return terrain
 
 
-func _paint_rect(terrain: TileMapLayer, from_column: int, to_column: int, from_row: int, to_row: int) -> void:
+func _paint_rect(terrain: TileMapLayer, from_column: int, to_column: int, from_row: int, to_row: int, material: TerrainDestructible.TerrainMaterial = TerrainDestructible.TerrainMaterial.EARTH) -> void:
 	for x in range(from_column, to_column + 1):
 		for y in range(from_row, to_row + 1):
-			terrain.set_cell(Vector2i(x, y), 0, Vector2i.ZERO)
+			terrain.set_cell(Vector2i(x, y), 0, Vector2i(0, material))
 
 
 func _add_child_owned(root: Node, child: Node) -> void:
@@ -265,35 +266,54 @@ func _build_level_10() -> void:
 	_save_level(root, "res://scenes/levels/level_10.tscn")
 
 
-## Bomber: lemmings drop into a pen two tiles wide, closed on the left by a
-## thick block and on the right by a wall one tile thick; the exit is beyond
-## that wall. The pen is narrow on purpose: a bomber keeps walking while its
-## fuse burns, and in here it is never far from the thin wall when it goes
-## off, so the blast always opens it.
+## Dynamite: lemmings walk on a floor one block thick; the exit is in a
+## room one block tall right under it. A charge blows a hole through the
+## floor and they drop the 64px into the room, a safe fall. The room is that
+## low on purpose: a blast always takes the floor too, and any deeper drop
+## (or a crater with 32px walls) would kill or trap them.
 func _build_level_11() -> void:
 	var root := _new_level_root("Level11")
 	var terrain := _new_terrain()
-	_paint_rect(terrain, 0, 24, 11, 12)   # floor
-	_paint_rect(terrain, 0, 9, 7, 10)     # thick block, left side of the pen
-	_paint_rect(terrain, 12, 12, 7, 10)   # thin wall, right side of the pen
+	_paint_rect(terrain, 0, 24, 9, 9)     # floor the lemmings walk on
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor of the room underneath
 	_paint_boundary_walls(terrain)
 	_add_child_owned(root, terrain)
 
-	_add_spawn(root, Vector2(352, 296))
+	_add_spawn(root, Vector2(80, 232))
 	_add_exit(root, Vector2(640, 328))
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_11.tscn")
 
 
-## Basher: a wall three tiles thick and six tall stands on the floor between
-## the entrance and the exit, too tall to climb onto and too thick for
-## anything but a tunnel.
+## TNT: the same idea as dynamite, with the floor the lemmings walk on made
+## of concrete (explosives break it like earth). The bigger blast also kills
+## more of the lemmings walking near the charge, so it is best set down
+## away from the others.
+func _build_level_14() -> void:
+	var root := _new_level_root("Level14")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 9, 9, TerrainDestructible.TerrainMaterial.CONCRETE)
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor of the room underneath
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 232))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_14.tscn")
+
+
+## Jackhammer: a concrete wall three tiles thick and six tall stands on the
+## floor between the entrance and the exit, too tall to climb onto and too
+## thick for anything but a tunnel. Concrete, so only the jackhammer gets
+## through it.
 func _build_level_12() -> void:
 	var root := _new_level_root("Level12")
 	var terrain := _new_terrain()
 	_paint_rect(terrain, 0, 24, 11, 12)   # floor
-	_paint_rect(terrain, 14, 16, 5, 10)   # thick wall
+	_paint_rect(terrain, 14, 16, 5, 10, TerrainDestructible.TerrainMaterial.CONCRETE)   # thick wall
 	_paint_boundary_walls(terrain)
 	_add_child_owned(root, terrain)
 

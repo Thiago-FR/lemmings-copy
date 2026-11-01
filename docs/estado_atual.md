@@ -22,7 +22,9 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 | Interface em português | ✅ inclusive nomes das fases e das habilidades |
 | Animação de escavar (frente) | ✅ com pá, mais lenta (20 px/s) |
 | Habilidades, entrada e saída desacopladas | ✅ ver "Arquitetura" abaixo |
-| Garras, Escudo, Bomba, Britadeira, Picareta, Paraquedas | ✅ cada uma com fase e testes (ver abaixo) |
+| Garras, Escudo, Dinamite, TNT, Britadeira, Picareta, Paraquedas | ✅ cada uma com fase e testes (ver abaixo) |
+| Terra e concreto | ✅ dois materiais de terreno (ver "Terreno: terra e concreto") |
+| Pedrinhas e explosão | ✅ desenhadas em código (`DebrisBurst`, `ExplosionEffect`) |
 | Botões Pausar/Continuar, Reiniciar, Menu | ✅ em toda fase (`GameControlsController`, no HUD) |
 | Menu com rolagem | ✅ Tutorial, Modo livre e uma fase por ferramenta |
 | Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
@@ -159,7 +161,8 @@ continua chamando de `skill` (`SkillBase`, `SkillManager`); só o
 | `floater` | Paraquedas |
 | `climber` | Garras |
 | `blocker` | Escudo |
-| `bomber` | Bomba |
+| `dynamite` | Dinamite |
+| `tnt` | TNT |
 | `basher` | Britadeira |
 | `miner` | Picareta |
 
@@ -180,7 +183,8 @@ removidas: o modo livre virou o editor.
 | Paraquedas | "Paraquedas" (fase 8) | `test_tool_floater` | `test_level_floater` |
 | Garras | "Garras" (fase 9) | `test_tool_climber` | `test_level_climber` |
 | Escudo | "Escudo" (fase 10) | `test_tool_blocker` | `test_level_blocker` |
-| Bomba | "Bomba" (fase 11) | `test_tool_bomber` | `test_level_bomber` |
+| Dinamite | "Dinamite" (fase 11) | `test_tool_dynamite` | `test_level_dynamite` |
+| TNT | "TNT" (fase 14) | `test_tool_tnt` | `test_level_tnt` |
 | Britadeira | "Britadeira" (fase 12) | `test_tool_basher` | `test_level_basher` |
 | Picareta | "Picareta" (fase 13) | `test_tool_miner` | `test_level_miner` |
 
@@ -189,17 +193,12 @@ terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
 (carrega a fase pelo `GameManager` e entrega a ferramenta pelo
 `SkillManager`, como um clique).
 
-### Paraquedas, Garras, Escudo, Bomba, Britadeira e Picareta
+### Paraquedas, Garras, Escudo, Britadeira e Picareta
 
 - **Garras (climber) e Escudo (blocker)** já funcionavam; só ganharam teste e fase.
 - **Paraquedas** (antes "Paraquedista"): dado a um boneco **já caindo**,
   era aceito e gastava a carga, mas o boneco continuava caindo e morria.
   Agora abre na hora.
-- **Bomba (bomber)**: a explosão era um círculo de 24px em volta da origem do
-  nó e só apagava blocos com o centro dentro dele, então nunca alcançava
-  o bloco ao lado do boneco. Agora apaga todo bloco a até 40px
-  (`blast_reach`) do corpo, **menos o chão** sob os pés: na grade de 32px
-  uma cratera vira um poço de um bloco de onde ninguém sai andando.
 - **Britadeira (basher)**: começava na hora e, sem parede encostada, parava no
   primeiro golpe; como o boneco vira no instante em que toca a parede,
   nunca dava para usar. Agora funciona como a Escada vertical: o boneco
@@ -224,6 +223,49 @@ terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
 - A Britadeira ainda avança um bloco inteiro por golpe e não tem animação
   própria (anotado em `ideias_futuras.md`).
 
+### Dinamite e TNT
+
+Substituíram a Bomba antiga (`SkillBomber`, apagada). Decisões do usuário:
+
+- O boneco **coloca a carga no chão e segue andando**; ele não explode
+  junto. A carga (`ExplosiveCharge`) mostra o pavio queimando e os segundos
+  que faltam (3s).
+- **Dinamite** (`SkillDynamite`) pega um quadrado 3x3 de blocos em volta da
+  carga; **TNT** (`SkillTnt`) um 5x5 sem os cantos. A regra é uma só:
+  offset (dx, dy) com dx² + dy² <= r² + 1, r = 1 ou 2.
+- A explosão **quebra o piso** e quebra **concreto** também. Mata todo
+  boneco cujo corpo encosta num bloco da explosão.
+- Base comum: `SkillExplosive`. Explosão desenhada em código
+  (`ExplosionEffect`): clarão, anel de fumaça e pedaços voando.
+- **Cuidado ao desenhar fases:** quebrar o piso deixa uma cratera com
+  paredes de 32px, que ninguém sobe, e queda acima de 80px mata. Por isso as
+  fases 11 e 14 põem a saída numa sala de um bloco de altura logo embaixo
+  de um chão de um bloco: a explosão abre o chão e eles caem 64px.
+- Os bonecos que vêm atrás chegam na carga justo quando ela explode (andam
+  150px em 3s). Nas fases, saída a cada 3s: morre só um.
+
+### Terreno: terra e concreto
+
+- Duas linhas de blocos no atlas: linha 0 terra, linha 1 concreto (cinza
+  com pintinhas), geradas por `tools/build_terrain_tileset.gd`.
+  `TerrainDestructible.TerrainMaterial` (EARTH, CONCRETE), `is_concrete_at`,
+  `material_at`, e `build_cell_at(posição, material)`.
+- **Pá e Picareta só cavam terra**; param no concreto (a Picareta dá
+  meia-volta numa parede de concreto e continua com a ferramenta).
+  **Britadeira quebra os dois.** As explosões também. Teste: `test_concrete`.
+- No editor: ferramentas **Terra** e **Concreto**.
+- A fase da Britadeira (12) tem a parede de concreto.
+
+### Picareta e Britadeira: a mesma escavação
+
+- Base comum `SkillSideDigger`: guarda a ferramenta até a próxima parede, e
+  ali cava um túnel de um bloco de altura, **8px por vez**, andando para
+  dentro de cada fatia. Picareta a 20 px/s, só terra; Britadeira a 24 px/s,
+  terra e concreto. Antes a Britadeira tirava um bloco inteiro a cada 0,15s
+  e pulava um bloco por vez (parecia teletransporte).
+- Pedrinhas (`DebrisBurst`) saem a cada fatia, e na Pá a cada estágio:
+  marrons na terra, cinza no concreto.
+
 ### Garras (escalar)
 
 - No topo da parede o boneco agora **sobe até os pés passarem da borda e dá
@@ -245,6 +287,7 @@ terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
 | LADDER_PLACING / LADDER_CLIMBING | `ladder`: a vista de costas que antes se chamava `climb` |
 | FLOATING (Paraquedas) | `float`: paraquedas balançando, braços nas cordas, pés chutando |
 | MINING (Picareta) | `pickaxe`: golpe de picareta para a frente |
+| BASHING (Britadeira) | `jackhammer`: britadeira tremendo, com poeira |
 | DIGGING (Pá) | `dig` |
 
 ### Escada vertical
@@ -380,12 +423,14 @@ seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
 - O menu (`MainMenuController`) rola e lista: Tutorial, Modo livre (editor)
   e a seção "Ferramentas", com uma fase por ferramenta
   (`TOOL_LEVEL_PATHS`).
+- O painel de ferramentas embaixo (`SkillPanel`) rola na horizontal: no
+  editor ele mostra todas as ferramentas e não cabia na tela.
 
 ## Modo livre (editor)
 
 `scenes/editor/level_editor.tscn`, scripts em `scripts/editor/`.
 
-- Barra de cima: **Bloco** (chão e parede são o mesmo bloco), **Escada**,
+- Barra de cima (rola na horizontal): **Terra**, **Concreto**, **Escada**,
   **Ponte** (tijolo 32x8, alinhado às colunas e a linhas de 8px),
   **Borracha**, **Entrada**, **Saída**; **Jogar**, **Pausar**, **Reiniciar**;
   **Quantidades** e **Menu**.

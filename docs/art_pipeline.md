@@ -24,7 +24,8 @@ Para blocos de terreno e ícones simples.
   dependência externa — hoje é o `build_terrain_tileset.gd`.
 - Exceção: as animações do mago montadas a partir da arte existente
   (`build_dig_frames.py`, `build_death_frames.py`, `build_float_frames.py`,
-  `build_climb_frames.py`, `build_pickaxe_frames.py`, com funções em comum
+  `build_climb_frames.py`, `build_pickaxe_frames.py`, `build_jackhammer_frames.py`,
+  com funções em comum
   em `wizard_art.py`) são em Python, porque é trabalho de máscara pixel a pixel.
   O que é desenhado novo (pá, poeira) usa a mesma grade de ~7 px da arte
   original, senão as bordas ficam finas demais perto do personagem.
@@ -63,6 +64,16 @@ Para blocos de terreno e ícones simples.
   preparação, para a frente no golpe) e lascas saem da parede no golpe e no
   recuo. Uma mão só no cabo: duas mãos de 2x2 viravam um palito cor de pele
   na escala do jogo.
+- A britadeira (`build_jackhammer_frames.py` → `jackhammer_0..3.png`,
+  animação `jackhammer`, 12 fps) usa o mesmo corpo de lado, recuado duas
+  células, segurando na altura da cintura uma britadeira deitada: carcaça
+  cinza de 6x4 células com aletas escuras (é o que diferencia de uma arma
+  nessa escala), alça em D em cima com a pega amarela (preta sumia contra o
+  rosto escuro do capuz), bico e broca clara. Não há balanço: corpo e
+  ferramenta tremem uma célula entre os quadros (o tronco só desce, nunca
+  sobe, para a túnica não descolar dos pés, que só tremem para os lados), a
+  ponta da broca entra e sai uma célula em volta da borda direita da
+  colisão e solta poeira da parede. Braço curto, do ombro até a pega.
 - As funções em comum desses três (corpo sem a mão, separar os pés, braço
   com mão e garras, girar um ponto junto com o corpo) estão em
   `wizard_art.py`.

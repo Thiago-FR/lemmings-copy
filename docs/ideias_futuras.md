@@ -48,36 +48,11 @@ quando for discutir:
 - O que se perde ao falhar, e o que fica de uma run para a outra?
 - Como isso convive com as fases fixas de teste por ferramenta?
 
-## 4. Bomba: TNT e dinamite, quebrando o piso, com explosão animada
+## 4. Bomba, terrenos e pedrinhas: feito
 
-Anotado em 1º de novembro de 2026, depois do primeiro teste da Bomba.
-
-- Hoje o boneco que recebe a Bomba **morre ao explodir** (como no Lemmings
-  original) e a explosão quebra também blocos acima dele, o que ficou
-  estranho.
-- Ter **dois tipos de bomba**, por exemplo **TNT** e **dinamite**, cada uma
-  com uma potência (raio) diferente.
-- A bomba **deve quebrar o piso também** (hoje ela poupa o chão sob os pés
-  de propósito, para não deixar um poço de onde ninguém sai).
-- Falta a **animação de explosão**.
-- Precisa de muito mais teste do usuário antes de decidir.
-
-## 5. Tipos de terreno: terra e concreto
-
-Para as ferramentas de cavar fazerem sentido entre si:
-
-- **Pá** e **Picareta** cavam **terra** (Pá para baixo, Picareta para o
-  lado).
-- **Britadeira** quebra **concreto**.
-- Falta definir: o que acontece ao usar a ferramenta errada no terreno
-  errado, como cada terreno aparece na tela, e se existe terreno que nada
-  quebra.
-
-## 6. Animação de pedrinhas ao cavar
-
-- A **Britadeira** precisa de uma animação de **pedrinhas voando/quebrando**
-  enquanto cava.
-- A **Pá** (e a Picareta) também precisam de pedaços de terra saindo.
+Dinamite e TNT, piso quebrando, explosão, terra e concreto e as pedrinhas
+foram feitos em 1º de novembro de 2026 (ver `estado_atual.md`). Ainda em
+aberto: existir um terreno que **nada** quebra.
 
 ## 7. Escudo: definir o que ele é
 
@@ -93,8 +68,5 @@ redefinido. Ideias para discutir:
 
 ## 8. Animações que faltam (lista)
 
-- Explosão (Bomba).
-- Britadeira cavando, com pedrinhas.
-- Pedaços de terra na Pá e na Picareta.
 - Montar a Escada diagonal, a Escada vertical e a Ponte (hoje usam
   animações provisórias).

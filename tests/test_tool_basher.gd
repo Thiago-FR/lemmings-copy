@@ -18,7 +18,10 @@ const WALL_FIRST_COLUMN := 14
 const WALL_LAST_COLUMN := 16
 const WALL_TOP_ROW := 7
 const TUNNEL_ROWS := 1
-const RUN_SECONDS := 25.0
+## Long enough for the follower to walk back: it reaches the tunnel while it
+## is still being dug, turns at its unfinished end, walks to the left
+## boundary and back before it can come through.
+const RUN_SECONDS := 50.0
 
 var _basher: LemmingController = null
 var _follower: LemmingController = null

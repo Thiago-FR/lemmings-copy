@@ -84,9 +84,14 @@ func _build_top_bar(theme: Theme) -> void:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	add_child(panel)
 
+	# Scrolls sideways: with every tool and control the row is wider than
+	# the window, and the last buttons were cut off.
+	var scroll := ScrollContainer.new()
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
-	panel.add_child(row)
+	scroll.add_child(row)
 
 	var tool_group := ButtonGroup.new()
 	for kind: EditorTool.Kind in EditorTool.Kind.values():

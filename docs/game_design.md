@@ -209,7 +209,7 @@ Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
 | 5 | Climber — botão "Garras" | ✅ fechado (fase 9) |
 | 6 | Blocker — botão "Escudo" | ✅ fechado (fase 10) |
 | 7 | Floater — botão "Paraquedas" | ✅ fechado (fase 8) |
-| 8 | Bomber — botão "Bomba" | ✅ fechado (fase 11) |
+| 8 | Bomber — virou Dinamite (fase 11) e TNT (fase 14): o boneco coloca a carga e se afasta | ✅ fechado |
 
 **Builder (Escada diagonal):** voltou a ter degraus de 8px, agora como
 tijolos fora da grade (ver `estado_atual.md`). A fase 3 foi refeita para

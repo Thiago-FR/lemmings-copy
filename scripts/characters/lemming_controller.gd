@@ -32,6 +32,7 @@ const STATE_ANIMATIONS := {
 	LemmingStateMachine.State.DIGGING: &"dig",
 	LemmingStateMachine.State.FLOATING: &"float",
 	LemmingStateMachine.State.MINING: &"pickaxe",
+	LemmingStateMachine.State.BASHING: &"jackhammer",
 	# Back view, which shows the backpack the ladder comes out of. Stands in
 	# for a dedicated "pulling the ladder out" animation until that exists.
 	LemmingStateMachine.State.LADDER_PLACING: &"ladder",
@@ -73,10 +74,6 @@ var has_climber_skill: bool = false
 ## there is no moment for the player to click on it while it stands there.
 var pending_wall_tool: SkillBase = null
 var has_floater_skill: bool = false
-
-# Bomber ticks independently of current_skill/state so the lemming keeps
-# doing whatever it was doing until the fuse actually goes off.
-var armed_bomber: SkillBomber = null
 
 var _fall_start_y: float = 0.0
 ## While stepping from the top of a ladder or a climbed wall onto the ground
@@ -208,7 +205,7 @@ func _physics_process(delta: float) -> void:
 	# than a single tile). So these states skip the physics step below
 	# entirely and own position fully; is_on_floor()/is_on_wall() go stale
 	# while they're active, so skill scripts must not rely on those and
-	# should query the terrain directly instead (see SkillBasher).
+	# should query the terrain directly instead (see SkillSideDigger).
 	var uses_physics_movement := true
 
 	match state_machine.current_state:
@@ -227,13 +224,7 @@ func _physics_process(delta: float) -> void:
 			_process_skill(delta)
 			uses_physics_movement = false
 
-	# Bomber ticks down independently of the state above: a bombed lemming
-	# keeps walking/building/whatever until the fuse actually goes off.
-	if armed_bomber != null:
-		var still_armed := armed_bomber.physics_process(self, delta)
-		if not still_armed:
-			armed_bomber = null
-
+	# Whatever ran above may have killed the lemming (a fatal landing).
 	if not state_machine.is_alive():
 		return
 

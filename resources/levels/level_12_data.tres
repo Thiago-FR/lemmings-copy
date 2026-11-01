@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 level_name = "Britadeira"
-instructions = "Uma parede grossa separa os lemmings da SAIDA. Escolha a Britadeira e clique num lemming andando para a direita: ele guarda a ferramenta e, ao chegar na parede, cava um tunel reto ate o outro lado. Os outros lemmings passam pelo mesmo tunel."
+instructions = "Uma parede grossa de CONCRETO separa os lemmings da SAIDA. Escolha a Britadeira e clique num lemming andando para a direita: ele guarda a ferramenta e, ao chegar na parede, cava um tunel reto ate o outro lado. A Pa e a Picareta nao quebram concreto, so a Britadeira. Os outros lemmings passam pelo mesmo tunel."
 spawn_rate = 2.0
 total_lemmings = 5
 required_percentage = 0.6

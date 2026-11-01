@@ -5,8 +5,10 @@ extends SceneTree
 ##   godot --headless --script res://tools/build_terrain_tileset.gd
 ## Replace the colours with real terrain art later; the TileSet layout can stay.
 ##
-## The atlas is one row of DIG_STAGES tiles. Tile 0 is a full block; tile N
-## is the same block with its top N/DIG_STAGES dug away, collision included.
+## The atlas has one row of DIG_STAGES tiles per terrain material: row 0 is
+## earth, row 1 concrete (only the jackhammer breaks it). Tile 0 of a row is
+## a full block; tile N is the same block with its top N/DIG_STAGES dug away,
+## collision included.
 ## Digging skills step a cell through these stages instead of erasing it in
 ## one go, so a block being dug keeps real ground under anyone else walking
 ## over it until the digger has actually got that far down.
@@ -19,7 +21,12 @@ extends SceneTree
 const TILE_SIZE := 32
 const DIG_STAGES := 4
 const TERRAIN_COLLISION_LAYER := 2
-const TERRAIN_COLOUR := Color(0.45, 0.32, 0.18)
+## One colour per material, in atlas row order: earth, concrete.
+const MATERIAL_COLOURS: Array[Color] = [Color(0.45, 0.32, 0.18), Color(0.55, 0.56, 0.58)]
+## Slightly darker speckles on concrete, so it reads as a different
+## material and not just a lighter earth.
+const CONCRETE_SPECKLE_COLOUR := Color(0.44, 0.45, 0.47)
+const CONCRETE_SPECKLE_SPACING := 6
 const TERRAIN_SOURCE_ID := 0
 const LADDER_SOURCE_ID := 1
 ## Placeholder ladder: two rails and evenly spaced rungs, drawn so it reads
@@ -50,17 +57,18 @@ func _initialize() -> void:
 	tile_set.add_source(atlas_source, TERRAIN_SOURCE_ID)
 
 	var half := TILE_SIZE / 2.0
-	for stage in DIG_STAGES:
-		var atlas_coords := Vector2i(stage, 0)
-		atlas_source.create_tile(atlas_coords)
-		var top := -half + stage * stage_height
-		var polygon := PackedVector2Array([
-			Vector2(-half, top), Vector2(half, top),
-			Vector2(half, half), Vector2(-half, half),
-		])
-		var tile_data := atlas_source.get_tile_data(atlas_coords, 0)
-		tile_data.add_collision_polygon(physics_layer_index)
-		tile_data.set_collision_polygon_points(physics_layer_index, 0, polygon)
+	for material in MATERIAL_COLOURS.size():
+		for stage in DIG_STAGES:
+			var atlas_coords := Vector2i(stage, material)
+			atlas_source.create_tile(atlas_coords)
+			var top := -half + stage * stage_height
+			var polygon := PackedVector2Array([
+				Vector2(-half, top), Vector2(half, top),
+				Vector2(half, half), Vector2(-half, half),
+			])
+			var tile_data := atlas_source.get_tile_data(atlas_coords, 0)
+			tile_data.add_collision_polygon(physics_layer_index)
+			tile_data.set_collision_polygon_points(physics_layer_index, 0, polygon)
 
 	tile_set.add_source(_build_ladder_source(), LADDER_SOURCE_ID)
 
@@ -72,12 +80,23 @@ func _initialize() -> void:
 
 
 func _build_atlas_texture(stage_height: int) -> ImageTexture:
-	var image := Image.create(TILE_SIZE * DIG_STAGES, TILE_SIZE, false, Image.FORMAT_RGBA8)
+	var image := Image.create(TILE_SIZE * DIG_STAGES, TILE_SIZE * MATERIAL_COLOURS.size(), false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))
-	for stage in DIG_STAGES:
-		var dug := stage * stage_height
-		image.fill_rect(Rect2i(stage * TILE_SIZE, dug, TILE_SIZE, TILE_SIZE - dug), TERRAIN_COLOUR)
+	for material in MATERIAL_COLOURS.size():
+		var row_y := material * TILE_SIZE
+		for stage in DIG_STAGES:
+			var dug := stage * stage_height
+			var solid := Rect2i(stage * TILE_SIZE, row_y + dug, TILE_SIZE, TILE_SIZE - dug)
+			image.fill_rect(solid, MATERIAL_COLOURS[material])
+			if material == 1:
+				_speckle(image, solid)
 	return ImageTexture.create_from_image(image)
+
+
+func _speckle(image: Image, area: Rect2i) -> void:
+	for y in range(area.position.y + 2, area.end.y, CONCRETE_SPECKLE_SPACING):
+		for x in range(area.position.x + 2 + (y / CONCRETE_SPECKLE_SPACING) % 2 * 3, area.end.x, CONCRETE_SPECKLE_SPACING):
+			image.fill_rect(Rect2i(x, y, 2, 2), CONCRETE_SPECKLE_COLOUR)
 
 
 ## No collision polygon on purpose: lemmings pass through ladder cells, and

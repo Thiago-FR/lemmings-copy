@@ -4,7 +4,9 @@ extends CanvasLayer
 ## forwards selection to SkillManager. Button labels/availability follow
 ## SkillManager's remaining counts, which LevelManager already initialized.
 
-@onready var _button_container: HBoxContainer = $MarginContainer/HBoxContainer
+## Inside a horizontal scroll: with many tools (the editor offers all of
+## them) the row is wider than the window.
+@onready var _button_container: HBoxContainer = $MarginContainer/ScrollContainer/HBoxContainer
 
 var _buttons: Dictionary = {}
 var _level_manager: LevelManager

@@ -10,6 +10,10 @@ extends TileMapLayer
 ## each later stage has more of its top removed, with matching collision.
 ## Every query here only counts the part of a cell that is still there.
 ##
+## Terrain comes in two materials, one atlas row each: earth (row 0), which
+## every digging tool goes through, and concrete (row 1), which only the
+## jackhammer and explosives break. The shovel and the pickaxe stop at it.
+##
 ## The same stage tiles also serve horizontal digging (the pickaxe): drawn
 ## transposed, a tile has its left side dug away instead of its top, and
 ## transposed and flipped, its right side. Godot transforms the collision
@@ -30,6 +34,8 @@ extends TileMapLayer
 ## instead of taking them for a wall.
 
 const TERRAIN_SOURCE_ID := 0
+## Terrain materials, by atlas row.
+enum TerrainMaterial { EARTH, CONCRETE }
 const LADDER_SOURCE_ID := 1
 const BRICK_COLOUR := Color(0.80, 0.55, 0.30)
 ## Tile transforms for a cell dug from the side; plain tiles are dug from
@@ -123,7 +129,7 @@ func _remove_brick(index: int) -> void:
 ## tile set so this script follows whatever the atlas provides.
 func get_dig_stage_count() -> int:
 	var source := tile_set.get_source(TERRAIN_SOURCE_ID) as TileSetAtlasSource
-	return maxi(1, source.get_tiles_count())
+	return maxi(1, source.get_atlas_grid_size().x)
 
 
 ## Pixels removed from the top of a cell by each dig stage.
@@ -138,11 +144,13 @@ func get_dig_stage_height() -> float:
 ## This is what the Digger uses instead of destroy_rect(): erasing the whole
 ## block at once left an open hole the digger then took over a second to
 ## sink into, and other lemmings walking past fell through it first.
-func dig_stage_in_rect(world_rect: Rect2) -> int:
+##
+## Concrete is left alone unless breaks_concrete is set.
+func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false) -> int:
 	var last_stage := get_dig_stage_count() - 1
 	var touched_count := 0
 	for cell in _cells_overlapping(world_rect):
-		if not _is_terrain_cell(cell):
+		if not _is_terrain_cell(cell) or not _can_break(cell, breaks_concrete):
 			continue
 		var stage := _dig_stage_of(cell)
 		# A cell already dug from the side cannot also be dug from the top
@@ -150,7 +158,7 @@ func dig_stage_in_rect(world_rect: Rect2) -> int:
 		if stage >= last_stage or _dug_side_of(cell) != 0:
 			erase_cell(cell)
 		else:
-			set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, 0))
+			set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, _material_of(cell)))
 		touched_count += 1
 	return touched_count
 
@@ -158,10 +166,11 @@ func dig_stage_in_rect(world_rect: Rect2) -> int:
 ## Removes one dig stage from the side of the cell containing world_position
 ## that faces a lemming digging in direction (its left side when digging
 ## right), erasing the cell on its last stage. Returns false if there is no
-## terrain there. A cell already dug from another side goes in one go.
-func dig_side_stage_at(world_position: Vector2, direction: int) -> bool:
+## terrain there, or it is concrete and breaks_concrete is not set. A cell
+## already dug from another side goes in one go.
+func dig_side_stage_at(world_position: Vector2, direction: int, breaks_concrete: bool = false) -> bool:
 	var cell := local_to_map(to_local(world_position))
-	if not _is_terrain_cell(cell):
+	if not _is_terrain_cell(cell) or not _can_break(cell, breaks_concrete):
 		return false
 	var side := DUG_FROM_LEFT if direction > 0 else DUG_FROM_RIGHT
 	var stage := _dig_stage_of(cell)
@@ -169,7 +178,7 @@ func dig_side_stage_at(world_position: Vector2, direction: int) -> bool:
 	if stage >= get_dig_stage_count() - 1 or already_dug_other_way:
 		erase_cell(cell)
 	else:
-		set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, 0), side)
+		set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, _material_of(cell)), side)
 	return true
 
 
@@ -185,6 +194,28 @@ func solid_top_y_at(world_position: Vector2) -> float:
 
 func _dig_stage_of(cell: Vector2i) -> int:
 	return get_cell_atlas_coords(cell).x
+
+
+func _material_of(cell: Vector2i) -> TerrainMaterial:
+	return get_cell_atlas_coords(cell).y as TerrainMaterial
+
+
+func _can_break(cell: Vector2i, breaks_concrete: bool) -> bool:
+	return breaks_concrete or _material_of(cell) != TerrainMaterial.CONCRETE
+
+
+## Whether the cell containing world_position is concrete.
+func is_concrete_at(world_position: Vector2) -> bool:
+	var cell := local_to_map(to_local(world_position))
+	return _is_terrain_cell(cell) and _material_of(cell) == TerrainMaterial.CONCRETE
+
+
+## Material of the cell containing world_position, for effects that look
+## different per material (the debris a dig throws up). Earth for anything
+## that is not terrain.
+func material_at(world_position: Vector2) -> TerrainMaterial:
+	var cell := local_to_map(to_local(world_position))
+	return _material_of(cell) if _is_terrain_cell(cell) else TerrainMaterial.EARTH
 
 
 ## DUG_FROM_LEFT, DUG_FROM_RIGHT, or 0 for a cell dug from the top (or not
@@ -265,10 +296,10 @@ func destroy_cell_at(world_position: Vector2) -> bool:
 	return true
 
 
-## Places a solid tile at world_position, used by Builder to lay steps.
-func build_cell_at(world_position: Vector2) -> void:
+## Places a full block of the given material at world_position.
+func build_cell_at(world_position: Vector2, material: TerrainMaterial = TerrainMaterial.EARTH) -> void:
 	var cell := local_to_map(to_local(world_position))
-	set_cell(cell, TERRAIN_SOURCE_ID, Vector2i.ZERO)
+	set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(0, material))
 
 
 ## Erases every cell overlapping world_rect and returns how many were

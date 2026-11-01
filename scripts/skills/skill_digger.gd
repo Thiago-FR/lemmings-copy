@@ -1,7 +1,8 @@
 class_name SkillDigger
 extends SkillBase
-## Digs straight down, one dig stage (a slice of a tile) at a time, sinking
-## smoothly onto what is left, until there is nothing solid under the feet.
+## Digs straight down through earth, one dig stage (a slice of a tile) at a
+## time, sinking smoothly onto what is left, until there is nothing solid
+## under the feet or only concrete, which the shovel cannot dig.
 ## Then it hands control back so the lemming resumes walking or falls out of
 ## the bottom of the shaft.
 
@@ -10,6 +11,9 @@ extends SkillBase
 ## surface at this rate, so the shovel animation and the descent read as the
 ## same action.
 @export var dig_speed: float = 20.0
+
+## Clods of earth fly up and to the side the lemming faces.
+const DEBRIS_THROW := Vector2(0.5, -0.85)
 
 var _descent_remaining: float = 0.0
 
@@ -57,7 +61,9 @@ func _dig_next_stage(lemming: LemmingController) -> bool:
 	var body := lemming.get_body_rect()
 	var feet := lemming.get_feet_position()
 	var slice := Rect2(body.position.x, feet.y, body.size.x, 1.0)
+	var material := lemming.terrain.material_at(feet)
 	if lemming.terrain.dig_stage_in_rect(slice) == 0:
 		return false
+	DebrisBurst.spawn(lemming.get_parent(), Vector2(body.get_center().x, body.end.y), Vector2(DEBRIS_THROW.x * lemming.direction, DEBRIS_THROW.y), material)
 	_descent_remaining = lemming.terrain.solid_top_y_at(feet) - body.end.y
 	return true

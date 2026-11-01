@@ -30,6 +30,10 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_1.png" id="27_pickaxe1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_2.png" id="28_pickaxe2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/pickaxe_3.png" id="29_pickaxe3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_0.png" id="30_jackhammer0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_1.png" id="31_jackhammer1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_2.png" id="32_jackhammer2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_3.png" id="33_jackhammer3"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_lemming"]
 resource_name = "wizard_placeholder"
@@ -144,6 +148,23 @@ animations = [{
 "loop": true,
 "name": &"pickaxe",
 "speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("30_jackhammer0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_jackhammer1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_jackhammer2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33_jackhammer3")
+}],
+"loop": true,
+"name": &"jackhammer",
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,

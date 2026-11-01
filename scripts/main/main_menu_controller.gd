@@ -20,6 +20,7 @@ const TOOL_LEVEL_PATHS: Array[String] = [
 	"res://resources/levels/level_11_data.tres",
 	"res://resources/levels/level_12_data.tres",
 	"res://resources/levels/level_13_data.tres",
+	"res://resources/levels/level_14_data.tres",
 ]
 
 ## Same width for every button, so the list reads as a column.

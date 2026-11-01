@@ -27,6 +27,8 @@ func apply(kind: EditorTool.Kind, world_position: Vector2) -> void:
 	match kind:
 		EditorTool.Kind.BLOCK:
 			paint_block(world_position)
+		EditorTool.Kind.CONCRETE:
+			paint_block(world_position, TerrainDestructible.TerrainMaterial.CONCRETE)
 		EditorTool.Kind.LADDER:
 			paint_ladder(world_position)
 		EditorTool.Kind.BRICK:
@@ -35,11 +37,11 @@ func apply(kind: EditorTool.Kind, world_position: Vector2) -> void:
 			erase(world_position)
 
 
-func paint_block(world_position: Vector2) -> void:
+func paint_block(world_position: Vector2, material: TerrainDestructible.TerrainMaterial = TerrainDestructible.TerrainMaterial.EARTH) -> void:
 	# destroy_rect first so a brick sitting in the cell does not end up
 	# buried inside the new block.
 	_terrain.destroy_rect(_terrain.cell_rect_at(world_position))
-	_terrain.build_cell_at(world_position)
+	_terrain.build_cell_at(world_position, material)
 
 
 func paint_ladder(world_position: Vector2) -> void:

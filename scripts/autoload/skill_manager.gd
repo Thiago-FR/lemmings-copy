@@ -20,7 +20,8 @@ var _default_skill_types: Array[GDScript] = [
 	SkillMiner,
 	SkillClimber,
 	SkillFloater,
-	SkillBomber,
+	SkillDynamite,
+	SkillTnt,
 	SkillLadderVertical,
 	SkillBridge,
 ]

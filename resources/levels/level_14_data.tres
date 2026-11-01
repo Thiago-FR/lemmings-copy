@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+level_name = "TNT"
+instructions = "A SAIDA fica na sala embaixo do chao de CONCRETO. Escolha a TNT e clique num lemming longe dos outros: ele coloca a TNT no chao e segue andando. 3 segundos depois ela explode, mais forte que a dinamite, e abre o chao. Quem estiver perto da explosao morre."
+spawn_rate = 3.0
+total_lemmings = 5
+required_percentage = 0.6
+time_limit_seconds = 120
+available_skills = Array[String](["tnt"])
+skill_counts = {
+"tnt": 3
+}
+scene_path = "res://scenes/levels/level_14.tscn"

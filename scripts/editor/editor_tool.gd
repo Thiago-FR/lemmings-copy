@@ -4,10 +4,11 @@ extends RefCounted
 ## from both the toolbar (which lists them) and the controller (which applies
 ## them) so neither has to know about the other.
 
-enum Kind { BLOCK, LADDER, BRICK, ERASER, ENTRANCE, EXIT }
+enum Kind { BLOCK, CONCRETE, LADDER, BRICK, ERASER, ENTRANCE, EXIT }
 
 const DISPLAY_NAMES := {
-	Kind.BLOCK: "Bloco",
+	Kind.BLOCK: "Terra",
+	Kind.CONCRETE: "Concreto",
 	Kind.LADDER: "Escada",
 	Kind.BRICK: "Ponte",
 	Kind.ERASER: "Borracha",
