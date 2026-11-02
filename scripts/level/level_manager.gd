@@ -29,7 +29,14 @@ const TOOL_PANEL_BOTTOM_MARGIN := 64.0
 ## highest entrance or exit instead of at the top of those walls.
 const VIEW_HEADROOM := 64.0
 
+## How long a sacrifice plays before it can end the level (just over
+## SacrificeEffect's lifetime).
+const SACRIFICE_RESOLVE_DELAY_SECONDS := 0.9
+
 var _spawn_points: Array = []
+## Lemmings spawned that have neither died nor got out yet.
+var _lemmings_out: Array[LemmingController] = []
+var _ending_now: bool = false
 var _finished_spawn_point_count: int = 0
 var _level_ended: bool = false
 
@@ -121,24 +128,60 @@ func _process(delta: float) -> void:
 func _on_lemming_spawned(lemming: LemmingController) -> void:
 	lemmings_spawned_count += 1
 	AudioManager.play_sound(&"spawn")
+	_lemmings_out.append(lemming)
+	lemming.died.connect(func(_cause: LemmingController.DeathCause) -> void: _lemmings_out.erase(lemming))
 	lemming.died.connect(_on_lemming_died)
 	lemming.clicked.connect(SkillManager.try_assign_to)
+	lemming.carried_tool_dropped.connect(func(skill: SkillBase) -> void: SkillManager.refund_charge(String(skill.id)))
+	CarriedToolIndicator.attach_to(lemming)
+	# The HUD shows how many are out, which a spawn changes too.
+	_emit_counts_changed()
 
 
 func _on_lemming_died(cause: LemmingController.DeathCause) -> void:
 	# An explosion already makes its own sound.
-	if cause == LemmingController.DeathCause.FALL:
-		AudioManager.play_sound(&"splat")
+	match cause:
+		LemmingController.DeathCause.FALL:
+			AudioManager.play_sound(&"splat")
+		LemmingController.DeathCause.SACRIFICE:
+			AudioManager.play_sound(&"sacrifice")
 	lemmings_lost_count += 1
 	_emit_counts_changed()
+	# A sacrifice may be the level's last lemming; let its animation play
+	# before the level ends.
+	if cause == LemmingController.DeathCause.SACRIFICE:
+		await get_tree().create_timer(SACRIFICE_RESOLVE_DELAY_SECONDS, false).timeout
 	_check_level_resolved()
 
 
-func _on_lemming_exited(_lemming: LemmingController) -> void:
+func _on_lemming_exited(lemming: LemmingController) -> void:
+	_lemmings_out.erase(lemming)
 	lemmings_saved_count += 1
 	AudioManager.play_sound(&"saved")
 	_emit_counts_changed()
 	_check_level_resolved()
+
+
+## Ends the level at once, for a player whose remaining lemmings are stuck
+## and who would otherwise wait for the clock: no more lemmings come out,
+## every one still in the level is sacrificed (its own animation plays).
+## Whoever got out is kept; the ones never released are simply not saved
+## (the percentage is over the level's total).
+func end_now() -> void:
+	if _level_ended or _ending_now:
+		return
+	_ending_now = true
+	for spawn_point in _spawn_points:
+		spawn_point.stop()
+	# One already walking into an exit is saved, and die() leaves it alone.
+	for lemming in _lemmings_out.duplicate():
+		lemming.die(LemmingController.DeathCause.SACRIFICE)
+	await get_tree().create_timer(SACRIFICE_RESOLVE_DELAY_SECONDS, false).timeout
+	_finish_level()
+
+
+func is_ending() -> bool:
+	return _level_ended or _ending_now
 
 
 func _emit_counts_changed() -> void:

@@ -12,7 +12,9 @@ extends CharacterBody2D
 
 ## Why a lemming died. Decides which death animation plays, and lets
 ## listeners tell a fall from an explosion without inspecting the lemming.
-enum DeathCause { FALL, VOID, EXPLOSION, OTHER }
+## SACRIFICE is a death the player chose (a lemming stuck where it can never
+## get out): it gets its own gentler animation (_play_sacrifice).
+enum DeathCause { FALL, VOID, EXPLOSION, OTHER, SACRIFICE }
 
 signal clicked(lemming: LemmingController)
 signal died(cause: DeathCause)
@@ -22,10 +24,23 @@ signal exited
 ## (a character who digs faster, builds longer bridges...). The tool's
 ## template and every other lemming's copy are left untouched.
 signal skill_about_to_apply(skill: SkillBase)
+## A tool the lemming was carrying, unused, was dropped for a newer one
+## (assign_skill): whoever spent its charge can give it back.
+signal carried_tool_dropped(skill: SkillBase)
 
 ## Tint a dying lemming fades towards: red, so a death reads as a death and
 ## not as the lemming simply walking off-screen.
 const DEATH_FADE_COLOUR := Color(1.0, 0.25, 0.2, 0.0)
+## A sacrificed lemming first glows (modulate above 1 brightens), then thins
+## out and rises towards a pale violet while it fades: magic going up, not
+## an accident.
+const SACRIFICE_GLOW_COLOUR := Color(2.2, 2.0, 2.6, 1.0)
+const SACRIFICE_FADE_COLOUR := Color(0.8, 0.65, 1.0, 0.0)
+const SACRIFICE_GLOW_SECONDS := 0.15
+const SACRIFICE_RISE_SECONDS := 0.55
+const SACRIFICE_RISE_PIXELS := 16.0
+## Horizontal scale the body thins to, relative to its own.
+const SACRIFICE_THIN_FACTOR := 0.25
 ## Body overlap checks shrink the body by this much, so merely touching a
 ## surface does not count as overlapping it.
 const BODY_OVERLAP_INSET := 1.0
@@ -44,6 +59,25 @@ const STATE_ANIMATIONS := {
 	LemmingStateMachine.State.LADDER_CLIMBING: &"ladder",
 }
 const DEFAULT_ANIMATION := &"walk"
+## States of a tool in use that a newer tool can interrupt (assign_skill).
+## Not the explosion countdown, nor climbing a ladder already standing.
+const TAKE_OVER_STATES: Array[LemmingStateMachine.State] = [
+	LemmingStateMachine.State.DIGGING,
+	LemmingStateMachine.State.BUILDING,
+	LemmingStateMachine.State.BASHING,
+	LemmingStateMachine.State.MINING,
+	LemmingStateMachine.State.LADDER_PLACING,
+	LemmingStateMachine.State.BRIDGING,
+]
+
+## Walking into an exit (enter_exit): the back view it turns to, how small
+## it gets and how dark, and how long that takes. It rises a little too, as
+## a body walking deeper into a doorway appears to.
+const EXIT_BACK_ANIMATION := &"ladder"
+const EXIT_SHRINK_FACTOR := 0.55
+const EXIT_FADE_COLOUR := Color(0.25, 0.3, 0.35, 0.0)
+const EXIT_ENTER_SECONDS := 0.45
+const EXIT_SINK_PIXELS := 4.0
 
 ## Animation played before the body fades, per cause of death. Causes
 ## missing here go straight to the fade.
@@ -84,6 +118,8 @@ var has_climber_skill: bool = false
 ## wall, so there is no moment for the player to click on it while it
 ## stands there. The charge is spent on the click, as with any tool.
 var pending_wall_tool: SkillBase = null
+## Walking into an exit (enter_exit): saved, just not gone yet.
+var is_entering_exit: bool = false
 var has_floater_skill: bool = false
 
 var _fall_start_y: float = 0.0
@@ -131,16 +167,37 @@ func _on_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> voi
 ## Applies a skill if the lemming can take it right now. Returns whether it
 ## was applied, so the caller only spends a skill charge when it was.
 ##
-## A lemming holds one tool at a time: while it carries a tool it has not
-## used yet, or is busy using one, it takes no other. (Mixing them made a
-## lemming carrying a bridge lay it in mid-air after a shovel dug through
-## the floor under it.) The permanent traits (parachute, claws) are not
-## held tools and do not count.
+## A lemming holds one tool at a time, and the newest one wins: a tool it
+## carries but has not used yet is dropped (carried_tool_dropped, so the
+## charge can go back to the bar), and one it is busy using stops where it
+## is. (Keeping both made a lemming carrying a bridge lay it in mid-air
+## after a shovel dug through the floor under it. Refusing the new one
+## instead left a lemming carrying a pickaxe towards a concrete wall it
+## could never dig stuck for good.) What is not a held tool (the permanent
+## traits, and the block and explosives, used on the spot) leaves the held
+## tool alone.
 func assign_skill(skill: SkillBase) -> bool:
-	if not state_machine.is_alive() or not skill.can_apply_to(self):
+	if not state_machine.is_alive() or is_entering_exit:
 		return false
-	if pending_wall_tool != null or current_skill != null:
+	var held := skill.is_held_tool()
+	var carried := pending_wall_tool if held else null
+	var active := current_skill if held else null
+	if active != null and not TAKE_OVER_STATES.has(state_machine.current_state):
 		return false
+	# The same tool again is a second click, not a change of mind: refused,
+	# so no charge is spent on it.
+	for held_tool in [carried, active]:
+		if held_tool != null and held_tool.id == skill.id:
+			return false
+	if not _can_apply_after_take_over(skill, carried, active):
+		return false
+
+	if carried != null:
+		pending_wall_tool = null
+		carried_tool_dropped.emit(carried)
+	if active != null:
+		current_skill = null
+		state_machine.change_state(LemmingStateMachine.State.WALKING)
 	skill_about_to_apply.emit(skill)
 	if skill.occupies_skill_slot():
 		current_skill = skill
@@ -148,9 +205,25 @@ func assign_skill(skill: SkillBase) -> bool:
 	return true
 
 
-## Half-width/half-height of the actual collision shape, read live instead
-## of duplicated into constants, so resizing CollisionShape2D in the editor
-## doesn't silently desync the skill/terrain math below.
+## Whether skill could be applied once the held tools are out of the way,
+## asked without disturbing them: the held tools and the state are put back
+## before returning.
+func _can_apply_after_take_over(skill: SkillBase, carried: SkillBase, active: SkillBase) -> bool:
+	var previous_state := state_machine.current_state
+	if carried != null:
+		pending_wall_tool = null
+	if active != null:
+		current_skill = null
+		state_machine.current_state = LemmingStateMachine.State.WALKING
+	var can_apply := skill.can_apply_to(self)
+	if carried != null:
+		pending_wall_tool = carried
+	if active != null:
+		current_skill = active
+		state_machine.current_state = previous_state
+	return can_apply
+
+
 func get_half_extents() -> Vector2:
 	var rect_shape: RectangleShape2D = _collision_shape.shape
 	return rect_shape.size / 2.0
@@ -594,7 +667,7 @@ func turn_around() -> void:
 
 
 func die(cause: DeathCause = DeathCause.OTHER) -> void:
-	if not state_machine.is_alive():
+	if not state_machine.is_alive() or is_entering_exit:
 		return
 	state_machine.change_state(LemmingStateMachine.State.DEAD)
 	# Emitted before the animation so the level's counts and its win/lose
@@ -614,6 +687,10 @@ func _play_death(cause: DeathCause) -> void:
 	input_pickable = false
 	_collision_shape.set_deferred("disabled", true)
 
+	if cause == DeathCause.SACRIFICE:
+		_play_sacrifice()
+		return
+
 	var animation_name: StringName = DEATH_ANIMATIONS.get(cause, &"")
 	if animation_name != &"" and animated_sprite.sprite_frames.has_animation(animation_name):
 		animated_sprite.play(animation_name)
@@ -624,12 +701,64 @@ func _play_death(cause: DeathCause) -> void:
 	tween.tween_callback(queue_free)
 
 
+func _play_sacrifice() -> void:
+	animated_sprite.pause()
+	SacrificeEffect.spawn(get_parent(), get_body_rect())
+	var thin_scale := Vector2(animated_sprite.scale.x * SACRIFICE_THIN_FACTOR, animated_sprite.scale.y)
+	var tween := create_tween()
+	tween.tween_property(animated_sprite, "modulate", SACRIFICE_GLOW_COLOUR, SACRIFICE_GLOW_SECONDS)
+	tween.tween_property(animated_sprite, "modulate", SACRIFICE_FADE_COLOUR, SACRIFICE_RISE_SECONDS)
+	tween.parallel().tween_property(animated_sprite, "position:y", animated_sprite.position.y - SACRIFICE_RISE_PIXELS, SACRIFICE_RISE_SECONDS).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(animated_sprite, "scale", thin_scale, SACRIFICE_RISE_SECONDS).set_ease(Tween.EASE_IN)
+	tween.tween_callback(queue_free)
+
+
 func exit() -> void:
 	if not state_machine.is_alive():
 		return
 	state_machine.change_state(LemmingStateMachine.State.EXITED)
 	exited.emit()
 	queue_free()
+
+
+## Walks into an exit instead of vanishing the moment it touches the
+## doorway's edge (the user found that abrupt): it walks on to the middle of
+## the door at door_x, turns its back to the camera, and shrinks and darkens
+## into the doorway; then it exits (exited). On the way in nothing can
+## happen to it any more: no clicks, no tools, no death.
+func enter_exit(door_x: float) -> void:
+	if not state_machine.is_alive() or is_entering_exit:
+		return
+	is_entering_exit = true
+	set_physics_process(false)
+	input_pickable = false
+	_collision_shape.set_deferred("disabled", true)
+	pending_wall_tool = null
+	current_skill = null
+
+	var distance := door_x - get_body_rect().get_center().x
+	if signf(distance) != 0.0 and signf(distance) != float(direction):
+		turn_around()
+	var tween := create_tween()
+	if absf(distance) > 0.5:
+		animated_sprite.play(DEFAULT_ANIMATION)
+		tween.tween_property(self, "global_position:x", global_position.x + distance, absf(distance) / Constants.WALK_SPEED)
+	tween.tween_callback(_turn_back_to_camera)
+	var small_scale := animated_sprite.scale * EXIT_SHRINK_FACTOR
+	tween.tween_property(animated_sprite, "scale", small_scale, EXIT_ENTER_SECONDS).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(animated_sprite, "modulate", EXIT_FADE_COLOUR, EXIT_ENTER_SECONDS).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(animated_sprite, "position:y", animated_sprite.position.y - EXIT_SINK_PIXELS, EXIT_ENTER_SECONDS)
+	tween.tween_callback(exit)
+
+
+## The back view (the ladder frames, which show the backpack), held still:
+## the lemming facing the door it walks through.
+func _turn_back_to_camera() -> void:
+	if animated_sprite.sprite_frames.has_animation(EXIT_BACK_ANIMATION):
+		animated_sprite.play(EXIT_BACK_ANIMATION)
+		animated_sprite.pause()
+		animated_sprite.frame = 0
+	animated_sprite.flip_h = false
 
 
 func _land() -> void:

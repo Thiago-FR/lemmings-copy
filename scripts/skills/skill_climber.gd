@@ -21,3 +21,7 @@ func apply_to(lemming: LemmingController) -> void:
 
 func occupies_skill_slot() -> bool:
 	return false
+
+
+func is_held_tool() -> bool:
+	return false

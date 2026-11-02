@@ -14,6 +14,11 @@ Outputs, all in assets/sprites/ui/:
                            side (StyleBoxTexture texture_margin_* = 8).
   slot*.png                40x40 item slot in four states (normal, hover,
                            selected, disabled), 9-slice margins 4.
+  button*.png              24x24 wooden button (normal, hover, pressed,
+                           disabled) and a green "primary" one for the main
+                           action of a screen, 9-slice margins 6.
+  check_on/off.png         20x20 check box.
+  slider_*.png             slider groove and fill (12x8, margins 4) and knob.
 
 Same rules as tools/build_terrain_art.py: pixel by pixel at 1x, a fixed
 random seed, and the terrain palette (earth, grass, concrete, wood) plus the
@@ -789,6 +794,311 @@ FRAME_HIGHLIGHT = rgb("#b07a44")
 PANEL_FILL = rgb("#22160f")
 
 
+# ---------------------------------------------------------------------------
+# Stage HUD icons (roguelike info bar and its controls)
+# ---------------------------------------------------------------------------
+
+def tiny_wizard(image, x, y, robe=ROBE, robe_light=ROBE_LIGHT):
+    """A 7 px wide hooded figure whose hood tip is at (x + 3, y)."""
+    polygon(image, [(x + 3, y), (x + 4, y), (x + 7, y + 11), (x, y + 11)], robe)
+    rect(image, x + 2, y + 2, x + 5, y + 5, robe_light)
+    rect(image, x + 3, y + 3, x + 4, y + 4, SKIN)
+
+
+def hud_troop():
+    """Three hooded wizards side by side: the troop."""
+    image = new()
+    tiny_wizard(image, 2, 12, rgb("#4a1a5e"), ROBE)
+    tiny_wizard(image, 22, 12, rgb("#4a1a5e"), ROBE)
+    tiny_wizard(image, 12, 8)
+    rect(image, 1, 24, 30, 25, EARTH_BASE)
+    return outline(image)
+
+
+def hud_out():
+    """A wizard walking towards an arrow: lemmings still in the stage."""
+    image = new()
+    tiny_wizard(image, 3, 10)
+    rect(image, 14, 14, 23, 17, UI_LIGHT)
+    hline(image, 14, 23, 17, UI_SHADE)
+    polygon(image, [(23, 9), (30, 15), (30, 16), (23, 22)], UI_LIGHT)
+    rect(image, 1, 22, 13, 23, EARTH_BASE)
+    return outline(image)
+
+
+def hud_saved():
+    """The green exit door with a check mark over it."""
+    image = new()
+    arched_door(image, 6, 25, 6, 29, WOOD, WOOD_LIGHT, EXIT_GREEN)
+    line(image, (10, 17), (14, 22), EXIT_GREEN_LIGHT, 3)
+    line(image, (14, 22), (22, 11), EXIT_GREEN_LIGHT, 3)
+    return outline(image)
+
+
+def hud_lost():
+    """A skull: lemmings that did not make it."""
+    image = new()
+    disc(image, 15.5, 13, 10, CREAM)
+    rect(image, 10, 20, 21, 26, CREAM)
+    for y in range(32):
+        for x in range(32):
+            if image.getpixel((x, y)) == CREAM and (x - 15.5) + (y - 13) > 12:
+                put(image, x, y, CREAM_DARK)
+    for cx in (11, 20):
+        disc(image, cx, 14, 3, OUTLINE)
+    polygon(image, [(15, 18), (16, 18), (17, 21), (14, 21)], OUTLINE)
+    for x in (12, 15, 18):
+        vline(image, x, 24, 26, OUTLINE)
+    return outline(image)
+
+
+def hud_clock():
+    """An alarm clock: brass bells and feet, a cream face, two hands."""
+    image = new()
+    for cx in (7, 24):
+        disc(image, cx, 6, 4, YELLOW)
+        put(image, cx - 1, 4, YELLOW_LIGHT)
+    line(image, (9, 27), (6, 30), METAL_DARK, 2)
+    line(image, (22, 27), (25, 30), METAL_DARK, 2)
+    disc(image, 15.5, 17, 12, ORANGE)
+    disc(image, 15.5, 17, 10, CREAM)
+    for y in range(32):
+        for x in range(32):
+            if image.getpixel((x, y)) == CREAM and math.hypot(x - 15.5, y - 17) > 8.5 and x + y > 33:
+                put(image, x, y, CREAM_DARK)
+    for angle in range(0, 360, 90):
+        x = 15.5 + 8 * math.cos(math.radians(angle))
+        y = 17 + 8 * math.sin(math.radians(angle))
+        put(image, int(round(x)), int(round(y)), LEATHER)
+    line(image, (15, 17), (15, 10), OUTLINE, 2)
+    line(image, (15, 17), (21, 17), RED, 2)
+    disc(image, 15.5, 17, 1, OUTLINE)
+    return outline(image)
+
+
+def hud_coin():
+    """A gold coin, slightly turned, with a stamped star."""
+    image = new()
+    for y in range(32):
+        for x in range(32):
+            dx, dy = (x + 0.5 - 16) / 12, (y + 0.5 - 16) / 13
+            if dx * dx + dy * dy <= 1.0:
+                put(image, x, y, rgb("#b07a10"))
+            dx = (x + 0.5 - 15) / 11
+            if dx * dx + dy * dy <= 0.8:
+                put(image, x, y, YELLOW)
+    for y in range(32):
+        for x in range(32):
+            if image.getpixel((x, y)) == YELLOW and (x - 15) + (y - 16) < -9:
+                put(image, x, y, YELLOW_LIGHT)
+    star = []
+    for index in range(10):
+        radius = 6 if index % 2 == 0 else 2.6
+        angle = math.radians(-90 + index * 36)
+        star.append((15 + radius * math.cos(angle), 16 + radius * math.sin(angle)))
+    polygon(image, star, rgb("#c99216"))
+    return outline(image)
+
+
+def hud_rescue():
+    """A phoenix feather: red at the base, flaming orange and yellow at the tip."""
+    image = new()
+    for t in range(3, 24):
+        x = 6 + 18 * t / 25
+        y = 29 - 25 * t / 25
+        half = 5 * math.sin(math.pi * (t - 1) / 24)
+        colour = RED if t < 10 else (ORANGE if t < 17 else YELLOW)
+        for side in (-1, 1):
+            for step in range(1, int(half) + 2):
+                put(image, int(round(x + side * step * 0.8)), int(round(y + side * step * 0.6)), colour)
+                put(image, int(round(x + side * step * 0.8)) + 1, int(round(y + side * step * 0.6)), colour)
+    line(image, (6, 29), (24, 4), LEATHER, 1)
+    polygon(image, [(22, 6), (27, 1), (25, 7)], YELLOW_LIGHT)
+    return outline(image)
+
+
+def sacrifice():
+    """A ceremonial dagger, blade down, violet grip and a gem in the guard:
+    the sacrifice. Not a figure, so it is not mistaken for a character's
+    own ability."""
+    image = new()
+    # Blade: a long tapering triangle with a light edge and a central ridge.
+    polygon(image, [(13, 14), (19, 14), (16, 31)], METAL)
+    line(image, (13, 14), (16, 30), METAL_LIGHT, 1)
+    line(image, (16, 15), (16, 28), METAL_SHINE, 1)
+    line(image, (19, 14), (16, 30), METAL_DARK, 1)
+    # Guard: a curved bar with a red gem.
+    rect(image, 7, 11, 25, 13, YELLOW)
+    hline(image, 7, 25, 11, YELLOW_LIGHT)
+    put(image, 6, 10, YELLOW)
+    put(image, 26, 10, YELLOW)
+    disc(image, 16, 12, 2, RED)
+    put(image, 15, 11, RED_LIGHT)
+    # Grip wrapped in violet, and a round pommel.
+    rect(image, 14, 3, 18, 10, ROBE)
+    for y in (4, 6, 8):
+        hline(image, 14, 18, y, ROBE_LIGHT)
+    disc(image, 16, 2, 2, YELLOW)
+    return outline(image)
+
+
+def give_up():
+    """A white flag on a pole: end the stage now."""
+    image = new()
+    rect(image, 6, 3, 8, 30, WOOD)
+    vline(image, 6, 3, 30, WOOD_LIGHT)
+    disc(image, 7, 3, 2, YELLOW)
+    for x in range(9, 28):
+        wave = int(round(2 * math.sin((x - 9) / 3.2)))
+        rect(image, x, 5 + wave, x, 17 + wave, rgb("#f6f6f0"))
+        put(image, x, 17 + wave, rgb("#c8c8c0"))
+        if (x - 9) % 7 in (5, 6):
+            put(image, x, 11 + wave, rgb("#d8d8d0"))
+    return outline(image)
+
+
+def settings():
+    """A gear."""
+    image = new()
+    cx, cy = 15.5, 15.5
+    for y in range(32):
+        for x in range(32):
+            dist = math.hypot(x - cx, y - cy)
+            angle = math.degrees(math.atan2(y - cy, x - cx)) % 45
+            radius = 13 if angle < 22 else 10
+            if dist <= radius:
+                put(image, x, y, METAL if x + y < 32 else METAL_DARK)
+            if dist <= 8 and x + y < 30:
+                put(image, x, y, METAL_LIGHT)
+            if dist <= 4:
+                put(image, x, y, CLEAR)
+    return outline(image)
+
+
+# ---------------------------------------------------------------------------
+# Theme pieces: buttons, check box, slider (UiStyle.build_theme)
+# ---------------------------------------------------------------------------
+
+BUTTON_SIZE = 24
+BUTTON_MARGIN = 6
+
+# face, light edge, dark edge, rivet: one tuple per state.
+BUTTON_STATES = {
+    "button": (rgb("#6e4a2c"), rgb("#9c6d40"), rgb("#3e2616"), rgb("#c9a25a")),
+    "button_hover": (rgb("#8a5e38"), rgb("#c48b52"), rgb("#4e3020"), YELLOW_LIGHT),
+    "button_pressed": (rgb("#4e3320"), rgb("#3a2414"), rgb("#7a5232"), rgb("#a8873e")),
+    "button_disabled": (rgb("#4a4642"), rgb("#5e5a55"), rgb("#2e2b28"), rgb("#6a665f")),
+    "button_primary": (rgb("#2f7a35"), rgb("#5fbf55"), rgb("#174a1d"), YELLOW),
+    "button_primary_hover": (rgb("#3a9442"), rgb("#86de6e"), rgb("#1d5a24"), YELLOW_LIGHT),
+    "button_primary_pressed": (rgb("#225a27"), rgb("#174a1d"), rgb("#3f8a45"), rgb("#c99a20")),
+}
+
+
+def theme_button(state):
+    """A plank button: near-black outline, a light bevel on top and left and
+    a dark one on the bottom and right (swapped when pressed), a wood face
+    with two faint grain lines and brass rivets in the corners. Corners
+    only carry detail, so a 9-slice stretch (margin 6) keeps it crisp."""
+    face, light, dark, rivet = BUTTON_STATES[state]
+    size = BUTTON_SIZE
+    image = new(size, size)
+    rect(image, 0, 0, size - 1, size - 1, OUTLINE)
+    rect(image, 1, 1, size - 2, size - 2, face)
+    hline(image, 1, size - 2, 1, light)
+    vline(image, 1, 1, size - 2, light)
+    hline(image, 1, size - 2, size - 2, dark)
+    vline(image, size - 2, 1, size - 2, dark)
+    hline(image, 2, size - 3, size - 3, dark)
+    # Grain: two darker rows across the middle, stretched along with it.
+    grain = tuple(max(c - 14, 0) for c in face[:3]) + (255,)
+    hline(image, 6, size - 7, 9, grain)
+    hline(image, 6, size - 7, 14, grain)
+    for x, y in ((3, 3), (size - 4, 3), (3, size - 5), (size - 4, size - 5)):
+        put(image, x, y, rivet)
+    return image
+
+
+def theme_check(checked):
+    """A small wooden box with a gold check mark when on."""
+    image = new(20, 20)
+    rect(image, 1, 1, 18, 18, OUTLINE)
+    rect(image, 2, 2, 17, 17, rgb("#2b1a10"))
+    hline(image, 2, 17, 17, rgb("#6b4a30"))
+    vline(image, 17, 2, 17, rgb("#6b4a30"))
+    if checked:
+        line(image, (5, 10), (8, 14), YELLOW, 3)
+        line(image, (8, 14), (15, 5), YELLOW, 3)
+        put(image, 14, 5, YELLOW_LIGHT)
+    return image
+
+
+def theme_slider_track():
+    """The groove a slider runs in: 12x8, 9-slice margins 4."""
+    image = new(12, 8)
+    rect(image, 0, 0, 11, 7, OUTLINE)
+    rect(image, 1, 1, 10, 6, rgb("#2b1a10"))
+    hline(image, 1, 10, 1, rgb("#1a0f0a"))
+    hline(image, 1, 10, 6, rgb("#5a3c24"))
+    return image
+
+
+def theme_slider_fill():
+    """The filled part of the groove, left of the knob: gold."""
+    image = new(12, 8)
+    rect(image, 0, 0, 11, 7, OUTLINE)
+    rect(image, 1, 1, 10, 6, rgb("#c99216"))
+    hline(image, 1, 10, 2, YELLOW)
+    hline(image, 1, 10, 6, rgb("#8a6210"))
+    return image
+
+
+def theme_slider_knob(highlight):
+    """A round brass knob, brighter under the mouse."""
+    image = new(20, 20)
+    disc(image, 9.5, 9.5, 8, rgb("#8a6210"))
+    disc(image, 9.5, 9.0, 6.5, YELLOW_LIGHT if highlight else YELLOW)
+    disc(image, 7.5, 7.0, 2, rgb("#fffbe0"))
+    return outline(image)
+
+
+def dev():
+    """A wrench crossed over a screwdriver: the developer tools."""
+    image = new()
+    line(image, (7, 25), (22, 10), METAL, 4)
+    line(image, (8, 25), (22, 11), METAL_LIGHT, 1)
+    disc(image, 23, 8, 5, METAL)
+    disc(image, 25, 6, 2.5, CLEAR)
+    rect(image, 25, 2, 29, 6, CLEAR)
+    disc(image, 6, 26, 3, METAL)
+    line(image, (8, 8), (19, 19), YELLOW, 3)
+    line(image, (19, 19), (26, 26), METAL_LIGHT, 2)
+    rect(image, 5, 5, 9, 9, RED)
+    return outline(image)
+
+
+def display():
+    """A monitor on a stand: the display settings."""
+    image = new()
+    rect(image, 3, 5, 28, 22, METAL_DARK)
+    rect(image, 5, 7, 26, 20, BLUE_DARK)
+    polygon(image, [(6, 8), (14, 8), (6, 15)], BLUE)
+    put(image, 7, 9, BLUE_SHINE)
+    rect(image, 14, 23, 17, 26, METAL_DARK)
+    rect(image, 9, 27, 22, 28, METAL)
+    return outline(image)
+
+
+THEME_PIECES = {
+    **{name: (lambda state=name: theme_button(state)) for name in BUTTON_STATES},
+    "check_on": lambda: theme_check(True),
+    "check_off": lambda: theme_check(False),
+    "slider_track": theme_slider_track,
+    "slider_fill": theme_slider_fill,
+    "slider_knob": lambda: theme_slider_knob(False),
+    "slider_knob_hover": lambda: theme_slider_knob(True),
+}
+
+
 def bevel_box(size, bands, fill):
     """Concentric square bands from the outside in, each band given as
     (thickness, top_left_colour, bottom_right_colour). Bands are uniform
@@ -881,6 +1191,18 @@ EDITOR_ICONS = {
     "editor_counts": editor_counts,
     "sound_on": sound_on,
     "sound_off": sound_off,
+    "hud_troop": hud_troop,
+    "hud_out": hud_out,
+    "hud_saved": hud_saved,
+    "hud_lost": hud_lost,
+    "hud_clock": hud_clock,
+    "hud_coin": hud_coin,
+    "hud_rescue": hud_rescue,
+    "sacrifice": sacrifice,
+    "give_up": give_up,
+    "settings": settings,
+    "dev": dev,
+    "display": display,
 }
 
 
@@ -955,6 +1277,8 @@ def main():
     frames = {"panel": panel()}
     for state in SLOT_STATES:
         frames[state] = slot(state)
+    for name, build in THEME_PIECES.items():
+        frames[name] = build()
     for name, image in frames.items():
         image.save(os.path.join(OUT_DIR, name + ".png"))
     print("ui art written to", os.path.normpath(OUT_DIR))

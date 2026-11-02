@@ -33,6 +33,10 @@ func occupies_skill_slot() -> bool:
 	return false
 
 
+func is_held_tool() -> bool:
+	return false
+
+
 func apply_to(lemming: LemmingController) -> void:
 	lemming.terrain.build_cell_at(block_rect(lemming).get_center(), material)
 	AudioManager.play_sound(&"place_block")

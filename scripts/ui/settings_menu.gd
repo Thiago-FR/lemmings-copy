@@ -15,8 +15,8 @@ signal closed
 const PANEL_WIDTH := 420.0
 const SLIDER_STEP := 5.0
 const TITLE_FONT_SIZE := 22
-const SECTION_FONT_SIZE := 16
-const SECTION_COLOUR := Color(0.73, 0.78, 0.84)
+const SECTION_FONT_SIZE := 18
+const SECTION_COLOUR := Color(1.0, 0.86, 0.45)
 const BACKDROP_COLOUR := Color(0, 0, 0, 0.6)
 ## Above the HUD and the result screen.
 const OVERLAY_LAYER := 20
@@ -61,6 +61,7 @@ func _build() -> void:
 
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.x = PANEL_WIDTH
+	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	centre.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -69,7 +70,7 @@ func _build() -> void:
 	panel.add_child(margin)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 12)
 	margin.add_child(column)
 
 	var title := Label.new()
@@ -78,7 +79,7 @@ func _build() -> void:
 	title.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
 	column.add_child(title)
 
-	_add_section(column, "Tela")
+	_add_section(column, "Tela", "display")
 	var fullscreen := CheckBox.new()
 	fullscreen.name = "FullscreenCheckBox"
 	fullscreen.text = "Tela cheia (F11)"
@@ -86,7 +87,7 @@ func _build() -> void:
 	fullscreen.toggled.connect(func(on: bool) -> void: DisplayScaler.set_fullscreen(on))
 	column.add_child(fullscreen)
 
-	_add_section(column, "Áudio")
+	_add_section(column, "Áudio", "sound_on")
 	_add_volume_slider(column, "Volume geral", AudioManager.Channel.MASTER)
 	_add_volume_slider(column, "Música", AudioManager.Channel.MUSIC)
 	_add_volume_slider(column, "Efeitos", AudioManager.Channel.EFFECTS)
@@ -100,7 +101,7 @@ func _build() -> void:
 			AudioManager.toggle_mute())
 	column.add_child(mute)
 
-	_add_section(column, "Desenvolvedor")
+	_add_section(column, "Desenvolvedor", "dev")
 	var developer := CheckBox.new()
 	developer.name = "DeveloperCheckBox"
 	developer.text = "Modo desenvolvedor (ferramentas de teste)"
@@ -108,19 +109,30 @@ func _build() -> void:
 	developer.toggled.connect(GameManager.set_developer_mode)
 	column.add_child(developer)
 
-	var back := Button.new()
+	var back := UiStyle.make_text_button("Voltar", true)
 	back.name = "BackButton"
-	back.text = "Voltar"
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(close)
 	column.add_child(back)
 
 
-func _add_section(parent: Node, text: String) -> void:
+## A section heading: its icon, its name and a line under them.
+func _add_section(parent: Node, text: String, icon_id: String) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	var icon := TextureRect.new()
+	icon.texture = UiStyle.icon(icon_id)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	row.add_child(icon)
 	var label := Label.new()
 	label.text = text
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", SECTION_FONT_SIZE)
 	label.add_theme_color_override("font_color", SECTION_COLOUR)
-	parent.add_child(label)
+	row.add_child(label)
+	parent.add_child(HSeparator.new())
 
 
 ## A labelled slider from 0 to 100% for one audio channel, applied as it

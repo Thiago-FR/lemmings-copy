@@ -11,6 +11,9 @@ extends Node
 signal skill_selected(skill_id: String)
 signal skill_count_changed(skill_id: String, remaining_count: int)
 signal skill_assigned(lemming: LemmingController, skill_id: String)
+## A charge came back: the tool was handed out but never used (a lemming
+## dropped it for a newer one).
+signal skill_refunded(skill_id: String)
 
 var _default_skill_types: Array[GDScript] = [
 	SkillBlock,
@@ -95,6 +98,14 @@ func set_remaining_count(skill_id: String, remaining_count: int) -> void:
 		return
 	_remaining_counts[skill_id] = remaining_count
 	skill_count_changed.emit(skill_id, remaining_count)
+
+
+## Gives back the charge of a tool handed out but never used.
+func refund_charge(skill_id: String) -> void:
+	if not has_skill(skill_id):
+		return
+	set_remaining_count(skill_id, get_remaining_count(skill_id) + 1)
+	skill_refunded.emit(skill_id)
 
 
 func try_assign_to(lemming: LemmingController) -> bool:

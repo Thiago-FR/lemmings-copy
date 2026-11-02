@@ -10,8 +10,7 @@ extends "res://tests/tool_scenario_test.gd"
 ## lemming with no gap ahead refused it.
 ##
 ## Checked: the tool is taken and the lemming keeps walking with it (not
-## bridging yet); while carrying it, it refuses a shovel (one tool at a
-## time); it turns at the wall, and on the way back bridges the gap and
+## bridging yet); it turns at the wall, and on the way back bridges the gap and
 ## walks across to the far side alive.
 
 const FLOOR_TOP_ROW := 11
@@ -23,7 +22,6 @@ var _lemming: LemmingController = null
 var _tool_given := false
 var _tool_accepted := false
 var _carried_while_walking := false
-var _second_tool_refused := false
 var _turned := false
 var _crossed := false
 
@@ -40,7 +38,6 @@ func _build_scenario() -> void:
 	_tool_given = false
 	_tool_accepted = false
 	_carried_while_walking = false
-	_second_tool_refused = false
 	_turned = false
 	_crossed = false
 	paint(0, GAP_FIRST_COLUMN - 1, FLOOR_TOP_ROW, FLOOR_TOP_ROW + 1)
@@ -58,7 +55,6 @@ func _scenario_frame(_delta: float) -> void:
 		_tool_accepted = _lemming.assign_skill(SkillBridge.new())
 		_carried_while_walking = _lemming.pending_wall_tool is SkillBridge \
 			and _lemming.state_machine.current_state == LemmingStateMachine.State.WALKING
-		_second_tool_refused = not _lemming.assign_skill(SkillDigger.new())
 	if _lemming.direction < 0:
 		_turned = true
 	if _turned and _lemming.state_machine.current_state == LemmingStateMachine.State.WALKING \
@@ -76,8 +72,6 @@ func _evaluate_scenario() -> void:
 		return
 	if not _carried_while_walking:
 		fail("the lemming did not carry the bridge on, walking")
-	if not _second_tool_refused:
-		fail("a lemming carrying the bridge took a shovel too")
 	if not _turned:
 		fail("the lemming never turned at the wall")
 	if not _crossed:

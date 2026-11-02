@@ -184,3 +184,11 @@ lugar, usar no ar.
 
 - Montar a Escada diagonal, a Escada vertical e a Ponte (hoje usam
   animações provisórias).
+
+## 9. Roguelike: cartas que caem durante a fase
+
+Anotada em 2 de novembro de 2026, para analisar. Inspiração: em Megabonk as
+cartas/melhorias aparecem durante a partida, não só no fim. Aqui seria uma
+carta (ou um baú) solta no mapa, que o boneco pega no caminho e abre a escolha
+na hora. Em aberto: pausa o jogo ao escolher? Substitui ou soma com a carta
+do fim da fase?

@@ -39,6 +39,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_ui_art as ui  # noqa: E402
+from character_portraits import PORTRAITS  # noqa: E402
 from build_ui_art import (  # noqa: E402
     CLEAR, OUTLINE, rgb, put, rect, hline, vline, polygon, line, disc, outline,
     WOOD_DARK, WOOD, WOOD_LIGHT, NAIL, METAL_DARK, METAL, METAL_LIGHT, METAL_SHINE,
@@ -1007,125 +1008,15 @@ def prop_wizard(ramp):
     return image
 
 
-def prop_miner(ramp):
-    """Pickaxe over the shoulder and a lamp on the hood."""
-    image = new()
-    pickaxe(image, Pen(image, 1.25, 28, 22))
-    outline(image)
-    lamp = new()
-    rect(lamp, 29, 9, 39, 14, METAL_DARK)
-    hline(lamp, 29, 39, 9, METAL)
-    disc(lamp, 34, 11.5, 2.6, YELLOW)
-    put(lamp, 33, 10, YELLOW_LIGHT)
-    outline(lamp)
-    image.alpha_composite(lamp)
-    return image
-
-
-def prop_engineer(ramp):
-    """Wrench in front and a plank on the shoulder."""
-    image = new()
-    plank_layer = new()
-    ui.plank(plank_layer, 0, 45, 24, 51)
-    outline(plank_layer)
-    wrench = new()
-    line(wrench, (36, 63), (52, 43), METAL, 5)
-    line(wrench, (35, 62), (51, 42), METAL_LIGHT, 1)
-    disc(wrench, 54.5, 40.5, 6.5, METAL)
-    disc(wrench, 53.8, 39.8, 5, METAL_LIGHT)
-    # Open jaw.
-    polygon(wrench, [(54, 40), (58, 32), (63, 37)], CLEAR)
-    rect(wrench, 54, 37, 57, 40, CLEAR)
-    outline(wrench)
-    image.alpha_composite(plank_layer)
-    image.alpha_composite(wrench)
-    return image
-
-
-def prop_scout(ramp):
-    """A feather in the hood and a winged boot."""
-    image = new()
-    feather = new()
-    for i in range(16):
-        t = i / 15
-        x = 46 + t * 12
-        y = 22 - t * 18
-        w = 2.6 * math.sin(math.pi * t) + 0.6
-        disc(feather, x, y, w, GRASS_LIGHT if i % 3 else GRASS)
-    line(feather, (46, 22), (58, 4), CREAM, 1)
-    outline(feather)
-    # Boot facing right (toe to the right), a small wing swept back and up
-    # from the ankle: the scout's strong legs.
-    boot = new()
-    rect(boot, 48, 49, 56, 59, LEATHER)
-    polygon(boot, [(48, 58), (58, 57), (62, 60), (62, 62), (48, 62)], LEATHER)
-    vline(boot, 48, 50, 61, rgb("#8a5634"))
-    vline(boot, 56, 50, 57, LEATHER_DARK)
-    # Folded cuff and sole.
-    rect(boot, 47, 47, 57, 50, rgb("#a8714a"))
-    hline(boot, 47, 57, 50, LEATHER_DARK)
-    hline(boot, 48, 62, 62, LEATHER_DARK)
-    hline(boot, 57, 61, 58, rgb("#8a5634"))
-    for y in (53, 56):
-        put(boot, 54, y, CREAM_DARK)
-        put(boot, 55, y, CREAM_DARK)
-    outline(boot)
-    # One wing swept back from the heel, scalloped trailing edge.
-    wing = new()
-    polygon(wing, [(48, 52), (45, 47), (40, 44), (34, 43), (37, 46), (33, 48),
-                   (37, 50), (34, 53), (39, 54), (37, 57), (43, 57), (48, 58)], WHITE)
-    line(wing, (47, 54), (38, 48), CREAM_DARK, 1)
-    line(wing, (47, 56), (39, 52), CREAM_DARK, 1)
-    outline(wing)
-    image.alpha_composite(feather)
-    image.alpha_composite(wing)
-    image.alpha_composite(boot)
-    return image
-
-
-def prop_tinkerer(ramp):
-    """Goggles on the hood and a brass gear."""
-    image = new()
-    goggles = new()
-    hline(goggles, 24, 50, 14, LEATHER_DARK)
-    hline(goggles, 24, 50, 15, LEATHER_DARK)
-    for gx in (32, 42):
-        disc(goggles, gx, 14.5, 4.6, BRASS)
-        disc(goggles, gx, 14.5, 3, BLUE_LIGHT)
-        put(goggles, gx - 1, 13, BLUE_SHINE)
-    outline(goggles)
-    gear = new()
-    cx, cy = 50.5, 51.5
-    for y in range(36, 64):
-        for x in range(34, 64):
-            a = math.atan2(y + 0.5 - cy, x + 0.5 - cx)
-            r = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
-            tooth = math.cos(a * 8) > 0.2
-            if r <= 9 or (tooth and r <= 12):
-                put(gear, x, y, BRASS if r > 3.2 else CLEAR)
-                if 6.5 < r <= 9 and y < cy:
-                    put(gear, x, y, BRASS_LIGHT)
-                elif 6.5 < r <= 9 and y > cy + 3:
-                    put(gear, x, y, BRASS_DARK)
-    outline(gear)
-    image.alpha_composite(goggles)
-    image.alpha_composite(gear)
-    return image
-
-
-PROPS = {
-    "wizard": prop_wizard,
-    "miner": prop_miner,
-    "engineer": prop_engineer,
-    "scout": prop_scout,
-    "tinkerer": prop_tinkerer,
-}
-
-
 def character_portrait(character_id):
+    """The wizard is the hooded figure with its staff; the other four are
+    drawn from scratch to match their sprites (character_portraits.py)."""
+    if character_id in PORTRAITS:
+        return PORTRAITS[character_id]()
+    assert character_id == "wizard", "No portrait for character '%s'" % character_id
     ramp = hood_ramp(character_id)
     image = hood_figure(ramp)
-    image.alpha_composite(PROPS[character_id](ramp))
+    image.alpha_composite(prop_wizard(ramp))
     return image
 
 

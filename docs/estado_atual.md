@@ -370,6 +370,9 @@ terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
 
 ### Uma ferramenta por boneco
 
+- **Mudou em 2 de novembro de 2026:** a ferramenta nova agora substitui a
+  atual (ver "Ferramenta nova sempre substitui a atual"). O texto abaixo é
+  a regra antiga.
 - Regra do usuário: **um boneco só tem uma ferramenta por vez**. Enquanto
   carrega uma ferramenta ainda não usada (escadas, ponte, britadeira,
   picareta) ou está usando uma, ele recusa qualquer outra
@@ -439,10 +442,13 @@ Primeira versão, feita por um agente; botão "Roguelike" no menu.
 - **Personagens:** Mago (+1 carga por ferramenta pega), Mineiro (cava 2x
   mais rápido), Engenheiro (+4 peças em ponte e escadas), Batedor (aguenta
   queda de 160px), Inventor (uma vez por fase repete a última ferramenta
-  sem gastar carga). Cada um tem **seus próprios sprites** em todas as
-  animações (cor do personagem + acessório: lanterna do Mineiro, chave do
-  Engenheiro, pena do Batedor, óculos do Inventor), gerados por
-  `tools/build_character_variants.py` em `assets/sprites/characters/<id>/`
+  sem gastar carga). Cada um tem **seus próprios sprites**, desenhados do
+  zero em todas as animações (Mineiro baixo e largo de capacete com
+  lanterna e barba; Engenheiro de boné, macacão e tábuas nas costas;
+  Batedor alto de capuz verde e cachecol vermelho; Inventor pequeno de
+  cabelo branco, óculos redondos e mochila com antena), gerados por
+  `tools/build_character_variants.py` (desenhos em
+  `tools/character_designs.py`) em `assets/sprites/characters/<id>/`
   com um SpriteFrames por personagem em `resources/sprite_frames/`. A
   tinta e a pedrinha sobre a cabeça saíram.
 - **Itens na fase:** ferramentas (+cargas), Pena da fênix (resgata um
@@ -483,6 +489,136 @@ Primeira versão, feita por um agente; botão "Roguelike" no menu.
   fase, com ir para qualquer fase, aplicar qualquer carta (todas, inclusive
   personagens ainda bloqueados), abrir a tela de recompensa e ver o estado
   da run (`RoguelikeDevScreen`). Teste: `test_dev_screen`.
+
+### Roguelike: HUD com ícones, Sacrificar e Encerrar fase (2 de novembro de 2026)
+
+Pedido do usuário depois de olhar as telas (prints `art2`, `art3`).
+
+- **Barra de cima** (`RoguelikeRunHud`): fase e nome, depois ícone + número
+  para tropa, na fase, salvos, perdidos, **relógio**, penas da fênix e
+  **moeda**; cada um com tooltip. Ícones novos em `tools/build_ui_art.py`
+  (`hud_*`, `sacrifice`, `give_up`, `settings`).
+- **Botões** iguais aos do editor (ícones): Pausar/Continuar, Configurações,
+  **Encerrar fase** (bandeira branca) e Menu.
+- **Encerrar fase** pergunta antes (a fase fica pausada enquanto isso). Quem
+  já saiu segue na run; quem está na fase é sacrificado; quem nem saiu da
+  entrada é perdido. Núcleo: `LevelManager.end_now()` e `SpawnPoint.stop()`.
+- **Sacrificar** (slot com ∞ depois das ferramentas): armado, o próximo
+  boneco clicado é sacrificado. Sem limite. Escolher uma ferramenta desarma.
+- **Bônus do sacrifício: 1 moeda** (`RoguelikeRunState.COINS_PER_SACRIFICED`).
+  Análise: um motivo para encerrar uma espera sem saída em vez de esperar o
+  relógio, e bem abaixo do que salvar dá (3 moedas + o boneco segue na run),
+  então sacrificar nunca compensa mais do que salvar. Conta como perdido
+  (tira o bônus de fase perfeita; a Pena da fênix pode trazê-lo de volta).
+- **Animação do sacrifício** (núcleo, `DeathCause.SACRIFICE`): o boneco
+  brilha, afina e sobe enquanto some em violeta; faíscas sobem e um anel de
+  luz se abre no chão (`SacrificeEffect`); som `sacrifice` (brilho
+  subindo, em `tools/build_audio.py`). O fim da fase espera a animação.
+- Corrigido: o contador "Na fase" só mudava quando alguém morria ou saía (o
+  `LevelManager` não avisava ao soltar um boneco).
+- Teste: `modes/roguelike/tests/test_sacrifice`.
+
+### Roguelike: escolha de personagem, cofre, fim de run e modo dev (2 de novembro de 2026)
+
+- **Tela de escolha** (`RoguelikeCharacterSelectScreen`) abre a run e
+  substitui a tela de apresentação da fase (print `art1`, que saiu do fluxo:
+  agora é escolha -> fase -> cartas -> loja -> próxima fase). Mostra os 5
+  personagens com retrato, nome e o que fazem; os bloqueados aparecem como
+  **sombra preta**, com preço e botão Comprar.
+- **Cofre** (`RoguelikeProfile`, `user://roguelike_profile.cfg`): as moedas
+  que sobram no fim de cada run (vitória ou não) vão para ele; liberar
+  personagem custa Mineiro 25, Engenheiro 35, Batedor 45, Inventor 60
+  (`price` em `character_catalog.gd`).
+- **Run de um personagem só**: a tropa e todo recruta são do escolhido
+  (`RoguelikeRunState.character_id`); depois de cada uma das 4 primeiras
+  fases entra mais um dele. O bônus do personagem vale só para o boneco que
+  pega/usa (não multiplica pela tropa).
+- **Fim de run** (`RoguelikeRunEndScreen`): título, retrato (apagado se
+  perdeu), uma linha com ícone por resultado (fase alcançada, salvos,
+  pontuação, moedas para o cofre).
+- **Modo dev** refeito (`RoguelikeDevScreen`): estado da run à esquerda;
+  seções com ícones à direita (personagem da run, que troca a tropa toda, sem
+  misturar; +1/-1 boneco; fase e procedural/pronta; ferramentas; relíquias;
+  pena, moedas, cofre). Botão Dev na tela de escolha e na loja.
+- HUD: tirado o "Fase 1/5" (fica só o nome) e o "Ferramentas 1/4" da barra.
+  **Sacrificar** saiu da barra de ferramentas (parecia habilidade do
+  personagem) e foi para os botões de cima, com ícone de adaga.
+
+### Ferramenta nova sempre substitui a atual (2 de novembro de 2026)
+
+Bug relatado: um boneco com a Picareta indo para uma parede de **concreto**
+(que ela não cava: ele vira e continua carregando para sempre) recusava a Pá
+por causa da regra "uma ferramenta por boneco", e ficava preso.
+
+- Agora a ferramenta mais nova vence (`LemmingController.assign_skill`):
+  a carregada e não usada é largada e **a carga volta para a barra**
+  (sinal `carried_tool_dropped` -> `SkillManager.refund_charge` -> no
+  roguelike, `inventory.add_charges`); a que está em uso (cavando,
+  construindo) para onde está. Não interrompe a contagem de explosivo nem a
+  subida numa escada já montada.
+- A **mesma** ferramenta de novo (segundo clique sem querer) é recusada e
+  não gasta carga; só uma ferramenta diferente substitui.
+- Bloco, Dinamite, TNT, Paraquedas e Garras não são ferramentas seguradas
+  (`SkillBase.is_held_tool`) e convivem com a que o boneco carrega.
+- **Balão sobre o boneco** com o ícone da ferramenta carregada e ainda não
+  usada (`CarriedToolIndicator`, posto pelo `LevelManager`).
+- Teste: `tests/test_tool_replace` (Pá no lugar da Picareta carregada,
+  Britadeira interrompendo a Pá, Bloco sem largar a Picareta).
+  `test_bridge_carried` não exige mais a recusa.
+
+### Entrar no portal de saída (2 de novembro de 2026)
+
+O boneco sumia ao encostar na borda da saída. Agora
+(`LemmingController.enter_exit`) ele anda até o meio da porta, vira de costas
+(quadro da animação `ladder`), encolhe e escurece entrando nela; só então
+conta como salvo (`ExitPoint` emite `lemming_exited` quando ele termina).
+Nesse trajeto nada mais acontece com ele: sem clique, sem ferramenta, sem
+morte (nem pelo Encerrar fase).
+
+### Cara das telas: tema do jogo, menu, configurações (2 de novembro de 2026)
+
+Pedido do usuário: "dar cara a todas as UX de menus e botões" e usar pouco
+texto (só quando necessário).
+
+- **Tema do projeto** (`resources/ui/game_theme.tres`, em
+  `project.godot` -> `gui/theme/custom`): botões de madeira (normal, mouse,
+  apertado, desativado), botão **verde** para a ação principal de cada tela
+  (`UiStyle.PRIMARY_BUTTON`), painel de madeira, caixa de marcar, barra
+  deslizante com puxador de latão, campo de número e dica. Arte em
+  `tools/build_ui_art.py` (`button*`, `check_*`, `slider_*`); o arquivo do
+  tema sai de `UiStyle.build_theme()` pelo `tools/build_ui_theme.gd`
+  (rodar de novo depois de mudar a arte ou o `UiStyle`). Tema na janela não
+  serve: não chega às telas em `CanvasLayer`.
+- **Menu principal**: céu e montanhas das fases ao fundo, título grande,
+  modos em botões grandes com ícone (Roguelike em verde), fases de
+  ferramenta como grade de ícones (nome na dica), Configurações e Sair como
+  ícones no canto.
+- **Configurações**: seções com ícone (Tela, Áudio, Desenvolvedor) e linha,
+  Voltar em verde.
+- **Escolha de personagem**: Jogar em verde e Comprar só com moeda + preço,
+  do mesmo tamanho; Menu e Dev como ícones (ícone novo `dev`).
+- **Modo dev**: campo Quantidade + Adicionar/Remover para bonecos, cargas de
+  cada ferramenta, penas, moedas e cofre; relíquia que já tem sai ao clicar.
+- **Compêndio** (`RoguelikeCompendiumScreen`, botão no modo dev): abas
+  Personagens, Ferramentas, Itens da fase, Cartas, Relíquias, cada entrada
+  com figura, nome e descrição. Pronto para o jogador: com uma função de
+  "descoberto", o que ainda não foi descoberto aparece em sombra preta com
+  "???" (ideia do usuário: ir liberando conforme pega e usa). Ainda falta
+  guardar o que foi descoberto e o botão para o jogador.
+
+### Itens valem 1 e saída sem entrar do alto (2 de novembro de 2026)
+
+- **Cada item de ferramenta dá 1 carga** (o usuário achou 3 fácil demais;
+  mais por item vem das cartas). O gerador agora espalha as cargas de uma
+  pilha em itens separados na sala (`MazeStageGenerator._place_markers`:
+  primeiro um lugar para cada pilha, depois as cargas extras onde couber;
+  sem chão, empilha). Cada item lembra de que pilha veio (`spot_index`),
+  que é o que a solução gravada usa. Item bônus de ferramenta: 1.
+  **O Mago ainda dá +1 em cada item que pega** (a decidir).
+- **Saída**: um boneco andando num bloco ao lado da saída, na altura da
+  porta, entrava lá de cima. Agora só entra com os pés no chão da saída
+  (`ExitPoint._stands_on_exit_floor`); antes disso cai na frente dela.
+  Teste: `tests/test_exit_point`.
 
 ### Dinamite e TNT
 
@@ -750,12 +886,34 @@ Roguelike e procedural (o usuário vai testar bastante o procedural):
 - **Testar e ajustar o gerador de labirinto**: as fases ficam "em caixas"
   (só tetos e materiais variam); fossos e escadas aparecem pouco nas rotas
   do solver; Garras, Paraquedas, Escada diagonal e explosivos ainda não são
-  usados como obstáculos; a estimativa de tempo é grosseira. 34 linhas de
-  32px dão 1088px, 8px a mais que Full HD (a câmera rola 8px).
+  usados como obstáculos. 34 linhas de 32px dão 1088px, 8px a mais que Full
+  HD (a câmera rola 8px).
+- **Tempo da fase chutado**: `_time_limit` soma 40s + 22s por sala da rota +
+  um extra por ferramenta, vezes uma folga (1,8x a 1,4x), entre 3 e 8 min.
+  Os números nunca foram medidos e não contam a distância real nem o tempo
+  de cavar para baixo, então uma rota com muita escavação pode ficar sem
+  tempo. Corrigir cronometrando o robô dos testes em cada tipo de ligação.
+
+Plano aprovado pelo usuário em 2 de novembro de 2026 (nesta ordem):
+1. ~~HUD com ícones, botões do editor, Encerrar fase e Sacrificar~~: feito.
+2. ~~Escolher o personagem no início da run, cofre, fim de run~~: feito.
+3. **Habilidade especial por personagem**, num slot próprio com poucas
+   cargas por fase, recarga que pode cair no mapa: Mago **Teleporte**
+   (atravessa parede/chão de 1 bloco), Mineiro **Quebra-concreto** (1 bloco),
+   Engenheiro **Plataforma** (tábua de 3 na hora), Batedor **Salto** (vão de
+   3 ou degrau de 2), Inventor **Repetir** (a habilidade atual dele).
+4. **Moedas e recargas espalhadas pelo mapa.**
+5. Carta **"passo acelerado"** (bonecos andam mais rápido).
+6. **Compêndio** no menu: cada ferramenta, item, carta, relíquia e
+   personagem com o que faz.
+7. **Arte**: os 4 personagens novos desenhados do zero (o usuário rejeitou o
+   mago recolorido; o Mago não é humanoide, os outros podem ser) e a arte da
+   loja.
+8. Medir o tempo das fases (item acima).
 - Botão **"Gerar fase" no editor** (o `MazeStageData.paint_onto` já existe).
-- Decidir **acelerar o tempo / desistir da fase / profundidade da Pá**
-  (sugestões feitas ao usuário depois que um boneco cavou até o concreto e
-  ele esperou 3 minutos).
+- **Profundidade da Pá** ainda em aberto (um boneco cavou até o concreto e
+  o usuário esperou 3 minutos; Encerrar fase resolve a espera, a carta de
+  passo acelerado o ritmo).
 - Bug relatado e **não reproduzido**: Picareta que quebrou um bloco e parou
   (`prints/bug9.png`). Pedido ao usuário para reproduzir com o modo dev.
 - Câmera: talvez uma opção para desligar a rolagem pela borda do mouse (o

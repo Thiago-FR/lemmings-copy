@@ -1,38 +1,54 @@
-"""Builds one sprite set and one SpriteFrames resource per roguelike character.
+"""Draws the sprite set and SpriteFrames resource of each roguelike character.
 
     python tools/build_character_variants.py [preview.png]
 
-Every frame the lemming uses (read from the "wizard_placeholder" SpriteFrames
-in scenes/characters/lemming.tscn, so a new animation is picked up without
-touching this script) is copied for each character with:
-  * the purple robe and hood recoloured to the character's hue. The purple is
-    a ramp of a few flat tones; each pixel is mapped by its brightness onto a
-    matching ramp in the character's hue (the same ramp the card portraits in
-    build_card_art.py use), so the shading survives. Outline, the dark face
-    opening, eyes, skin, backpack, tools and the parachute are not purple and
-    are left alone;
-  * a small accessory (miner: hood lamp, engineer: wrench tucked behind the
-    head, scout: feather in the hood, tinkerer: goggles) drawn on the art
-    grid. Its position is found per frame from the pixels: the eyes give the
-    face, the dark opening above them gives the brim, the first opaque pixel
-    of a column gives the hood top. Where the eyes sit inside the hood tells
-    side view from front view; no eyes means the back view (vertical ladder).
+The four non-wizard characters (miner, engineer, scout, tinkerer) are drawn
+from scratch, each with its own body, from the pixel designs in
+tools/character_designs.py. Only the frame contract is shared with the
+wizard, so the game code does not change:
+  * the animations, frame counts, fps and loop flags are read from the
+    "wizard_placeholder" SpriteFrames in scenes/characters/lemming.tscn;
+  * every frame has the wizard's file name and canvas (250x250, the float
+    frames 250x404 with the extra rows split equally top and bottom), the
+    feet on the wizard's floor line and the body centred on the 26x30
+    collision box;
+  * the tools (shovel, pickaxe, jackhammer, parachute, climbing claws) and
+    the dust and chips are drawn by the same functions and with the same
+    per-frame poses as the wizard's builders (tools/build_*_frames.py), so
+    the timing the gameplay relies on matches. Only the arms holding them
+    start from each character's own shoulders.
+
+Everything is drawn on the wizard's art grid (one cell = 7 source pixels,
+about one screen pixel in game), each part with a one-cell outline.
 
 Output:
   assets/sprites/characters/<id>/<same file names as the wizard frames>
   resources/sprite_frames/<id>.tres  (wizard.tres points at the wizard frames)
 
-The ids, colours and accessories match modes/roguelike/scripts/characters/
-character_catalog.gd and the card portraits. Deterministic: no randomness.
+With a path, also writes a preview sheet: one frame of each animation per
+character next to the wizard, enlarged and at game scale in 1x and 3x.
+Deterministic: no randomness.
 """
 
-import colorsys
+import math
 import re
 import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import build_climb_frames as climb_frames  # noqa: E402
+import build_death_frames as death_frames  # noqa: E402
+import build_dig_frames as dig_frames  # noqa: E402
+import build_float_frames as float_frames  # noqa: E402
+import build_jackhammer_frames as jackhammer_frames  # noqa: E402
+import build_pickaxe_frames as pickaxe_frames  # noqa: E402
+import wizard_art  # noqa: E402
+from character_designs import DESIGNS, FLOOR_ROW, OUTLINE  # noqa: E402
+from wizard_art import ART_PIXEL, ArtCanvas, rotate_point  # noqa: E402
 
 PROJECT = Path(__file__).resolve().parent.parent
 CHARACTER_DIR = PROJECT / "assets/sprites/characters"
@@ -41,440 +57,450 @@ LEMMING_SCENE = PROJECT / "scenes/characters/lemming.tscn"
 SOURCE_CHARACTER = "wizard"
 SOURCE_SPRITE_FRAMES = "wizard_placeholder"
 
-# One art pixel of the wizard art is 7 source pixels (see wizard_art.py); at
-# the in-game scale of 0.15 that is about one screen pixel.
-ART_PIXEL = 7
+FRAME_SIZE = 250
+CELLS = -(-FRAME_SIZE // ART_PIXEL)
 
-OUTLINE = (25, 14, 32, 255)
-
-# Colours from character_catalog.gd.
-CHARACTERS = {
-    "miner": (0.95, 0.55, 0.2),
-    "engineer": (1.0, 0.85, 0.2),
-    "scout": (0.35, 0.85, 0.4),
-    "tinkerer": (0.3, 0.8, 1.0),
-}
-
-# --- Recolour ---------------------------------------------------------------
-
-# Which pixels are robe: purple hue, clearly saturated, brighter than the
-# near-black outline and face opening (value ~0.11-0.16, also purple-ish).
-ROBE_HUE_RANGE = (235.0, 315.0)
-ROBE_MIN_SATURATION = 0.3
-ROBE_MIN_VALUE = 0.19
-
-# The wizard robe's flat tones by HSV value (deep shadow, shade, base,
-# highlight sleeve) and which tone of the character ramp each one becomes.
-# Values in between are interpolated, so the few blended edge pixels of the
-# rotated frames still land between the right two tones.
-WIZARD_TONE_VALUES = [0.19, 0.27, 0.34, 0.48, 0.62, 0.80]
-RAMP_INDEX_FOR_TONE = ["edge", 4, 3, 2, 1, 0]
-
-# Saturation factor and value of each ramp tone, highlight to deepest shade.
-# Same numbers as hood_ramp() in build_card_art.py, so sprite and portrait
-# share the colours.
-RAMP_TONES = ((0.55, 1.0), (0.78, 0.92), (0.9, 0.76), (0.95, 0.54), (0.95, 0.34))
-# The darkest robe pixels sit against the outline; they get the deepest tone
-# pulled this far towards the outline, so the edge stays soft.
-EDGE_DARKEN = 0.55
+# --- Cell layers ---------------------------------------------------------------
 
 
-def hood_ramp(colour):
-    hue, saturation, _ = colorsys.rgb_to_hsv(*colour)
-    tones = []
-    for s_factor, value in RAMP_TONES:
-        r, g, b = colorsys.hsv_to_rgb(hue, saturation * s_factor, value)
-        tones.append(np.array([r * 255, g * 255, b * 255]))
-    return tones
+def blank(rows=CELLS):
+    return np.zeros((rows, CELLS, 4), dtype=np.uint8)
 
 
-def hsv_arrays(pixels):
-    """Hue in degrees, saturation and value of an RGBA uint8 array."""
-    rgb = pixels[:, :, :3].astype(float) / 255.0
-    maximum = rgb.max(axis=2)
-    minimum = rgb.min(axis=2)
-    delta = maximum - minimum
-    saturation = np.where(maximum > 0, delta / np.maximum(maximum, 1e-9), 0.0)
-    red, green, blue = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
-    safe = np.maximum(delta, 1e-9)
-    hue = np.where(
-        maximum == red, (green - blue) / safe % 6,
-        np.where(maximum == green, (blue - red) / safe + 2, (red - green) / safe + 4),
-    ) * 60.0
-    hue = np.where(delta > 0, hue, 0.0)
-    return hue, saturation, maximum
+def set_cell(layer, row, column, colour):
+    if 0 <= row < layer.shape[0] and 0 <= column < layer.shape[1]:
+        layer[row, column] = colour
 
 
-def robe_mask(pixels):
-    hue, saturation, value = hsv_arrays(pixels)
-    return (
-        (pixels[:, :, 3] > 0)
-        & (hue >= ROBE_HUE_RANGE[0]) & (hue <= ROBE_HUE_RANGE[1])
-        & (saturation >= ROBE_MIN_SATURATION)
-        & (value >= ROBE_MIN_VALUE)
-    )
+def paint(layer, design, pattern, column, row):
+    for dy, line in enumerate(pattern):
+        for dx, char in enumerate(line):
+            if char != ".":
+                set_cell(layer, row + dy, column + dx, design.colour(char))
 
 
-def recolour(pixels, colour):
-    ramp = hood_ramp(colour)
-    anchors = []
-    for index in RAMP_INDEX_FOR_TONE:
-        if index == "edge":
-            anchors.append(ramp[4] * (1 - EDGE_DARKEN) + np.array(OUTLINE[:3]) * EDGE_DARKEN)
+def outlined(layer):
+    """Rings the layer's cells with a one-cell outline."""
+    solid = layer[:, :, 3] > 0
+    grown = solid.copy()
+    grown[1:, :] |= solid[:-1, :]
+    grown[:-1, :] |= solid[1:, :]
+    grown[:, 1:] |= solid[:, :-1]
+    grown[:, :-1] |= solid[:, 1:]
+    layer[grown & ~solid] = OUTLINE
+    return layer
+
+
+def over(base, top):
+    mask = top[:, :, 3] > 0
+    base[mask] = top[mask]
+    return base
+
+
+def line_cells(start, end):
+    (col_a, row_a), (col_b, row_b) = start, end
+    steps = max(abs(row_b - row_a), abs(col_b - col_a), 1)
+    return [(round(col_a + (col_b - col_a) * i / steps), round(row_a + (row_b - row_a) * i / steps))
+            for i in range(steps + 1)]
+
+
+def to_cell(point):
+    """Source pixels to the cell ArtCanvas puts them in."""
+    return int(round(point[0] / ART_PIXEL)), int(round(point[1] / ART_PIXEL))
+
+
+def to_pixels(layer, height=FRAME_SIZE):
+    image = Image.fromarray(layer, "RGBA")
+    big = image.resize((layer.shape[1] * ART_PIXEL, layer.shape[0] * ART_PIXEL), Image.NEAREST)
+    return big.crop((0, 0, FRAME_SIZE, height))
+
+
+def shear(layer, angle, pivot_row):
+    """Leans the layer by `angle` degrees (counter-clockwise positive, as PIL
+    rotates) about a row, shifting whole rows by whole cells. A real
+    rotation of the 7px blocks breaks every edge into steps of 1-6 pixels;
+    the shear keeps the cells crisp and is the same to within a cell for
+    the few degrees the poses use."""
+    if angle == 0:
+        return layer
+    out = np.zeros_like(layer)
+    slope = math.tan(math.radians(angle))
+    for row in range(layer.shape[0]):
+        shift = round((row - pivot_row) * slope)
+        if shift > 0:
+            out[row, shift:] = layer[row, :-shift]
+        elif shift < 0:
+            out[row, :shift] = layer[row, -shift:]
         else:
-            anchors.append(ramp[index])
-    anchors = np.array(anchors)
-    mask = robe_mask(pixels)
-    _, _, value = hsv_arrays(pixels)
-    values = value[mask]
-    result = np.zeros((values.size, 3))
-    for channel in range(3):
-        result[:, channel] = np.interp(values, WIZARD_TONE_VALUES, anchors[:, channel])
-    out = pixels.copy()
-    out[mask, :3] = np.clip(np.round(result), 0, 255).astype(np.uint8)
+            out[row] = layer[row]
     return out
 
 
-# --- Landmarks --------------------------------------------------------------
+def shear_point(point, angle, pivot_row):
+    column, row = point
+    return column + round((row - pivot_row) * math.tan(math.radians(angle))), row
 
 
-class Landmarks:
-    """Where the head is in one frame, all in source pixels.
-
-    view: "side" (facing right), "front" or "back".
-    eye_box: (left, top, right, bottom) of the yellow eyes, None from the back.
-    centre_x: the column the accessory is centred on (middle of the eyes, or
-        of the hood from the back).
-    hood_top: first opaque row in centre_x.
-    face_top: top of the dark face opening above the eyes (the brim's lower
-        edge); from the back, a few cells below the hood top.
-    phase: (x, y) offset of the art grid in this frame, so accessories land
-        on the same 7px cells as the art.
-    """
+# --- Body parts ------------------------------------------------------------------
 
 
-def eye_mask(pixels):
-    red = pixels[:, :, 0].astype(int)
-    green = pixels[:, :, 1].astype(int)
-    blue = pixels[:, :, 2].astype(int)
-    return (pixels[:, :, 3] > 128) & (red > 200) & (green > 150) & (blue < 110)
+def leg(design, hip, foot_dx, foot_dy, view, rows=CELLS):
+    """A leg from the hip down to a boot whose sole is on the floor (raised
+    by -foot_dy cells), the boot's heel foot_dx cells from the hip."""
+    layer = blank(rows)
+    boot = design.boot_side if view == "side" else design.boot_front
+    boot_top = FLOOR_ROW - len(boot) + 1 + foot_dy
+    hip_column, hip_row = hip
+    foot_column = hip_column + foot_dx
+    colour = design.colour(design.leg)
+    shade = design.legend.get(design.leg.lower())
+    for column, row in line_cells((hip_column, hip_row), (foot_column, boot_top)):
+        for offset in range(design.leg_width):
+            set_cell(layer, row, column + offset, shade if (offset == 0 and shade and design.leg_width > 2) else colour)
+    boot_column = foot_column + getattr(design, "boot_offset", 0) if view == "side" else foot_column
+    paint(layer, design, boot, boot_column, boot_top)
+    return outlined(layer)
 
 
-def dark_mask(pixels):
-    _, _, value = hsv_arrays(pixels)
-    return (pixels[:, :, 3] > 128) & (value < ROBE_MIN_VALUE)
+def arm(design, shoulder, hand, rows=CELLS, claws=False, draw_hand=True, sleeve=None):
+    """A sleeve two cells thick from the shoulder to a two-by-two hand whose
+    top-left cell is `hand` (all in cells)."""
+    layer = blank(rows)
+    colour = design.colour(sleeve or design.sleeve)
+    dx, dy = hand[0] - shoulder[0], hand[1] - shoulder[1]
+    offset = (1, 0) if abs(dy) >= abs(dx) else (0, 1)
+    for column, row in line_cells(shoulder, hand):
+        set_cell(layer, row, column, colour)
+        set_cell(layer, row + offset[1], column + offset[0], colour)
+    if draw_hand:
+        for row in (0, 1):
+            for column in (0, 1):
+                set_cell(layer, hand[1] + row, hand[0] + column, design.colour(design.hand))
+    if claws:
+        for row in (0, 1):
+            set_cell(layer, hand[1] + row, hand[0] + 2, wizard_art.METAL_LIGHT)
+    return outlined(layer)
 
 
-def find_landmarks(pixels):
-    opaque = pixels[:, :, 3] > 128
-    eyes = eye_mask(pixels)
-    robe = robe_mask(pixels)
-    found = Landmarks()
-    eye_rows, eye_columns = np.where(eyes)
-    if eye_rows.size < 20:
-        # Back view: the head is the robe-coloured blob at the top.
-        robe_rows, robe_columns = np.where(robe)
-        top = robe_rows.min()
-        band = robe[top:top + 6 * ART_PIXEL]
-        columns = np.where(band.any(axis=0))[0]
-        found.view = "back"
-        found.eye_box = None
-        found.centre_x = int((columns.min() + columns.max()) // 2)
-        found.hood_top = int(np.where(opaque[:, found.centre_x])[0].min())
-        found.face_top = found.hood_top + 4 * ART_PIXEL
-        found.hood_left = int(columns.min())
-        found.hood_right = int(columns.max())
-        found.phase = (int(columns.min()) % ART_PIXEL, int(top) % ART_PIXEL)
-        return found
-    left, top = int(eye_columns.min()), int(eye_rows.min())
-    right, bottom = int(eye_columns.max()) + 1, int(eye_rows.max()) + 1
-    found.eye_box = (left, top, right, bottom)
-    found.centre_x = (left + right) // 2
-    found.phase = (left % ART_PIXEL, top % ART_PIXEL)
-    # Hood extent on the eye row: opaque run containing the eyes. Side views
-    # have the eyes in the front (right) part of the hood.
-    row = opaque[(top + bottom) // 2]
-    hood_left = found.centre_x
-    while hood_left > 0 and row[hood_left - 1]:
-        hood_left -= 1
-    hood_right = found.centre_x
-    while hood_right < row.size - 1 and row[hood_right + 1]:
-        hood_right += 1
-    # The backpack touches the hood on the left in side views; only count
-    # columns whose top is robe, not the pack, by using the robe band above.
-    above = robe[max(0, top - 6 * ART_PIXEL):top]
-    robe_columns = np.where(above.any(axis=0))[0]
-    if robe_columns.size:
-        hood_left = max(hood_left, int(robe_columns.min()))
-        hood_right = min(hood_right, int(robe_columns.max()))
-    found.hood_left, found.hood_right = hood_left, hood_right
-    relative = (found.centre_x - hood_left) / max(1, hood_right - hood_left)
-    found.view = "front" if 0.38 <= relative <= 0.62 else "side"
-    found.hood_top = int(np.where(opaque[:, found.centre_x])[0].min())
-    # Climb up from the eyes through the dark opening to the brim.
-    dark = dark_mask(pixels)
-    y = top - 1
-    while y > found.hood_top and (dark[y, found.centre_x] or eyes[y, found.centre_x]):
-        y -= 1
-    found.face_top = y + 1
-    return found
+def upper(design, view, dx=0, dy=0, rows=CELLS, variant=None):
+    layer = blank(rows)
+    pattern = getattr(design, view)
+    if variant is not None and hasattr(design, view + "_variants"):
+        pattern = getattr(design, view + "_variants")[variant % len(getattr(design, view + "_variants"))]
+    column, row = getattr(design, view + "_origin")
+    paint(layer, design, pattern, column + dx, row + dy)
+    return outlined(layer)
 
 
-# --- Accessories --------------------------------------------------------------
+def behind(design, view, dx=0, dy=0, rows=CELLS, variant=0, layer_name="behind"):
+    """Separately outlined parts of a view: "behind" ones (scarf tails,
+    planks, antenna) are drawn before the upper body, "front" ones after
+    it. A list of (pattern, top-left cell) is one variant per frame."""
+    patterns = getattr(design, view + "_" + layer_name, None)
+    layer = blank(rows)
+    if not patterns:
+        return layer
+    pattern, (column, row) = patterns[variant % len(patterns)]
+    paint(layer, design, pattern, column + dx, row + dy)
+    return outlined(layer)
 
-# Accessory colours, picked to read against both the dark outline and every
-# hood colour at about one screen pixel per cell.
-LAMP_BODY = (150, 152, 168, 255)
-# Paler than the eyes' yellow, so a front-facing lamp is not read as a
-# third eye.
-LAMP_LIGHT = (255, 250, 200, 255)
-STRAP = (64, 36, 28, 255)
-BRASS = (222, 170, 60, 255)
-LENS = (190, 240, 255, 255)
-METAL = (150, 152, 168, 255)
-METAL_LIGHT = (205, 207, 218, 255)
-FEATHER = (240, 236, 222, 255)
-FEATHER_TIP = (196, 58, 58, 255)
-QUILL = (160, 78, 52, 255)
 
-PALETTE = {
-    "L": LAMP_LIGHT, "M": METAL, "H": METAL_LIGHT, "S": STRAP, "B": BRASS,
-    "G": LENS, "F": FEATHER, "T": FEATHER_TIP, "Q": QUILL, "O": OUTLINE,
+def offset(point, dx=0, dy=0):
+    return point[0] + dx, point[1] + dy
+
+
+def body(design, view, feet, dx=0, dy=0, rows=CELLS, variant=0, legs_dx=None, lean=0):
+    """Legs, the parts behind, and the upper body. feet: ((dx, dy), (dx, dy))
+    for the back and front (or left and right) foot. lean tilts the upper
+    body about the hips (degrees, counter-clockwise positive)."""
+    layer = blank(rows)
+    hips = getattr(design, view + "_hips")
+    legs_dx = dx if legs_dx is None else legs_dx
+    for hip, (foot_dx, foot_dy) in zip(hips, feet):
+        over(layer, leg(design, offset(hip, legs_dx, dy), foot_dx + dx - legs_dx, foot_dy, view, rows))
+    torso = blank(rows)
+    over(torso, behind(design, view, dx, dy, rows, variant))
+    over(torso, upper(design, view, dx, dy, rows, variant))
+    over(torso, behind(design, view, dx, dy, rows, variant, "front"))
+    over(layer, shear(torso, lean, hips[0][1] + dy))
+    return layer
+
+
+# --- Animations ------------------------------------------------------------------
+
+# Walk cycle: contact, passing (body up a cell, the moving foot lifted),
+# contact the other way, passing. The near arm swings against the legs.
+WALK = [
+    {"dy": 0, "feet": ((-2, 0), (2, 0)), "hand": (-2, 5)},
+    {"dy": -1, "feet": ((0, -1), (0, 0)), "hand": (0, 5)},
+    {"dy": 0, "feet": ((2, 0), (-2, 0)), "hand": (2, 5)},
+    {"dy": -1, "feet": ((0, 0), (0, -1)), "hand": (0, 5)},
+]
+
+
+def walk_frame(design, index):
+    pose = WALK[index]
+    lean = getattr(design, "walk_lean", 0)
+    layer = body(design, "side", pose["feet"], dy=pose["dy"], variant=index, lean=lean)
+    shoulder = shear_point(offset(design.side_shoulder, 0, pose["dy"]), lean, design.side_hips[0][1] + pose["dy"])
+    over(layer, arm(design, shoulder, offset(shoulder, *pose["hand"])))
+    return to_pixels(layer)
+
+
+# Dig (front view, shovel): the body crouches a few cells with the feet
+# planted (the wizard squashes by the same amounts), spreading the knees.
+DIG_CROUCH = [0, 1, 3, 2]
+
+
+def recoloured_hands(image, colour):
+    pixels = np.array(image)
+    skin = np.all(pixels == np.array(wizard_art.SKIN), axis=2)
+    pixels[skin] = colour
+    return Image.fromarray(pixels)
+
+
+def dig_frame(design, index):
+    crouch = DIG_CROUCH[index]
+    spread = (crouch + 1) // 2
+    layer = body(design, "front", ((-spread, 0), (spread, 0)), dy=crouch)
+    grip, blade_join = dig_frames.SHOVEL_POSES[index]
+    hands = []
+    for fraction in dig_frames.HAND_POSITIONS:
+        x = grip[0] + (blade_join[0] - grip[0]) * fraction
+        y = grip[1] + (blade_join[1] - grip[1]) * fraction
+        hands.append(to_cell((x - ART_PIXEL, y)))
+    left_shoulder, right_shoulder = (offset(s, 0, crouch) for s in design.front_shoulders)
+    # Near hand (higher on the handle) from the right shoulder; the other
+    # arm crosses the chest to the lower hand.
+    over(layer, arm(design, left_shoulder, hands[1], draw_hand=False))
+    over(layer, arm(design, right_shoulder, hands[0], draw_hand=False))
+    image = to_pixels(layer)
+    shovel = recoloured_hands(dig_frames.draw_shovel(FRAME_SIZE, grip, blade_join), design.colour(design.hand))
+    image.alpha_composite(shovel)
+    return image
+
+
+# Vertical ladder (back view): hands alternate reaching for the rung above
+# the head and holding at the shoulder, the opposite foot lifted.
+LADDER = [
+    {"dy": 0, "hands": (-8, -3), "feet": ((0, 0), (0, -2))},
+    {"dy": -1, "hands": (-6, -5), "feet": ((0, 0), (0, -1))},
+    {"dy": 0, "hands": (-3, -8), "feet": ((0, -2), (0, 0))},
+    {"dy": -1, "hands": (-5, -6), "feet": ((0, -1), (0, 0))},
+]
+
+
+def ladder_frame(design, index):
+    pose = LADDER[index]
+    layer = body(design, "back", pose["feet"], dy=pose["dy"], variant=index)
+    for side, shoulder in enumerate(design.back_shoulders):
+        shoulder = offset(shoulder, 0, pose["dy"])
+        over(layer, arm(design, shoulder, (shoulder[0] - 1, shoulder[1] + pose["hands"][side])))
+    return to_pixels(layer)
+
+
+# How far (cells) the climbing hands reach out from the front shoulder, and
+# the most a body may step towards the wall from its walking position.
+CLIMB_ARM_REACH = 4
+CLIMB_MAX_STEP = 3
+
+
+def climb_frame(design, index):
+    """Side view against the wall on the right, leaning in, claws on the
+    wall (see build_climb_frames.py for the poses)."""
+    pose = climb_frames.FRAMES[index]
+    hand_column = to_cell((climb_frames.HAND_X, 0))[0]
+    # The wizard steps back two cells to make room for its arms; a slimmer
+    # body steps up to the wall instead, so its arms stay short.
+    shift = max(climb_frames.BODY_SHIFT_X // ART_PIXEL,
+                min(CLIMB_MAX_STEP, hand_column - CLIMB_ARM_REACH - design.side_front_shoulder[0]))
+    lift = pose["lift"]
+    angle = climb_frames.LEAN_DEGREES
+    pivot_row = climb_frames.LEAN_PIVOT[1] / ART_PIXEL
+    wall_toe = to_cell((climb_frames.HAND_X, 0))[0] + 1
+    boot_width = len(design.boot_side[-1])
+    feet = []
+    for hip, (_, foot_dy) in zip(design.side_hips, (pose["back_foot"], pose["front_foot"])):
+        if foot_dy < 0:
+            # The pushing foot: toe against the wall.
+            feet.append((wall_toe - boot_width + 1 - hip[0], foot_dy + lift))
+        else:
+            feet.append((shift, foot_dy + lift))
+    rows = CELLS
+    legs = blank(rows)
+    for hip, (foot_dx, foot_dy) in zip(design.side_hips, feet):
+        over(legs, leg(design, offset(hip, 0, lift), foot_dx, foot_dy, "side", rows))
+    torso = blank(rows)
+    over(torso, behind(design, "side", shift, lift, rows, index))
+    over(torso, upper(design, "side", shift, lift, rows, index))
+    over(torso, behind(design, "side", shift, lift, rows, index, "front"))
+    torso = shear(torso, angle, pivot_row)
+    layer = blank(rows)
+    far = shear_point(offset(design.side_front_shoulder, shift - 2, lift), angle, pivot_row)
+    near = shear_point(offset(design.side_front_shoulder, shift, lift), angle, pivot_row)
+    over(layer, arm(design, far, (hand_column, to_cell((0, pose["far_hand"]))[1]), claws=True))
+    over(layer, legs)
+    over(layer, torso)
+    over(layer, arm(design, near, (hand_column, to_cell((0, pose["near_hand"]))[1]), claws=True))
+    return to_pixels(layer)
+
+
+def stance(design, variant=0):
+    """Standing side-on with the feet a little apart, for the tool poses."""
+    return body(design, "side", ((-1, 0), (1, 0)), variant=variant)
+
+
+def pickaxe_frame(design, index):
+    pose = pickaxe_frames.FRAMES[index]
+    pivot_row = FLOOR_ROW + 1
+    layer = shear(stance(design, variant=index), pose["lean"], pivot_row)
+    image = to_pixels(layer)
+    feet_pivot = pickaxe_feet_pivot()
+    grip = rotate_point(pose["grip"], pose["lean"], feet_pivot)
+    shoulder = shear_point(design.side_shoulder, pose["lean"], pivot_row)
+    canvas = ArtCanvas(FRAME_SIZE)
+    pickaxe_frames.draw_pickaxe(canvas, grip, pose["angle"])
+    tool = canvas.cells
+    hand = to_cell((grip[0] - ART_PIXEL // 2, grip[1] - ART_PIXEL // 2))
+    arm_layer = arm(design, shoulder, hand)
+    tool_layer = outlined_tool(tool)
+    image.alpha_composite(to_pixels(over(tool_layer, arm_layer)))
+    image.alpha_composite(pickaxe_frames.draw_chips(FRAME_SIZE, pose["chips"]))
+    return image
+
+
+def outlined_tool(cells):
+    layer = blank()
+    rows = min(layer.shape[0], cells.shape[0])
+    layer[:rows] = cells[:rows]
+    return outlined(layer)
+
+
+_PIVOT = []
+
+
+def pickaxe_feet_pivot():
+    """The wizard's builder rocks the body about the middle of its feet;
+    the grips are rotated about that same point so the tool lands where the
+    wizard's does."""
+    if not _PIVOT:
+        body_image = wizard_art.side_body_without_hand()
+        left, _, right, bottom = wizard_art.occupied_box(body_image)
+        _PIVOT.append(((left + right) // 2, bottom))
+    return _PIVOT[0]
+
+
+def jackhammer_frame(design, index):
+    pose = jackhammer_frames.FRAMES[index]
+    back = -jackhammer_frames.BODY_BACK_CELLS
+    shake_x, shake_y = pose["shake"]
+    # The feet shake sideways only; the upper body bobs down with dy.
+    layer = body(design, "side", ((-1, 0), (1, 0)), dx=back + shake_x, dy=shake_y, variant=index,
+                 legs_dx=back + shake_x)
+    image = to_pixels(layer)
+    canvas = ArtCanvas(FRAME_SIZE)
+    offset_px = (shake_x * ART_PIXEL, shake_y * ART_PIXEL)
+    hand, bit_x, bit_y = jackhammer_frames.draw_drill(canvas, offset_px)
+    jackhammer_frames.draw_bit(canvas, bit_x, bit_y, pose["bit"])
+    tool_layer = outlined_tool(canvas.cells)
+    shoulder = offset(design.side_shoulder, back + shake_x, shake_y)
+    over(tool_layer, arm(design, shoulder, to_cell(hand)))
+    image.alpha_composite(to_pixels(tool_layer))
+    image.alpha_composite(jackhammer_frames.draw_dust(FRAME_SIZE, pose["dust"], bit_y))
+    return image
+
+
+_CANOPY = []
+
+
+def canopy_anchor():
+    """Where the wizard's builder puts the canopy: centred on the walk
+    frame's body, its rim CORD_GAP_CELLS above the hood."""
+    if not _CANOPY:
+        upper_image, _, _ = wizard_art.split_feet(wizard_art.side_body_without_hand())
+        left, top, right, _ = wizard_art.occupied_box(upper_image)
+        rim_y = float_frames.VERTICAL_PADDING + top - float_frames.CORD_GAP_CELLS * ART_PIXEL
+        _CANOPY.append(((left + right) // 2, rim_y))
+    return _CANOPY[0]
+
+
+def float_frame(design, index):
+    pose = float_frames.FRAMES[index]
+    pad = float_frames.VERTICAL_PADDING // ART_PIXEL
+    height = FRAME_SIZE + 2 * float_frames.VERTICAL_PADDING
+    rows = -(-height // ART_PIXEL)
+    angle = pose["angle"]
+    pivot = (float_frames.SWING_PIVOT[0], float_frames.SWING_PIVOT[1] + float_frames.VERTICAL_PADDING)
+    pivot_row = pivot[1] / ART_PIXEL
+    feet = (pose["back_foot"], pose["front_foot"])
+    layer = blank(rows)
+    hips = design.side_hips
+    for hip, (foot_dx, foot_dy) in zip(hips, feet):
+        over(layer, leg(design, offset(hip, 0, pad), foot_dx, foot_dy + pad, "side", rows))
+    over(layer, behind(design, "side", 0, pad, rows, index))
+    over(layer, upper(design, "side", 0, pad, rows, index))
+    over(layer, behind(design, "side", 0, pad, rows, index, "front"))
+    layer = shear(layer, angle, pivot_row)
+    hands = []
+    arms_layer = blank(rows)
+    for shoulder, (_, hand) in ((design.side_back_shoulder, float_frames.BACK_ARM),
+                                (design.side_front_shoulder, float_frames.FRONT_ARM)):
+        centre = rotate_point((hand[0] + ART_PIXEL // 2, hand[1] + ART_PIXEL // 2 + float_frames.VERTICAL_PADDING),
+                              angle, pivot)
+        hands.append(centre)
+        hand_cell = to_cell((centre[0] - ART_PIXEL // 2, centre[1] - ART_PIXEL // 2))
+        moved = shear_point(offset(shoulder, 0, pad), angle, pivot_row)
+        over(arms_layer, arm(design, moved, hand_cell, rows))
+    over(layer, arms_layer)
+    canvas = ArtCanvas(height)
+    centre_x, rim_y = canopy_anchor()
+    float_frames.draw_parachute(canvas, centre_x, rim_y, pose["swing"], pose["tilt"], *hands)
+    frame = Image.new("RGBA", (FRAME_SIZE, height), (0, 0, 0, 0))
+    frame.alpha_composite(canvas.to_image().crop((0, 0, FRAME_SIZE, height)))
+    frame.alpha_composite(to_pixels(layer, height))
+    return frame
+
+
+def death_frame(design, index, walk_zero):
+    left, _, right, bottom = wizard_art.occupied_box(walk_zero)
+    cropped = walk_zero.crop(wizard_art.occupied_box(walk_zero))
+    height_fraction, width_fraction = death_frames.SQUASH_PER_FRAME[index]
+    frame, body_left, body_right = death_frames.squash(
+        cropped, height_fraction, width_fraction, FRAME_SIZE, (left + right) // 2, bottom)
+    frame.alpha_composite(death_frames.dust(FRAME_SIZE, body_left, body_right, bottom,
+                                            death_frames.DUST_PER_FRAME[index]))
+    return frame
+
+
+def dead_body(design):
+    """The standing frame the fall flattens: walk contact pose without the
+    swinging arm, the hand down at the side."""
+    layer = body(design, "side", ((-1, 0), (1, 0)))
+    over(layer, arm(design, design.side_shoulder, offset(design.side_shoulder, 0, 5)))
+    return to_pixels(layer)
+
+
+BUILDERS = {
+    "walk_aligned": walk_frame,
+    "dig_aligned": dig_frame,
+    "climb_aligned": ladder_frame,
+    "climb_side": climb_frame,
+    "pickaxe": pickaxe_frame,
+    "jackhammer": jackhammer_frame,
+    "float": float_frame,
 }
 
-# Patterns, one character per art cell, "." empty. Side patterns face right.
-# Each gets a one-cell outline when drawn.
-# A 2x2 light: one cell of light was lost in the outline at game scale.
-LAMP_SIDE = ["MLL", "MLL"]
-LAMP_FRONT = ["MLLM", "MLLM"]
-# Two round lenses of 2x2 cells in brass rims: a 1-cell lens with a flat
-# rim read as a single tan bar in game.
-GOGGLES_FRONT = [
-    ".BB.BB.",
-    "BGGBGGB",
-    "BGGBGGB",
-    ".BB.BB.",
-]
-# In profile only the near lens shows, with the strap running back.
-GOGGLES_SIDE = [
-    "..BB.",
-    "SBGGB",
-    "SBGGB",
-    "..BB.",
-]
-STRAP_BACK = ["S"]
-FEATHER_SIDE = [
-    "..TT",
-    ".FT.",
-    ".F..",
-    "FF..",
-    "F...",
-    "Q...",
-]
-FEATHER_FRONT = [
-    ".T",
-    "FT",
-    "F.",
-    "F.",
-    "Q.",
-]
-# Leaning back out of the hood, open jaw up and away from the face. The
-# bottom-right cell is the end pushed into the hood.
-WRENCH = [
-    "H.H...",
-    "HHH...",
-    ".HH...",
-    "...M..",
-    "....M.",
-    ".....M",
-]
 
-
-class Stamp:
-    """A pattern placed at a source-pixel position (its top-left cell)."""
-
-    def __init__(self, pattern, x, y, layer="front", over_robe_only=False):
-        self.pattern = pattern
-        self.x = x
-        self.y = y
-        # "front": drawn over the robe; "behind": only fills transparent
-        # pixels, so it reads as tucked behind the head.
-        self.layer = layer
-        self.over_robe_only = over_robe_only
-
-
-def pattern_size(pattern):
-    return len(pattern[0]), len(pattern)
-
-
-def snap(value, phase):
-    return int(round((value - phase) / ART_PIXEL)) * ART_PIXEL + phase
-
-
-def squash(pattern, factor):
-    """Drops rows so a pattern flattens with a squashed body (death frames)."""
-    if factor >= 0.95:
-        return pattern
-    rows = max(1, round(len(pattern) * factor))
-    return [pattern[min(len(pattern) - 1, int(i * len(pattern) / rows))] for i in range(rows)]
-
-
-def hood_band_rows(found):
-    """Height of the brim (hood top to face opening) in cells."""
-    return max(1, (found.face_top - found.hood_top) // ART_PIXEL)
-
-
-def lamp_stamps(found, squash_factor):
-    if found.view == "back":
-        return strap_stamps(found, STRAP)
-    pattern = squash(LAMP_SIDE if found.view == "side" else LAMP_FRONT, squash_factor)
-    width, height = pattern_size(pattern)
-    # Sit on the brim, just above the face opening, centred on the eyes
-    # (pushed a cell forward in side view, where the brim leans out).
-    x = found.centre_x - width * ART_PIXEL // 2
-    if found.view == "side":
-        x += ART_PIXEL
-    y = found.face_top - height * ART_PIXEL
-    y = max(y, found.hood_top + ART_PIXEL)
-    return [Stamp(pattern, x, y)]
-
-
-def goggles_stamps(found, squash_factor):
-    if found.view == "back":
-        return strap_stamps(found, STRAP)
-    pattern = squash(GOGGLES_SIDE if found.view == "side" else GOGGLES_FRONT, squash_factor)
-    width, height = pattern_size(pattern)
-    x = found.centre_x - width * ART_PIXEL // 2
-    if found.view == "side":
-        x += ART_PIXEL
-    # Lower lens row overlaps the top of the face opening, like goggles
-    # pushed up on the forehead.
-    y = found.face_top - (height - 1) * ART_PIXEL
-    y = max(y, found.hood_top)
-    return [Stamp(pattern, x, y)]
-
-
-def strap_stamps(found, colour_unused):
-    """From the back only the strap of a lamp or goggles shows: a band across
-    the hood, painted on robe pixels only so it follows the hood's outline."""
-    y = found.hood_top + 3 * ART_PIXEL
-    width_cells = (found.hood_right - found.hood_left) // ART_PIXEL + 1
-    pattern = ["S" * width_cells]
-    return [Stamp(pattern, found.hood_left, y, over_robe_only=True)]
-
-
-def feather_stamps(found, squash_factor):
-    if found.view == "side":
-        pattern = squash(FEATHER_SIDE, squash_factor)
-        width, height = pattern_size(pattern)
-        # Quill in the hood top, a little behind the face, leaning forward.
-        x = found.centre_x - 2 * ART_PIXEL
-        top = column_top(found, x)
-        return [Stamp(pattern, x, top - (height - 2) * ART_PIXEL)]
-    pattern = squash(FEATHER_FRONT, squash_factor)
-    width, height = pattern_size(pattern)
-    # Front and back: on the right side of the hood top, as on the card.
-    x = found.centre_x + (found.hood_right - found.centre_x) // 2
-    top = column_top(found, x)
-    return [Stamp(pattern, x, top - (height - 2) * ART_PIXEL)]
-
-
-def wrench_stamps(found, squash_factor):
-    pattern = squash(WRENCH, squash_factor)
-    width, height = pattern_size(pattern)
-    # Tucked behind the head: the handle end goes into the hood top a few
-    # cells behind the face (side view) or left of centre (front, back).
-    if found.view == "side":
-        root_x = found.centre_x - 3 * ART_PIXEL
-    else:
-        root_x = found.centre_x - 2 * ART_PIXEL
-    # Only the last cell goes into the hood, so jaw and handle both show.
-    root_y = column_top(found, root_x) + ART_PIXEL
-    x = root_x - (width - 1) * ART_PIXEL
-    y = root_y - (height - 1) * ART_PIXEL
-    # Frames whose hood nearly touches the top of the canvas would cut the
-    # jaw off: push the wrench further into the hood instead.
-    y = max(y, found.phase[1] + ART_PIXEL)
-    # From the back it is in plain sight, over the hood.
-    layer = "front" if found.view == "back" else "behind"
-    return [Stamp(pattern, x, y, layer=layer)]
-
-
-ACCESSORIES = {
-    "miner": lamp_stamps,
-    "engineer": wrench_stamps,
-    "scout": feather_stamps,
-    "tinkerer": goggles_stamps,
-}
-
-
-def column_top(found, x):
-    """First opaque row of column x (set by draw_accessory before placing)."""
-    x = int(np.clip(x, 0, found.opaque.shape[1] - 1))
-    rows = np.where(found.opaque[:, x])[0]
-    return int(rows.min()) if rows.size else found.hood_top
-
-
-def draw_stamp(pixels, stamp, phase, robe, source_opaque):
-    pattern = stamp.pattern
-    width, height = pattern_size(pattern)
-    origin_x = snap(stamp.x, phase[0])
-    origin_y = snap(stamp.y, phase[1])
-    # Keep the whole accessory, outline included, inside the canvas: the
-    # walk frames leave only a few cells above the hood. Pushed down, it
-    # simply sits deeper in the hood.
-    origin_y = max(origin_y, phase[1] + ART_PIXEL)
-    cells = np.zeros((height + 2, width + 2, 4), dtype=np.uint8)
-    for row, line in enumerate(pattern):
-        for column, char in enumerate(line):
-            if char != ".":
-                cells[row + 1, column + 1] = PALETTE[char]
-    if not stamp.over_robe_only:
-        solid = cells[:, :, 3] > 0
-        grown = solid.copy()
-        grown[1:, :] |= solid[:-1, :]
-        grown[:-1, :] |= solid[1:, :]
-        grown[:, 1:] |= solid[:, :-1]
-        grown[:, :-1] |= solid[:, 1:]
-        cells[grown & ~solid] = OUTLINE
-        origin_x -= ART_PIXEL
-        origin_y -= ART_PIXEL
-    else:
-        cells = cells[1:-1, 1:-1]
-    layer = np.kron(cells, np.ones((ART_PIXEL, ART_PIXEL, 1), dtype=np.uint8))
-    frame_height, frame_width = pixels.shape[:2]
-    for dy in range(layer.shape[0]):
-        y = origin_y + dy
-        if not 0 <= y < frame_height:
-            continue
-        for dx in range(layer.shape[1]):
-            x = origin_x + dx
-            if not 0 <= x < frame_width or layer[dy, dx, 3] == 0:
-                continue
-            if stamp.over_robe_only and not robe[y, x]:
-                continue
-            if stamp.layer == "behind" and source_opaque[y, x]:
-                continue
-            if stamp.layer == "front" and not stamp.over_robe_only and blocks_accessory(pixels[y, x], robe[y, x]):
-                continue
-            pixels[y, x] = layer[dy, dx]
-
-
-def blocks_accessory(pixel, is_robe):
-    """Tools, hands and props held in front of the hood stay in front of the
-    accessory: only robe, outline, the dark face and empty pixels are drawn
-    over."""
-    if pixel[3] < 128 or is_robe:
-        return False
-    red, green, blue = int(pixel[0]), int(pixel[1]), int(pixel[2])
-    return max(red, green, blue) >= 0.19 * 255
-
-
-def draw_accessory(pixels, character_id, found, squash_factor, source_pixels):
-    found.opaque = source_pixels[:, :, 3] > 128
-    robe = robe_mask(source_pixels)
-    for stamp in ACCESSORIES[character_id](found, squash_factor):
-        draw_stamp(pixels, stamp, found.phase, robe, found.opaque)
+def build_frame(design, name, cache):
+    stem = Path(name).stem
+    prefix, _, number = stem.rpartition("_")
+    index = int(number)
+    if prefix == "death_fall":
+        if "dead" not in cache:
+            cache["dead"] = dead_body(design)
+        return death_frame(design, index, cache["dead"])
+    assert prefix in BUILDERS, "No drawing for frames '%s_*': add a builder to %s" % (prefix, __file__)
+    return BUILDERS[prefix](design, index)
 
 
 # --- SpriteFrames -------------------------------------------------------------
@@ -532,9 +558,6 @@ def write_sprite_frames(character_id, animations, path):
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
-# --- Build --------------------------------------------------------------------
-
-
 def frame_files(animations):
     files = []
     for animation in animations:
@@ -545,31 +568,15 @@ def frame_files(animations):
     return files
 
 
-def reference_brim(files):
-    """Brim height of the first walk frame: frames whose brim is much lower
-    (the squashed death frames) get their accessory squashed to match."""
-    reference = next((name for name in files if name.startswith("walk")), files[0])
-    pixels = np.array(Image.open(CHARACTER_DIR / SOURCE_CHARACTER / reference).convert("RGBA"))
-    found = find_landmarks(pixels)
-    return found.face_top - found.hood_top
-
-
-def build_character(character_id, files, reference):
-    colour = CHARACTERS[character_id]
-    out_dir = CHARACTER_DIR / character_id
+def build_character(design, files):
+    out_dir = CHARACTER_DIR / design.id
     out_dir.mkdir(parents=True, exist_ok=True)
-    report = []
+    cache = {}
     for name in files:
-        source = np.array(Image.open(CHARACTER_DIR / SOURCE_CHARACTER / name).convert("RGBA"))
-        found = find_landmarks(source)
-        factor = 1.0
-        if found.view != "back":
-            factor = min(1.0, max(0.4, (found.face_top - found.hood_top) / max(1, reference)))
-        pixels = recolour(source, colour)
-        draw_accessory(pixels, character_id, found, factor, source)
-        Image.fromarray(pixels).save(out_dir / name)
-        report.append("%s:%s" % (name, found.view))
-    return report
+        image = build_frame(design, name, cache)
+        wizard_size = Image.open(CHARACTER_DIR / SOURCE_CHARACTER / name).size
+        assert image.size == wizard_size, "%s/%s is %s, the wizard's is %s" % (design.id, name, image.size, wizard_size)
+        image.save(out_dir / name)
 
 
 # --- Preview --------------------------------------------------------------------
@@ -579,8 +586,7 @@ PREVIEW_BACKGROUND = (92, 120, 150, 255)
 
 
 def preview_frame(animation):
-    """The frame of each animation shown in the preview: the second one, or
-    the second-to-last for the dying animation (the last is nearly flat)."""
+    """The frame of each animation shown in the preview: the second one."""
     frames = animation["frames"]
     return Path(frames[min(1, len(frames) - 1)][1]).name
 
@@ -588,14 +594,14 @@ def preview_frame(animation):
 def preview_body(image):
     """Frame cropped to the body (and canopy) so every column lines up: the
     float frames have empty rows added at the bottom, see build_float_frames."""
-    pad = (image.height - 250) // 2
+    pad = (image.height - FRAME_SIZE) // 2
     if pad > 0:
         return image.crop((0, 0, image.width, image.height - pad))
     return image
 
 
-def build_preview(animations, path):
-    characters = [SOURCE_CHARACTER] + list(CHARACTERS)
+def build_preview(animations, path, frame_picker=preview_frame):
+    characters = [SOURCE_CHARACTER] + [design.id for design in DESIGNS]
     enlarged_scale = 0.5
     zoom = 3
     column = 165
@@ -607,12 +613,12 @@ def build_preview(animations, path):
     sheet = Image.new("RGBA", (width, height), PREVIEW_BACKGROUND)
     for row, character_id in enumerate(characters):
         for index, animation in enumerate(animations):
-            body = preview_body(Image.open(CHARACTER_DIR / character_id / preview_frame(animation)).convert("RGBA"))
+            body_image = preview_body(Image.open(CHARACTER_DIR / character_id / frame_picker(animation)).convert("RGBA"))
             x0 = 10 + index * column
             y0 = 10 + row * row_height
-            big = body.resize((round(body.width * enlarged_scale), round(body.height * enlarged_scale)), Image.NEAREST)
+            big = body_image.resize((round(body_image.width * enlarged_scale), round(body_image.height * enlarged_scale)), Image.NEAREST)
             sheet.alpha_composite(big, (x0, y0 + enlarged_band - big.height))
-            small = body.resize((round(body.width * GAME_SCALE), round(body.height * GAME_SCALE)), Image.BOX)
+            small = body_image.resize((round(body_image.width * GAME_SCALE), round(body_image.height * GAME_SCALE)), Image.BOX)
             sheet.alpha_composite(small, (x0, y0 + enlarged_band + small_band - small.height))
             zoomed = small.resize((small.width * zoom, small.height * zoom), Image.NEAREST)
             sheet.alpha_composite(zoomed, (x0 + small.width + 6, y0 + enlarged_band + small_band - zoomed.height))
@@ -623,13 +629,12 @@ def main():
     scene_text = LEMMING_SCENE.read_text(encoding="utf-8")
     animations = parse_sprite_frames(scene_text, SOURCE_SPRITE_FRAMES)
     files = frame_files(animations)
-    reference = reference_brim(files)
-    for character_id in CHARACTERS:
-        report = build_character(character_id, files, reference)
-        print(character_id, " ".join(report))
+    for design in DESIGNS:
+        build_character(design, files)
+        print("drew", design.id, len(files), "frames")
     write_sprite_frames(SOURCE_CHARACTER, animations, SPRITE_FRAMES_DIR / ("%s.tres" % SOURCE_CHARACTER))
-    for character_id in CHARACTERS:
-        write_sprite_frames(character_id, animations, SPRITE_FRAMES_DIR / ("%s.tres" % character_id))
+    for design in DESIGNS:
+        write_sprite_frames(design.id, animations, SPRITE_FRAMES_DIR / ("%s.tres" % design.id))
     print("animations:", ", ".join(a["name"] for a in animations))
     if len(sys.argv) > 1:
         build_preview(animations, sys.argv[1])

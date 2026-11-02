@@ -216,55 +216,92 @@ interior inteiro é livre:
   do título nem no painel de texto (o gerador recorta).
 - Ilustrações têm fundo transparente e contorno de 1 px, como os ícones; o
   fundo vem da janela da carta.
-- Retratos: o mago encapuzado (olhos amarelos, mochila, alça no peito) em 3/4
-  para a direita, como nos quadros de andar, com o capuz na cor do
-  personagem (o Mago mantém o roxo do sprite) e um item: cajado com orbe
-  (Mago), picareta e lanterna (Mineiro), chave inglesa e tábua (Engenheiro),
-  pena no capuz e bota alada (Batedor), óculos e engrenagem (Inventor).
+- Retratos: o Mago é o encapuzado (olhos amarelos, mochila, alça no peito)
+  em 3/4 para a direita, com o cajado de orbe. Os outros quatro são bustos
+  dos próprios sprites, desenhados em `tools/character_portraits.py` (ver
+  "Personagens" abaixo).
 
 Regerar: `python tools/build_card_art.py [preview.png]` (com o caminho, salva
 uma folha de conferência com todas as cartas, normal e hover, com ilustração
 e texto de exemplo, e todas as ilustrações, em 1x e 2x), depois
 `godot --headless --path . --import`.
 
-## Personagens (variações do mago)
+## Personagens (desenhados do zero)
 
 Gerado por `tools/build_character_variants.py` (Python + PIL, sem
-aleatoriedade). Lê o `SpriteFrames` `wizard_placeholder` de
-`scenes/characters/lemming.tscn` (animações, fps, loop, duração e ordem dos
-quadros) e, para cada personagem de `character_catalog.gd` (`miner`,
-`engineer`, `scout`, `tinkerer`), recria **todos** os quadros do mago em
-`assets/sprites/characters/<id>/`, com os mesmos nomes de arquivo. Também
-escreve `resources/sprite_frames/<id>.tres` (e `wizard.tres`, apontando para
-os quadros originais) com exatamente as mesmas animações. Animação nova no
-`lemming.tscn` entra sozinha na próxima execução.
+aleatoriedade), com os desenhos em `tools/character_designs.py`. O Mago fica
+como está; os outros quatro de `character_catalog.gd` (`miner`, `engineer`,
+`scout`, `tinkerer`) têm corpo próprio — a primeira versão, que só trocava a
+cor do manto do mago e punha um acessório, foi descartada pelo usuário
+("eu quero literalmente outro tipo de sprite").
 
-- **Cor:** só os pixels roxos do manto/capuz (matiz 235–315°, saturação
-  ≥ 0,3, brilho ≥ 0,19) mudam. Cada um é levado, pelo brilho, para a mesma
-  rampa de cinco tons que os retratos das cartas usam (`hood_ramp` de
-  `build_card_art.py`): sombra funda, sombra, base, luz. Contorno, abertura
-  escura do rosto, olhos, pele, mochila, ferramentas e paraquedas ficam
-  intactos.
-- **Acessório**, desenhado na grade de 7 px da arte (~1 px na tela) com
-  contorno: Mineiro = lanterna 2x2 no capuz, acima do rosto; Engenheiro =
-  chave inglesa enfiada atrás da cabeça, inclinada para trás; Batedor = pena
-  creme de ponta vermelha no alto do capuz; Inventor = óculos de duas lentes
-  com aro de latão sobre a borda do rosto.
-- **Posição por quadro, a partir dos pixels:** os olhos amarelos dão o rosto;
-  subindo pela abertura escura chega-se à borda do capuz (lanterna e óculos);
-  o primeiro pixel opaco da coluna dá o alto do capuz (pena e chave). Onde os
-  olhos ficam dentro do capuz decide a vista: no meio = de frente (pá), à
-  direita = de lado; sem olhos = de costas (escada vertical), onde aparece só
-  a tira da lanterna/óculos, a pena ou a chave. Nos quadros da morte, que
-  achatam, o acessório achata na mesma proporção. Ferramentas e mãos
-  continuam na frente do acessório; a chave fica atrás do capuz (e da cúpula
-  do paraquedas).
+O que é compartilhado com o mago é só o **contrato dos quadros**, para o
+código do jogo não mudar: o script lê o `SpriteFrames` `wizard_placeholder`
+de `scenes/characters/lemming.tscn` (animações, fps, loop, duração e ordem),
+escreve cada quadro com o mesmo nome e o mesmo tamanho do quadro do mago
+(250x250; `float_*` 250x404, com o espaço extra igual em cima e embaixo) em
+`assets/sprites/characters/<id>/`, e `resources/sprite_frames/<id>.tres`
+(e `wizard.tres`, apontando para os quadros originais) com exatamente as
+mesmas animações. Animação nova no `lemming.tscn` sem desenho no script
+para a execução com erro, dizendo o que falta.
+
+Os desenhos são ASCII, um caractere por célula da grade de 7 px (~1 px na
+tela), uma letra por cor. Cada personagem tem três vistas da parte de cima
+do corpo (cabeça e tronco): de lado olhando para a direita (o jogo espelha),
+de frente (pá) e de costas (escada vertical). Pernas, botas e braços são
+gerados a partir dos quadris e ombros de cada vista, e cada parte ganha
+contorno de uma célula antes de empilhar, por isso braço e perna se
+destacam do tronco. Peças que mexem sozinhas ou ficam atrás (cachecol,
+tábuas, antena) são camadas à parte.
+
+| Personagem | Silhueta | Cores |
+|---|---|---|
+| Mineiro (`miner`) | baixo e largo, pernas curtas e grossas, capacete de aba larga com lanterna na frente, barba grande cobrindo o peito, suspensórios, botas pesadas | capacete laranja, camisa ferrugem, barba e calça marrons |
+| Engenheiro (`engineer`) | médio, boné de aba longa com óculos de solda levantados, macacão com bolso, cinto de ferramentas, **feixe de três tábuas amarrado nas costas** passando da cabeça (é com elas que a ponte e a escada dele ficam maiores) | boné e macacão azuis, camisa amarela, tábuas de madeira clara |
+| Batedor (`scout`) | o mais alto e magro, capuz verde de ponta caída para trás com o rosto à mostra, cachecol vermelho com as pontas voando para trás (mudam a cada quadro), capa curta, pernas longas com botas de cano alto; anda inclinado para a frente | verdes, cachecol vermelho, couro marrom |
+| Inventor (`tinkerer`) | pequeno de cabeça grande, cabelo branco espetado, óculos redondos enormes de lente ciano, mochila de couro com engrenagem de latão e **antena com bulbo vermelho** subindo atrás | casaco ciano, latão, cabelo branco |
+
+Poses, todas com os pés na mesma linha do chão e o corpo centrado na caixa
+de colisão de 26x30:
+
+- `walk_aligned_*`: passo de quatro tempos (contato, passagem com o corpo
+  uma célula acima e o pé que vem levantado, contato do outro lado,
+  passagem), o braço da frente balançando contra as pernas.
+- `dig_aligned_*` (de frente): o corpo agacha 0/1/3/2 células com os pés
+  plantados e os joelhos abrindo — as mesmas proporções em que o mago
+  achata —, e os dois braços vão às mãos no cabo.
+- `climb_aligned_*` (de costas, escada vertical): as mãos se revezam
+  pegando o degrau acima da cabeça, com o pé do outro lado levantado.
+- `climb_side_*`, `pickaxe_*`, `jackhammer_*`, `float_*`: mesma inclinação,
+  recuo, tremida e balanço do mago. A inclinação é feita deslocando linhas
+  inteiras de células (não girando a imagem), para as bordas continuarem
+  nítidas. Na escalada o corpo chega mais perto da parede que o do mago
+  (até 3 células), para os braços ficarem curtos.
+- `death_fall_*`: o quadro em pé achatado e alargado como o do mago, com a
+  mesma poeira (funções de `build_death_frames.py`).
+- **Ferramentas** (pá, picareta, britadeira, garras, paraquedas e cordas),
+  poeira e lascas saem das mesmas funções e das mesmas poses por quadro dos
+  `build_*_frames.py` do mago, então ficam exatamente no mesmo lugar e no
+  mesmo tempo; só o braço que segura parte do ombro de cada personagem.
+
+A linha de baixo das botas fica em y=237 nos quadros de 250 (a do mago é
+235): as ferramentas do mago são desenhadas na grade de 7 px começando em
+0, e o corpo novo usa a mesma grade para casar com elas — 2 px na arte,
+0,3 px na tela.
+
+Retratos das cartas (`character_<id>.png`, 64x64): desenhados em
+`tools/character_portraits.py`, que o `build_card_art.py` usa para os
+quatro (o do Mago continua lá). Busto de 3/4 para a direita com as mesmas
+cores do sprite; a silhueta sozinha identifica o personagem, porque a tela
+de escolha mostra os bloqueados como sombra preta.
 
 Regerar: `python tools/build_character_variants.py [preview.png]` (com o
-caminho, salva uma folha com um quadro de cada animação por personagem,
-ampliado e na escala do jogo em 1x e 3x), depois
-`godot --headless --path . --import`. Mudou a arte do mago? Rode os
-`build_*_frames.py` primeiro e este script depois.
+caminho, salva uma folha com um quadro de cada animação por personagem ao
+lado do mago, ampliado e na escala do jogo em 1x e 3x),
+`python tools/build_card_art.py` para os retratos, depois
+`godot --headless --path . --import`. Mudou alguma pose de ferramenta do
+mago? Rode os `build_*_frames.py` primeiro e este script depois — as poses
+são lidas deles.
 
 ## Entrada e saída
 

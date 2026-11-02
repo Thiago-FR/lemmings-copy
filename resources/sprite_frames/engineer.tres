@@ -1,0 +1,174 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/float_0.png" id="1_float_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/float_1.png" id="2_float_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/float_2.png" id="3_float_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/float_3.png" id="4_float_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/dig_aligned_0.png" id="5_dig_aligned_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/dig_aligned_1.png" id="6_dig_aligned_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/dig_aligned_2.png" id="7_dig_aligned_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/dig_aligned_3.png" id="8_dig_aligned_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/death_fall_0.png" id="9_death_fall_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/death_fall_1.png" id="10_death_fall_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/death_fall_2.png" id="11_death_fall_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/death_fall_3.png" id="12_death_fall_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_aligned_0.png" id="13_climb_aligned_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_aligned_1.png" id="14_climb_aligned_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_aligned_2.png" id="15_climb_aligned_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_aligned_3.png" id="16_climb_aligned_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_side_0.png" id="17_climb_side_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_side_1.png" id="18_climb_side_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_side_2.png" id="19_climb_side_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/climb_side_3.png" id="20_climb_side_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/pickaxe_0.png" id="21_pickaxe_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/pickaxe_1.png" id="22_pickaxe_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/pickaxe_2.png" id="23_pickaxe_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/pickaxe_3.png" id="24_pickaxe_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/jackhammer_0.png" id="25_jackhammer_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/jackhammer_1.png" id="26_jackhammer_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/jackhammer_2.png" id="27_jackhammer_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/jackhammer_3.png" id="28_jackhammer_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/walk_aligned_0.png" id="29_walk_aligned_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/walk_aligned_1.png" id="30_walk_aligned_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/walk_aligned_2.png" id="31_walk_aligned_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/engineer/walk_aligned_3.png" id="32_walk_aligned_3"]
+
+[resource]
+resource_name = "engineer"
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_float_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_float_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_float_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_float_3")
+}],
+"loop": true,
+"name": &"float",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_dig_aligned_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_dig_aligned_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_dig_aligned_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_dig_aligned_3")
+}],
+"loop": true,
+"name": &"dig",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("9_death_fall_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_death_fall_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_death_fall_2")
+}, {
+"duration": 4.0,
+"texture": ExtResource("12_death_fall_3")
+}],
+"loop": false,
+"name": &"death_fall",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("13_climb_aligned_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_climb_aligned_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_climb_aligned_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_climb_aligned_3")
+}],
+"loop": true,
+"name": &"ladder",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("17_climb_side_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_climb_side_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_climb_side_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_climb_side_3")
+}],
+"loop": true,
+"name": &"climb",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("21_pickaxe_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_pickaxe_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_pickaxe_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_pickaxe_3")
+}],
+"loop": true,
+"name": &"pickaxe",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("25_jackhammer_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_jackhammer_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_jackhammer_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_jackhammer_3")
+}],
+"loop": true,
+"name": &"jackhammer",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("29_walk_aligned_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_walk_aligned_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_walk_aligned_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_walk_aligned_3")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}]

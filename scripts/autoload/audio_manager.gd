@@ -46,6 +46,7 @@ const SOUND_VOLUMES_DB := {
 	&"saved": -8.0,
 	&"level_won": -6.0,
 	&"level_lost": -4.0,
+	&"sacrifice": -6.0,
 	&"dig_earth": -4.0,
 	&"pickaxe_hit": -4.0,
 	&"jackhammer_hit": -5.0,

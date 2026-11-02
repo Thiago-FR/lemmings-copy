@@ -77,3 +77,13 @@ func start_while_walking(_lemming: LemmingController) -> void:
 ## alongside whatever else the lemming is doing, so those return false.
 func occupies_skill_slot() -> bool:
 	return true
+
+
+
+## Whether this is a tool the lemming holds, carried until its spot or in
+## use (shovel, ladders, bridge, pickaxe, jackhammer). A lemming holds one
+## at a time and a newer one replaces it (LemmingController.assign_skill).
+## The permanent traits and the tools used on the spot (block, explosives)
+## are not held and override this.
+func is_held_tool() -> bool:
+	return true

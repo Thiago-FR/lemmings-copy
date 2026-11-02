@@ -61,6 +61,12 @@ func start(spawn_interval: float, total_lemmings: int) -> void:
 	_spawn_timer.start()
 
 
+## Releases no more lemmings (the level was ended early).
+func stop() -> void:
+	_spawn_timer.stop()
+	_total_lemmings = _spawned_count
+
+
 func get_spawned_count() -> int:
 	return _spawned_count
 

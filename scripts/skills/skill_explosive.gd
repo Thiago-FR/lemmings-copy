@@ -30,6 +30,10 @@ func occupies_skill_slot() -> bool:
 	return false
 
 
+func is_held_tool() -> bool:
+	return false
+
+
 ## Leaves a charge at the lemming's feet; the lemming itself just carries on.
 func apply_to(lemming: LemmingController) -> void:
 	var body := lemming.get_body_rect()

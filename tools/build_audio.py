@@ -268,6 +268,17 @@ def level_lost():
     return sequence(*parts)
 
 
+def sacrifice():
+    """A lemming sacrificed: a soft airy whoosh under a rising shimmer, a
+    voluntary departure rather than the splat of an accident."""
+    seconds = 0.6
+    count = int(seconds * SAMPLE_RATE)
+    air = low_pass(noise(seconds, seed=12), np.linspace(400, 3000, count)) * 0.5
+    shimmer = triangle(slide(440, 1760, seconds, curve=0.7)) * 0.4
+    sparkle = square(slide(1320, 2640, seconds), duty=0.125) * 0.12
+    return mix(air, shimmer, sparkle) * envelope(seconds, attack=0.04, decay_power=1.6)
+
+
 SOUND_EFFECTS = {
     "dig_earth": dig_earth,
     "pickaxe_hit": pickaxe_hit,
@@ -285,6 +296,7 @@ SOUND_EFFECTS = {
     "parachute": parachute,
     "level_won": level_won,
     "level_lost": level_lost,
+    "sacrifice": sacrifice,
 }
 
 
