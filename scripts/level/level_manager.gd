@@ -66,6 +66,12 @@ func _apply_art_theme(theme: StringName) -> void:
 				child.art_theme = theme
 
 
+## The small puff of a tool hitting the unbreakable border.
+const REFUSAL_BLAST_RADIUS := 14.0
+const REFUSAL_REPEAT_MS := 600
+var _last_refusals: Dictionary = {}
+
+
 func _ready() -> void:
 	_spawn_points = get_tree().get_nodes_in_group("spawn_points")
 	assert(not _spawn_points.is_empty(), "LevelManager requires at least one SpawnPoint in the 'spawn_points' group")
@@ -78,8 +84,22 @@ func _ready() -> void:
 		spawn_point.all_lemmings_spawned.connect(_on_spawn_point_finished)
 		spawn_point.start(level_data.spawn_rate, level_data.total_lemmings)
 
+	for terrain in get_tree().get_nodes_in_group("terrain"):
+		(terrain as TerrainDestructible).unbreakable_hit.connect(_on_unbreakable_hit)
+
 	AudioManager.play_music_track(&"level_theme")
 	_set_up_view()
+
+
+## A tool bit into the border, which nothing breaks: it blows up in a small
+## puff there (once per spot, however many times the tool tried).
+func _on_unbreakable_hit(world_position: Vector2) -> void:
+	var now := Time.get_ticks_msec()
+	if _last_refusals.get(world_position, -100000) > now - REFUSAL_REPEAT_MS:
+		return
+	_last_refusals[world_position] = now
+	ExplosionEffect.spawn(self, world_position, REFUSAL_BLAST_RADIUS)
+	AudioManager.play_sound(&"explosion")
 
 
 ## The background filling the screen, the rock frame around the level's
@@ -93,10 +113,11 @@ func _set_up_view() -> void:
 	var background := LevelBackground.new()
 	background.environment = environment
 	add_child(background)
-	var backdrop := LevelBackdrop.new()
-	backdrop.area = bounds
-	backdrop.environment = environment
-	add_child(backdrop)
+	if environment.has_frame:
+		var backdrop := LevelBackdrop.new()
+		backdrop.area = bounds
+		backdrop.environment = environment
+		add_child(backdrop)
 	var camera := LevelCamera.new()
 	camera.bounds = bounds
 	camera.top_margin = HUD_TOP_MARGIN

@@ -5,7 +5,9 @@ extends RefCounted
 ## relics, the rescues in hand and which stage comes next. Pure data and
 ## rules, no nodes, so it can be tested on its own.
 
-const STAGE_COUNT := 5
+## One stage per biome stage of the core's generator: ten settings in a
+## fixed order, three stages each.
+const STAGE_COUNT := BiomeStageGenerator.STAGE_COUNT
 
 # --- Stages (maze generator) ---
 ## The run's seed: each stage is generated from it and its index, so a run
@@ -76,7 +78,8 @@ static func new_run(character: StringName = RoguelikeCharacters.STARTER) -> Rogu
 ## stage) or hand-made, made the first time it is asked for.
 func get_stage_definition() -> RoguelikeStageDefinition:
 	if not stage_definitions.has(stage_index):
-		if use_handmade_stages:
+		# The hand-made labyrinths are fewer than the run's stages.
+		if use_handmade_stages and stage_index < RoguelikeHandmadeStages.STAGE_COUNT:
 			stage_definitions[stage_index] = RoguelikeStageFactory.handmade(stage_index)
 		else:
 			stage_definitions[stage_index] = RoguelikeStageFactory.procedural(seed_value, stage_index)

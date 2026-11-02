@@ -11,9 +11,10 @@ extends Resource
 ## every setting, with textures drawn by tools/build_terrain_themes.py.
 
 ## Appended to, never reordered: levels store the kind as a number.
-enum Kind { SURFACE, CAVE, DESERT, CRYSTAL_CAVE, SNOWFIELD, VOLCANO }
+## New kinds go at the end: levels store the number.
+enum Kind { SURFACE, CAVE, DESERT, CRYSTAL_CAVE, SNOWFIELD, VOLCANO, FOREST, CITY, ALIEN_PLANET, SPACE }
 ## The silhouettes drawn in front of the gradient.
-enum Skyline { HILLS, HANGING, DUNES, PEAKS }
+enum Skyline { HILLS, HANGING, DUNES, PEAKS, BUILDINGS, NONE }
 
 @export var kind: Kind = Kind.SURFACE
 ## Background gradient, top of the screen to the bottom.
@@ -28,6 +29,8 @@ enum Skyline { HILLS, HANGING, DUNES, PEAKS }
 @export var peak_cap: Color = Color(1, 1, 1, 0)
 ## Tint of the solid rock drawn outside the level's bounds.
 @export var frame_tint: Color = Color(0.55, 0.50, 0.48)
+## Rock around the level's area. Off in space: past the edge is the void.
+@export var has_frame := true
 ## Folder under assets/sprites/terrain/themes/ (and level/themes/) with the
 ## blocks, entrance and exit of this setting. Empty: the default earth.
 @export var terrain_theme: StringName = &""
@@ -66,6 +69,14 @@ static func by_kind(environment_kind: Kind) -> LevelEnvironment:
 			return snowfield()
 		Kind.VOLCANO:
 			return volcano()
+		Kind.FOREST:
+			return forest()
+		Kind.CITY:
+			return city()
+		Kind.ALIEN_PLANET:
+			return alien_planet()
+		Kind.SPACE:
+			return space()
 	return surface()
 
 
@@ -169,4 +180,80 @@ static func volcano() -> LevelEnvironment:
 	environment.drift_count = 60
 	environment.drift_colour = Color(1.0, 0.62, 0.22, 0.9)
 	environment.drift_velocity = Vector2(8, -34)
+	return environment
+
+
+## Tall trees under a bright morning sky.
+static func forest() -> LevelEnvironment:
+	var environment := surface()
+	environment.kind = Kind.FOREST
+	environment.sky_top = Color(0.40, 0.62, 0.82)
+	environment.sky_bottom = Color(0.80, 0.88, 0.76)
+	environment.far_layer = Color(0.30, 0.48, 0.40)
+	environment.near_layer = Color(0.18, 0.34, 0.24)
+	environment.sun_position = Vector2(0.20, 0.16)
+	environment.cloud_count = 4
+	environment.bird_count = 8
+	return environment
+
+
+## Rooftops at dusk, a skyline of towers with lit windows behind.
+static func city() -> LevelEnvironment:
+	var environment := LevelEnvironment.new()
+	environment.kind = Kind.CITY
+	environment.skyline = Skyline.BUILDINGS
+	environment.sky_top = Color(0.16, 0.14, 0.32)
+	environment.sky_bottom = Color(0.86, 0.48, 0.42)
+	environment.far_layer = Color(0.26, 0.22, 0.38)
+	environment.near_layer = Color(0.16, 0.14, 0.24)
+	environment.frame_tint = Color(0.50, 0.48, 0.56)
+	environment.terrain_theme = &"city"
+	environment.sun_radius = 34.0
+	environment.sun_position = Vector2(0.78, 0.30)
+	environment.sun_colour = Color(1.0, 0.72, 0.50, 0.85)
+	environment.sparkle_count = 30
+	environment.sparkle_colour = Color(1.0, 0.92, 0.70)
+	environment.bird_count = 2
+	environment.bird_colour = Color(0.12, 0.10, 0.18, 0.8)
+	return environment
+
+
+## Another world: a purple sky, a huge ringed planet and spires.
+static func alien_planet() -> LevelEnvironment:
+	var environment := LevelEnvironment.new()
+	environment.kind = Kind.ALIEN_PLANET
+	environment.skyline = Skyline.PEAKS
+	environment.sky_top = Color(0.10, 0.06, 0.22)
+	environment.sky_bottom = Color(0.52, 0.30, 0.56)
+	environment.far_layer = Color(0.26, 0.16, 0.36)
+	environment.near_layer = Color(0.16, 0.10, 0.24)
+	environment.peak_cap = Color(0.40, 1.0, 0.80, 0.8)
+	environment.frame_tint = Color(0.52, 0.42, 0.62)
+	environment.terrain_theme = &"alien"
+	environment.sun_radius = 110.0
+	environment.sun_position = Vector2(0.70, 0.30)
+	environment.sun_colour = Color(0.98, 0.62, 0.42, 0.75)
+	environment.sparkle_count = 60
+	environment.sparkle_colour = Color(0.85, 0.95, 1.0)
+	environment.drift_count = 30
+	environment.drift_colour = Color(0.50, 1.0, 0.80, 0.7)
+	environment.drift_velocity = Vector2(6, -14)
+	return environment
+
+
+## Deep space: stars, a distant blue planet, nothing below.
+static func space() -> LevelEnvironment:
+	var environment := LevelEnvironment.new()
+	environment.kind = Kind.SPACE
+	environment.skyline = Skyline.NONE
+	environment.sky_top = Color(0.01, 0.01, 0.04)
+	environment.sky_bottom = Color(0.05, 0.04, 0.12)
+	environment.frame_tint = Color(0.50, 0.54, 0.62)
+	environment.terrain_theme = &"station"
+	environment.has_frame = false
+	environment.sun_radius = 90.0
+	environment.sun_position = Vector2(0.18, 0.78)
+	environment.sun_colour = Color(0.30, 0.55, 1.0, 0.85)
+	environment.sparkle_count = 160
+	environment.sparkle_colour = Color(1.0, 1.0, 1.0)
 	return environment

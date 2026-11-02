@@ -38,6 +38,13 @@ extends TileMapLayer
 ## neighbours, refreshed through _update_cells() whenever any cell changes.
 ## That is drawing only; nothing here reads it.
 
+## Some cells were dug, built or painted (the same batches the edges are
+## redrawn for). Drawings laid over the terrain (TerrainSkin) follow it.
+signal cells_changed(coords: Array[Vector2i])
+## A tool tried to break a cell that never breaks (the stage's border): the
+## level shows the tool blowing up there.
+signal unbreakable_hit(world_position: Vector2)
+
 const TERRAIN_SOURCE_ID := 0
 ## Terrain materials, by atlas row.
 enum TerrainMaterial { EARTH, CONCRETE }
@@ -73,6 +80,12 @@ const ATLAS_FILE := "terrain_atlas.png"
 ## the tile data, so a level drawn in the editor keeps them here and they
 ## are laid when the terrain enters the scene.
 @export var initial_bricks: Array[Rect2] = []
+## Cells that stay solid but are not drawn: something else paints them (a
+## tree's crown, see TerrainSkin). cell -> true.
+var hidden_cells: Dictionary = {}
+## Cells nothing breaks: no tool, no explosive (a stage's border, so no one
+## digs out of the map). cell -> true.
+var unbreakable_cells: Dictionary = {}
 
 
 func _ready() -> void:
@@ -261,6 +274,9 @@ func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false) -> int:
 	var last_stage := get_dig_stage_count() - 1
 	var touched_count := 0
 	for cell in _cells_overlapping(world_rect):
+		if unbreakable_cells.has(cell) and _is_terrain_cell(cell):
+			_refuse(cell)
+			continue
 		if not _is_terrain_cell(cell) or not _can_break(cell, breaks_concrete):
 			continue
 		var stage := _dig_stage_of(cell)
@@ -281,6 +297,9 @@ func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false) -> int:
 ## already dug from another side goes in one go.
 func dig_side_stage_at(world_position: Vector2, direction: int, breaks_concrete: bool = false) -> bool:
 	var cell := local_to_map(to_local(world_position))
+	if unbreakable_cells.has(cell) and _is_terrain_cell(cell):
+		_refuse(cell)
+		return false
 	if not _is_terrain_cell(cell) or not _can_break(cell, breaks_concrete):
 		return false
 	var side := DUG_FROM_LEFT if direction > 0 else DUG_FROM_RIGHT
@@ -312,7 +331,18 @@ func _material_of(cell: Vector2i) -> TerrainMaterial:
 
 
 func _can_break(cell: Vector2i, breaks_concrete: bool) -> bool:
+	if unbreakable_cells.has(cell):
+		return false
 	return breaks_concrete or _material_of(cell) != TerrainMaterial.CONCRETE
+
+
+## Whether the cell containing world_position is one nothing breaks.
+func is_unbreakable_at(world_position: Vector2) -> bool:
+	return unbreakable_cells.has(local_to_map(to_local(world_position)))
+
+
+func _refuse(cell: Vector2i) -> void:
+	unbreakable_hit.emit(to_global(map_to_local(cell)))
 
 
 ## Whether the cell containing world_position is concrete.
@@ -407,7 +437,7 @@ func is_solid_at(world_position: Vector2) -> bool:
 func destroy_cell_at(world_position: Vector2) -> bool:
 	var removed_bricks := _remove_bricks_in(cell_rect_at(world_position))
 	var cell := local_to_map(to_local(world_position))
-	if not _is_terrain_cell(cell):
+	if not _is_terrain_cell(cell) or unbreakable_cells.has(cell):
 		return removed_bricks > 0
 	erase_cell(cell)
 	return true
@@ -421,13 +451,24 @@ func build_cell_at(world_position: Vector2, material: TerrainMaterial = TerrainM
 		_edge_overlay.mark_grassy(cell)
 
 
+## TileMapLayer hooks: a hidden cell's tile is drawn fully transparent
+## (its collision is untouched).
+func _use_tile_data_runtime_update(coords: Vector2i) -> bool:
+	return hidden_cells.has(coords)
+
+
+func _tile_data_runtime_update(_coords: Vector2i, tile_data: TileData) -> void:
+	tile_data.modulate = Color(1, 1, 1, 0)
+
+
 ## TileMapLayer hook: called with every batch of changed cells, however they
 ## were changed (these methods, a direct set_cell, or tile_map_data being
 ## assigned), so the edges never go stale.
-func _update_cells(_coords: Array[Vector2i], forced_cleanup: bool) -> void:
+func _update_cells(coords: Array[Vector2i], forced_cleanup: bool) -> void:
 	if forced_cleanup or _edge_overlay == null:
 		return
 	_edge_overlay.refresh()
+	cells_changed.emit(coords)
 
 
 ## Erases every cell overlapping world_rect and returns how many were
@@ -442,7 +483,7 @@ func _update_cells(_coords: Array[Vector2i], forced_cleanup: bool) -> void:
 func destroy_rect(world_rect: Rect2) -> int:
 	var destroyed_count := _remove_bricks_in(world_rect)
 	for cell in _cells_overlapping(world_rect):
-		if _is_terrain_cell(cell):
+		if _is_terrain_cell(cell) and not unbreakable_cells.has(cell):
 			erase_cell(cell)
 			destroyed_count += 1
 	return destroyed_count

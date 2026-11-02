@@ -1,15 +1,12 @@
 class_name RoguelikeStageFactory
 extends RefCounted
 ## Makes the run's stages: a procedural one from the run's seed (the core's
-## MazeStageGenerator, harder with every stage), or one of the hand-made
+## BiomeStageGenerator: ten settings in a fixed order), or one of the hand-made
 ## labyrinths (RoguelikeHandmadeStages). Either way the maze comes as the
 ## core's MazeStageData and the roguelike puts its own items on the spots:
 ## the tool spots become tool pickups, the bonus spots a rescue, an
 ## hourglass, a bag, coins, an ability recharge or spare charges.
 
-const PLACES_SURFACE: Array[String] = ["Colinas", "Trilhas", "Ravinas", "Encostas", "Barrancos", "Veredas"]
-const PLACES_CAVE: Array[String] = ["Galerias", "Túneis", "Grutas", "Câmaras", "Poços", "Veios", "Covas"]
-const QUALIFIERS: Array[String] = ["da Raiz", "do Eco", "de Pedra", "do Musgo", "Esquecidas", "do Carvão", "da Névoa", "do Vento", "Tortas", "do Fundo"]
 const TIME_PICKUP_SECONDS := 60
 ## Coins lying in a stage (the user's idea: coins dropped around the map).
 const COIN_PICKUP_AMOUNT := 2
@@ -25,12 +22,10 @@ const MAX_TOOL_KINDS := RoguelikeToolInventory.DEFAULT_MAX_SLOTS
 
 
 static func procedural(run_seed: int, stage_index: int) -> RoguelikeStageDefinition:
-	var maze := MazeStageGenerator.generate(run_seed + stage_index * 1000003, stage_index)
+	var maze := BiomeStageGenerator.generate(run_seed, stage_index)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = MazeStageGenerator.mix_seed(run_seed, stage_index, -1)
-	var places := PLACES_CAVE if maze.environment_kind == LevelEnvironment.Kind.CAVE else PLACES_SURFACE
-	var name := "%s %s" % [places[rng.randi_range(0, places.size() - 1)], QUALIFIERS[rng.randi_range(0, QUALIFIERS.size() - 1)]]
-	var definition := _from_maze(maze, rng, name)
+	var definition := _from_maze(maze, rng, maze.stage_name)
 	definition.is_procedural = true
 	return definition
 

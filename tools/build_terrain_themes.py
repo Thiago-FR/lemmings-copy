@@ -88,6 +88,35 @@ THEMES = {
         "details": None,
         "portal": {"wood": (10, 0.55, 0.55), "glow": 22, "stone": "#4a3a38"},
     },
+    # City: old red brick and rubble with moss, steel-grey concrete.
+    "city": {
+        "palette": ["#1e0f0c", "#5a2a22", "#7a3a2c", "#8a4634", "#a65a42", "#c07a5c",
+                    "#3a3436", "#5e585a", "#8a8486", "#4a2a20",
+                    "#1a2414", "#3e5a2a", "#5a7a36", "#86a64e",
+                    "#0e1016", "#3a404c", "#4e5664", "#646c7c", "#828a9a", "#aab2c2"],
+        "details": None,
+        "portal": {"wood": (220, 0.25, 0.9), "glow": 50, "stone": "#7a8290"},
+    },
+    # Another planet: purple soil, teal pebbles, glowing cyan moss, dark
+    # teal crystal slabs.
+    "alien": {
+        "palette": ["#14081e", "#3e1a4e", "#5a2a6a", "#6a3478", "#844a92", "#a26ab0",
+                    "#1a4a4e", "#2a7a7a", "#4ab0a6", "#2a1438",
+                    "#062a26", "#16806e", "#2ad6b0", "#a8ffe8",
+                    "#06141a", "#123a44", "#1a5058", "#22666e", "#3a8a8e", "#6ac2c0"],
+        "details": None,
+        "portal": {"wood": (285, 0.6, 0.8), "glow": 165, "stone": "#6a4a82"},
+    },
+    # Space: grey-brown asteroid rock with pale dust on top, bright metal
+    # plates.
+    "station": {
+        "palette": ["#0c0a0a", "#2e2826", "#443c38", "#504842", "#665c54", "#80766c",
+                    "#22201e", "#3a3634", "#5a5450", "#2a2420",
+                    "#1e1c1c", "#6a6460", "#8e8882", "#b8b2aa",
+                    "#0a0c12", "#4a5262", "#64708a", "#7c88a2", "#9aa6bc", "#c8d2e2"],
+        "details": None,
+        "portal": {"wood": (210, 0.3, 1.0), "glow": 200, "stone": "#9aa6bc"},
+    },
 }
 
 

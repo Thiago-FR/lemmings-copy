@@ -79,6 +79,11 @@ func _draw_background() -> void:
 		LevelEnvironment.Skyline.PEAKS:
 			_draw_peaks(size, scroll * FAR_PARALLAX, environment.far_layer, 0.30, 0.62, 1)
 			_draw_peaks(size, scroll * NEAR_PARALLAX, environment.near_layer, 0.55, 0.78, 2)
+		LevelEnvironment.Skyline.BUILDINGS:
+			_draw_buildings(size, scroll * FAR_PARALLAX, environment.far_layer, 0.40, 1)
+			_draw_buildings(size, scroll * NEAR_PARALLAX, environment.near_layer, 0.58, 2)
+		LevelEnvironment.Skyline.NONE:
+			pass
 		_:
 			_draw_hills(size, scroll * FAR_PARALLAX, environment.far_layer, 0.58, 1.0)
 			_draw_hills(size, scroll * NEAR_PARALLAX, environment.near_layer, 0.72, 2.1)
@@ -88,6 +93,23 @@ func _draw_background() -> void:
 		_draw_shards(size, scroll * NEAR_PARALLAX)
 	if environment.drift_count > 0:
 		_draw_drift(size)
+
+
+## Towers of different heights side by side, some windows lit.
+func _draw_buildings(size: Vector2, scroll: Vector2, colour: Color, top_share: float, seed_offset: int) -> void:
+	const TOWER_WIDTH := 70.0
+	var first := floori(scroll.x / TOWER_WIDTH) - 1
+	var count := ceili(size.x / TOWER_WIDTH) + 2
+	for index in range(first, first + count):
+		var width := TOWER_WIDTH * (0.6 + 0.5 * _hash01(index, 61 + seed_offset))
+		var height := size.y * (1.0 - top_share) * (0.45 + 0.75 * _hash01(index, 67 + seed_offset))
+		var x := index * TOWER_WIDTH - scroll.x
+		var top := size.y - height
+		_canvas.draw_rect(Rect2(x, top, width, height), colour)
+		for row in int(height / 18.0):
+			for column in int(width / 14.0):
+				if _hash01(index * 131 + row * 7 + column, 71 + seed_offset) < 0.22:
+					_canvas.draw_rect(Rect2(x + 4.0 + column * 14.0, top + 8.0 + row * 18.0, 5.0, 7.0), Color(1.0, 0.86, 0.5, 0.55 / seed_offset))
 
 
 func _draw_gradient(size: Vector2) -> void:

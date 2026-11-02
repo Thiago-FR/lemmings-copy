@@ -34,6 +34,7 @@ func build(definition: RoguelikeStageDefinition) -> LevelManager:
 	level.add_child(terrain)
 	var spawn_point: SpawnPoint = SPAWN_POINT_SCENE.instantiate()
 	spawn_point.position = MazeStageData.surface_point(definition.maze.spawn_cell) + Vector2.UP * SPAWN_HEIGHT
+	spawn_point.faces_left = definition.maze.spawn_faces_left
 	level.add_child(spawn_point)
 	var exit_point: ExitPoint = EXIT_POINT_SCENE.instantiate()
 	exit_point.position = MazeStageData.surface_point(definition.maze.exit_cell) + Vector2.UP * EXIT_HEIGHT

@@ -33,8 +33,22 @@ var solution: Array[Dictionary] = []
 var environment_kind: LevelEnvironment.Kind = LevelEnvironment.Kind.SURFACE
 ## A time limit that leaves room for the solution, scaled by difficulty.
 var suggested_time_seconds := 300
-## The rooms and links it was painted from.
+## The rooms and links it was painted from (null for a biome stage).
 var layout: MazeLayout = null
+## A different look for some cells (cell -> TerrainSkin name): tree trunks
+## and leaves, building walls, a station's hull.
+var skins: Dictionary = {}
+## Drawn behind the lemmings on empty cells (cell -> TerrainSkin name).
+var backdrop: Dictionary = {}
+## Whole trees painted over their crown and trunk cells (see TreeArt).
+var trees: Array[Dictionary] = []
+## Cells nothing breaks (the border), see TerrainDestructible.
+var unbreakable: Dictionary = {}
+## The entrance releases lemmings walking left.
+var spawn_faces_left := false
+## The stage's own name (biome stages have one; others get one from the
+## game mode).
+var stage_name := ""
 
 
 func cell_at(column: int, row: int) -> int:
@@ -64,6 +78,14 @@ func paint_onto(terrain: TerrainDestructible) -> void:
 		terrain.place_ladder_at(Vector2((ladder.x + 0.5) * tile, (ladder.y + 0.5) * tile))
 	for brick in bricks:
 		terrain.place_brick(brick)
+	terrain.unbreakable_cells = unbreakable
+	if not skins.is_empty() or not backdrop.is_empty() or not trees.is_empty():
+		var skin := TerrainSkin.new()
+		skin.name = "Skin"
+		skin.skins = skins
+		skin.backdrop = backdrop
+		skin.trees = trees
+		terrain.add_child(skin)
 
 
 ## World position of the middle of a column, at the top of a floor row.
