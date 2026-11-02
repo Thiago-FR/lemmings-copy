@@ -13,6 +13,11 @@ const SECTION := "profile"
 var vault_coins := 0
 var unlocked: Array[StringName] = []
 var discovered: Array[String] = []
+## The best runs, best first: {"score", "character", "stage" (reached, 1 to
+## STAGE_COUNT), "won", "date" (YYYY-MM-DD)}. At most RANKING_SIZE.
+var ranking: Array[Dictionary] = []
+
+const RANKING_SIZE := 10
 var _path := DEFAULT_PATH
 
 
@@ -24,6 +29,9 @@ static func load_from(path: String = DEFAULT_PATH) -> RoguelikeProfile:
 	var file := ConfigFile.new()
 	if file.load(path) == OK:
 		profile.vault_coins = int(file.get_value(SECTION, "vault_coins", 0))
+		for entry in file.get_value(SECTION, "ranking", []):
+			if entry is Dictionary:
+				profile.ranking.append(entry)
 		for entry in file.get_value(SECTION, "discovered", []):
 			if not profile.discovered.has(String(entry)):
 				profile.discovered.append(String(entry))
@@ -44,6 +52,7 @@ func save() -> void:
 		names.append(String(character))
 	file.set_value(SECTION, "unlocked", names)
 	file.set_value(SECTION, "discovered", discovered)
+	file.set_value(SECTION, "ranking", ranking)
 	file.save(_path)
 
 
@@ -71,6 +80,31 @@ func deposit(coins: int) -> void:
 	assert(coins >= 0, "Cannot deposit a negative amount")
 	vault_coins += coins
 	save()
+
+
+## Records a finished run in the ranking, kept best first and cut to
+## RANKING_SIZE. Returns its position (0 is the best), or -1 when it did not
+## make it. Ties go below the runs already there.
+func record_run(score: int, character: StringName, stage: int, won: bool) -> int:
+	var entry := {
+		"score": score,
+		"character": String(character),
+		"stage": stage,
+		"won": won,
+		"date": Time.get_date_string_from_system(),
+	}
+	var position := ranking.size()
+	for index in ranking.size():
+		if score > int(ranking[index].score):
+			position = index
+			break
+	if position >= RANKING_SIZE:
+		return -1
+	ranking.insert(position, entry)
+	if ranking.size() > RANKING_SIZE:
+		ranking.resize(RANKING_SIZE)
+	save()
+	return position
 
 
 ## Whether the compendium shows an entry: discovered, or, for a character,

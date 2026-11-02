@@ -90,6 +90,8 @@ func _on_stage_finished(saved: Array[StringName], lost: Array[StringName]) -> vo
 	summary.saved = saved.size()
 	summary.lost = lost.size()
 	summary.coins = saved.size() * state.coins_per_saved()
+	if not saved.is_empty():
+		summary.time_bonus = state.time_bonus()
 	summary.revived = state.finish_stage(saved, lost)
 	if not summary.revived.is_empty():
 		await _play_revive(summary.revived)
@@ -168,9 +170,19 @@ func _show_run_end(won: bool, summary: RoguelikeStageSummary) -> void:
 	var deposited := state.coins
 	profile.deposit(deposited)
 	state.coins = 0
-	var screen := RoguelikeRunEndScreen.new(state, won, summary, deposited, profile.vault_coins)
+	var rank := profile.record_run(state.score, state.character_id, mini(state.stage_index + 1, RoguelikeRunState.STAGE_COUNT), won)
+	var screen := RoguelikeRunEndScreen.new(state, won, summary, deposited, profile.vault_coins, rank)
 	screen.play_again_requested.connect(start_run)
+	screen.ranking_requested.connect(_show_ranking.bind(rank, screen))
 	_show_screen(screen)
+
+
+## The best runs; highlight is the row just made (-1 for none). Closing it
+## goes back to the screen that opened it.
+func _show_ranking(highlight: int, back: RoguelikeOverlayScreen) -> void:
+	var ranking := RoguelikeRankingScreen.new(profile, highlight)
+	ranking.closed.connect(ranking.queue_free)
+	back.add_child(ranking)
 
 
 func _show_screen(screen: RoguelikeOverlayScreen) -> void:

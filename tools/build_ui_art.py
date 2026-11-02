@@ -1201,6 +1201,26 @@ def cursor_grab():
     return glove(HAND_GRAB)
 
 
+def trophy():
+    """A gold cup with two handles on a wooden base: the ranking."""
+    image = new()
+    polygon(image, [(8, 4), (24, 4), (22, 15), (18, 19), (14, 19), (10, 15)], YELLOW)
+    polygon(image, [(10, 5), (13, 5), (13, 15), (11, 13)], YELLOW_LIGHT)
+    line(image, (21, 5), (19, 17), ORANGE, 1)
+    # Curved handles: half rings on each side of the cup.
+    for cx, side in ((8.5, -1), (23.5, 1)):
+        for y in range(4, 16):
+            for x in range(0, 32):
+                dist = math.hypot(x + 0.5 - cx, y + 0.5 - 9.5)
+                if 3.2 <= dist <= 5.2 and (x + 0.5 - cx) * side > 0:
+                    put(image, x, y, YELLOW if y < 10 else ORANGE)
+    rect(image, 14, 19, 17, 23, ORANGE)
+    rect(image, 10, 24, 21, 26, YELLOW)
+    rect(image, 8, 27, 23, 29, WOOD)
+    hline(image, 8, 23, 27, WOOD_LIGHT)
+    return outline(image)
+
+
 THEME_PIECES = {
     **{name: (lambda state=name: theme_button(state)) for name in BUTTON_STATES},
     "check_on": lambda: theme_check(True),
@@ -1321,6 +1341,7 @@ EDITOR_ICONS = {
     "cursor_arrow": cursor_arrow,
     "cursor_hand": cursor_hand,
     "cursor_grab": cursor_grab,
+    "trophy": trophy,
 }
 
 

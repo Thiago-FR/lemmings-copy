@@ -37,6 +37,7 @@ func _init(profile: RoguelikeProfile) -> void:
 	var buttons: Array = [
 		["editor_menu", "Menu", GameManager.go_to_main_menu, "Menu"],
 		["compendium", "Compêndio", open_compendium, "Compendium"],
+		["trophy", "Ranking", _open_ranking, "Ranking"],
 	]
 	if GameManager.developer_mode:
 		buttons.append(["dev", "Modo desenvolvedor", developer_requested.emit, "Dev"])
@@ -176,3 +177,9 @@ func _make_buy_button(character: StringName) -> Button:
 			AudioManager.play_sound(&"select_tool")
 			_rebuild())
 	return button
+
+
+func _open_ranking() -> void:
+	var ranking := RoguelikeRankingScreen.new(_profile)
+	ranking.closed.connect(ranking.queue_free)
+	add_child(ranking)

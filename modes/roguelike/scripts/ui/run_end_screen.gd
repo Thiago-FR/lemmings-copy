@@ -6,6 +6,7 @@ extends RoguelikeOverlayScreen
 ## the coin vault. Replaces a paragraph of text the user found hard to read.
 
 signal play_again_requested
+signal ranking_requested
 
 const PORTRAIT_SIZE := Vector2(128, 128)
 const TITLE_COLOUR_WON := Color(1.0, 0.86, 0.35)
@@ -18,7 +19,9 @@ const STATS_SEPARATION := 10
 ## summary: what the last stage brought, as icons under the portrait.
 ## deposited: the coins that went into the vault; vault: the vault's total
 ## after it.
-func _init(state: RoguelikeRunState, won: bool, summary: RoguelikeStageSummary, deposited: int, vault: int) -> void:
+## rank: the position the run took in the ranking (0 is the best), -1 if
+## it did not make it.
+func _init(state: RoguelikeRunState, won: bool, summary: RoguelikeStageSummary, deposited: int, vault: int, rank: int = -1) -> void:
 	super()
 	var title := add_title("Vitória!" if won else "Fim da run")
 	title.add_theme_color_override("font_color", TITLE_COLOUR_WON if won else TITLE_COLOUR_LOST)
@@ -49,8 +52,11 @@ func _init(state: RoguelikeRunState, won: bool, summary: RoguelikeStageSummary, 
 		_add_stat(stats, "hud_troop", "Chegaram ao fim", str(state.troop.size()))
 	_add_stat(stats, "editor_counts", "Pontuação", str(state.score))
 	_add_stat(stats, "hud_coin", "Moedas para o cofre", "+%d (cofre: %d)" % [deposited, vault])
+	if rank >= 0:
+		_add_stat(stats, "trophy", "Ranking", "%dº" % (rank + 1))
 
 	add_buttons([["Jogar de novo", play_again_requested.emit, true], ["Menu", GameManager.go_to_main_menu]])
+	add_icon_buttons([["trophy", "Ranking", ranking_requested.emit, "Ranking"]])
 
 
 func _add_stat(grid: GridContainer, icon_id: String, caption: String, value: String) -> void:

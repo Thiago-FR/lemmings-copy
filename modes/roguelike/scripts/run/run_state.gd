@@ -47,6 +47,13 @@ const COINS_PER_SAVED := 3
 ## sacrificing never pays better than getting a lemming out.
 const COINS_PER_SACRIFICED := 1
 const SCORE_PER_SAVED := 10
+## Every second left on the clock when a stage ends is worth this many
+## points per stage number: finishing fast pays, so the clock matters even
+## when there is time to spare.
+const SCORE_PER_SECOND_LEFT := 1
+## Seconds left on the clock when the stage just played ended (set by the
+## stage session); cleared once counted.
+var last_time_left := 0.0
 var coins := 0
 var score := 0
 ## Whether the stage just finished was cleared without losing anyone: the
@@ -102,6 +109,9 @@ func finish_stage(saved: Array[StringName], lost: Array[StringName]) -> Array[St
 	lemmings_saved_total += saved.size()
 	coins += saved.size() * coins_per_saved()
 	score += saved.size() * SCORE_PER_SAVED * (stage_index + 1)
+	if not saved.is_empty():
+		score += time_bonus()
+	last_time_left = 0.0
 	last_stage_perfect = lost.is_empty() and not saved.is_empty()
 	var revived := use_revive_tokens()
 	inventory.remove_empty_slots()
@@ -168,6 +178,12 @@ func remove_relic(relic_id: StringName) -> void:
 
 func get_relic_level(relic_id: StringName) -> int:
 	return int(relic_levels.get(relic_id, 0))
+
+
+## Points for the seconds left in the stage just played (only counted when
+## someone got out).
+func time_bonus() -> int:
+	return int(floor(last_time_left)) * SCORE_PER_SECOND_LEFT * (stage_index + 1)
 
 
 ## Coins each saved lemming earns: the base, plus the Greed relic's level.

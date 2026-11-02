@@ -30,6 +30,9 @@ const TIMEOUT_MARGIN_SECONDS := 10.0
 const FILLER_TOOLS: Array[String] = ["floater", "climber", "block", "tnt", "dynamite", "basher", "builder"]
 const FILLER_CHARGES := 2
 
+## Share of a stage's clock the robot must leave unused.
+const MIN_TIME_SPARE_SHARE := 0.25
+
 var _scenarios: Array[Dictionary] = []
 var _scenario_index := -1
 var _scenario: Dictionary = {}
@@ -205,7 +208,11 @@ func _on_lemming_exited(_lemming: LemmingController) -> void:
 func _on_stage_finished(saved: Array[StringName], lost: Array[StringName]) -> void:
 	if _session == null:
 		return
-	print("  t=%.1fs saved %s, lost %s" % [_elapsed, saved, lost])
+	print("  t=%.1fs saved %s, lost %s (time limit %ds)" % [_elapsed, saved, lost, _session.definition.time_limit_seconds])
+	# A tight clock, but never too tight: the robot plays perfectly, so it
+	# must finish with a share of the time to spare for a person.
+	if not saved.is_empty() and _elapsed > _session.definition.time_limit_seconds * (1.0 - MIN_TIME_SPARE_SHARE):
+		_record("the robot needed %.1fs of the %ds limit: less than %d%% to spare" % [_elapsed, _session.definition.time_limit_seconds, int(MIN_TIME_SPARE_SHARE * 100)])
 	for node in get_tree().get_nodes_in_group("lemmings"):
 		var lemming := node as LemmingController
 		if lemming.state_machine.is_alive():

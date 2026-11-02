@@ -586,6 +586,29 @@ conta como salvo (`ExitPoint` emite `lemming_exited` quando ele termina).
 Nesse trajeto nada mais acontece com ele: sem clique, sem ferramenta, sem
 morte (nem pelo Encerrar fase).
 
+### Ranking, tempo apertado no roguelike, mão do cursor (2 de novembro de 2026)
+
+- **Ranking** (`RoguelikeProfile.ranking`, salvo no perfil): as 10 melhores
+  runs, cada uma com pontuação, personagem, fase alcançada, vitória e data.
+  Tela `RoguelikeRankingScreen` (troféu na escolha de personagem e no fim de
+  run): medalhas de cor para os 3 primeiros, a run que acabou de entrar
+  desliza e brilha; o fim de run mostra a posição conquistada.
+- **Tempo vale pontos**: cada segundo que sobra na fase dá
+  `SCORE_PER_SECOND_LEFT` x número da fase (`RoguelikeRunState.time_bonus`,
+  com algum salvo); aparece na fileira de ícones das cartas.
+- **Relógio apertado**: o robô vence as fases geradas em 35 a 90 s e o
+  limite ia de 190 a 350 s (3,5 a 7x). Agora `TIME_FACTOR` é 1,0 a 0,75 e o
+  piso 90 s (cerca de 2 a 4x o robô). Os testes de partida falham se o robô
+  não terminar com pelo menos 25% do tempo sobrando
+  (`MIN_TIME_SPARE_SHARE`), então a fase nunca fica impossível.
+- **Mão do cursor redesenhada** (luva com sombra, dedão e punho dourado) e
+  **mão fechada** (`cursor_grab`, `CURSOR_DRAG`): fecha ao apertar o botão
+  sobre algo clicável e abre ao soltar; fica fechada ao arrastar a tela.
+- **Arrastar a tela com o botão esquerdo** nas fases (`LevelCamera.left_drag`;
+  só vira arrasto depois de 8 px, então clicar num boneco continua sendo
+  clique; desligado no editor, onde o esquerdo pinta).
+- Nuvens com base arredondada (as pontas quadradas apareciam, print `bug12`).
+
 ### Telas sem texto: modal, cartas, fim de run, editor, fênix (2 de novembro de 2026)
 
 Pedido do usuário: melhorar **todas** as telas e janelas; animação em vez de

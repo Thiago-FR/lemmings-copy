@@ -290,6 +290,7 @@ func _on_level_ended(_percentage_saved: float) -> void:
 	if _finished:
 		return
 	_finished = true
+	state.last_time_left = level_manager.time_remaining
 	ability_slot.set_armed(false)
 	# Whoever is still out when the clock runs out does not make it, nor do
 	# the ones never released (the stage was ended early).

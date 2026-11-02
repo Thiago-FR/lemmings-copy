@@ -40,8 +40,15 @@ const EXTRA_LINKS: Array[int] = [1, 2, 2, 3, 3]
 ## Charges added on top of exactly what the route needs.
 const SLACK_CHARGES: Array[int] = [2, 1, 1, 0, 0]
 const BONUS_ROOMS: Array[int] = [2, 2, 3, 3, 3]
-const TIME_FACTOR: Array[float] = [1.8, 1.65, 1.55, 1.45, 1.4]
-const MIN_TIME_SECONDS := 180
+## The time limit is the route's estimate times this factor, by stage. The
+## estimate runs about 2.6 to 4.6 times what the test robot takes; the
+## first factors (1.8 to 1.4, never under 3 minutes) left 3.5 to 7 times
+## the robot's time and the clock was no challenge at all. Now the limit is
+## about 2 to 4 times the robot's (a player reacts slower and releases the
+## whole troop), and the playthrough tests check the robot always finishes
+## with a quarter of the clock to spare.
+const TIME_FACTOR: Array[float] = [1.0, 0.9, 0.85, 0.8, 0.75]
+const MIN_TIME_SECONDS := 90
 const MAX_TIME_SECONDS := 480
 ## Rough seconds each move of a route takes, for the time limit.
 const SECONDS_PER_MOVE := 22

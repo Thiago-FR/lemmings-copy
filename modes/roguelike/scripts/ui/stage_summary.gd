@@ -13,6 +13,8 @@ var coins := 0
 var revived: Array[StringName] = []
 var joined: StringName = &""
 var perfect := false
+## Points earned for the seconds left on the clock.
+var time_bonus := 0
 
 const FACT_FONT_SIZE := 20
 const PORTRAIT_SIZE := Vector2(40, 40)
@@ -30,6 +32,8 @@ func build_row() -> HBoxContainer:
 	_add_fact(row, "hud_saved", str(saved), "Salvos")
 	_add_fact(row, "hud_lost", str(lost), "Perdidos")
 	_add_fact(row, "hud_coin", "+%d" % coins, "Moedas ganhas")
+	if time_bonus > 0:
+		_add_fact(row, "hud_clock", "+%d" % time_bonus, "Pontos pelo tempo que sobrou")
 	if perfect:
 		_add_fact(row, "star", "+1", "Ninguém perdido: uma carta a mais para escolher")
 	var delay := JOIN_DELAY_SECONDS

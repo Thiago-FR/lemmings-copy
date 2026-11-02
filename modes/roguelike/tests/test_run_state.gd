@@ -127,6 +127,21 @@ func _test_profile() -> void:
 	_check(not profile.buy(RoguelikeCharacters.MINER), "a character cannot be bought twice")
 	var reloaded := RoguelikeProfile.load_from(path)
 	_check(reloaded.is_unlocked(RoguelikeCharacters.MINER) and reloaded.vault_coins == 0, "the vault and unlocks are saved")
+	_check(profile.record_run(100, &"wizard", 2, false) == 0, "the first run is first in the ranking")
+	_check(profile.record_run(300, &"miner", 5, true) == 0, "a better run goes on top")
+	_check(profile.record_run(200, &"wizard", 3, false) == 1, "a middle run goes in the middle")
+	for filler in RoguelikeProfile.RANKING_SIZE:
+		profile.record_run(150, &"wizard", 2, false)
+	_check(profile.ranking.size() == RoguelikeProfile.RANKING_SIZE, "the ranking keeps %d runs (%d)" % [RoguelikeProfile.RANKING_SIZE, profile.ranking.size()])
+	_check(profile.record_run(50, &"wizard", 1, false) == -1, "a run worse than all ten does not make it")
+	var saved_ranking := RoguelikeProfile.load_from(path)
+	_check(saved_ranking.ranking.size() == RoguelikeProfile.RANKING_SIZE and int(saved_ranking.ranking[0].score) == 300 and bool(saved_ranking.ranking[0].won), "the ranking is saved, best first")
+	var timed := RoguelikeRunState.new_run()
+	timed.stage_index = 2
+	timed.last_time_left = 40.7
+	var score_before := timed.score
+	timed.finish_stage([&"wizard"] as Array[StringName], [] as Array[StringName])
+	_check(timed.score - score_before == RoguelikeRunState.SCORE_PER_SAVED * 3 + 40 * 3, "40 s left in stage 3 add 120 points to the 30 of the saved lemming (%d)" % (timed.score - score_before))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
