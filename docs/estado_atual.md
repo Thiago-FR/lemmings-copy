@@ -1192,66 +1192,87 @@ núcleo, não é um modo em `modes/`.
 - Testes: `test_level_editor` e `test_editor_campaign_levels` (este trabalha
   em cópias da fase 12; nunca mexe nas fases de verdade).
 
-## Gerador por ambientes do roguelike (2 de novembro de 2026, primeira passada)
+## Gerador por ambientes do roguelike (2 de novembro de 2026, segunda passada)
 
-O usuário achou óbvio o gerador antigo, uma grade de 15 salas quadradas
-(print `bug13`), e pediu fases pensadas por **ambiente**, em **ordem fixa**
-(para dar vontade de ver o próximo), com cerca de 3 fases cada e muitos
-ambientes. O roguelike passou de 5 para **30 fases**
+O usuário achou óbvio o gerador antigo (grade de 15 salas, print `bug13`) e
+pediu fases por **ambiente**, em **ordem fixa**, cerca de 3 por ambiente. Na
+primeira passada reprovou tudo (prints em `prints/bugsambientes/`): copas
+redondas "de tinta espirrada" e "babaloo", fresta entre tronco e copa, fases
+retas, linha de concreto solta na mina, prédios baixos, fundo do espaço sem
+graça. Gostou da pirâmide (`bom1`), da caverna de cristal e dos pinheiros,
+palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
 (`RoguelikeRunState.STAGE_COUNT = BiomeStageGenerator.STAGE_COUNT`).
 
 - `BiomeStageGenerator` (`scripts/procedural/biome_stage_generator.gd`, no
-  núcleo): 10 ambientes, 3 fases cada, ficando mais difíceis dentro do
-  ambiente e de um ambiente para o outro.
-  1. **Prado:** morros, ravinas, um paredão e árvores com itens nas copas.
-  2. **Floresta:** árvores altas; a saída fica na copa mais alta.
-  3. **Deserto:** dunas, um poço largo, uma ruína de pedra enterrada (cavar
-     até ela) e, na 3ª fase, uma pirâmide de degraus altos com a saída no
-     topo.
-  4. **Mina:** começa ao ar livre e a saída fica no fundo; é preciso cavar
-     galerias com faixas de rocha no caminho. Atrás das galerias aparece a
-     parede da caverna.
-  5. **Caverna de Cristal:** salões arredondados e veios de cristal.
-  6. **Geleira:** começa numa caverna de gelo e sobe em terraços até o cume.
-  7. **Vulcão:** encostas recortadas, abismos e colunas de basalto.
-  8. **Cidade:** telhados de prédios com janelas e becos entre eles.
-  9. **Outro Planeta:** crateras, torres, cogumelos gigantes e ilhas
-     flutuantes.
-  10. **Espaço:** módulos de estação e asteroides; sem borda, porque sair
-      pela beirada é cair no vazio.
-- A saída é a mesma `MazeStageData` (cresceu com `skins`, `backdrop`,
-  `trees`, `unbreakable`, `spawn_faces_left` e `stage_name`), então o
-  roguelike monta a fase como antes. As fases feitas à mão (modo dev)
-  continuam no `MazeStageGenerator` antigo, só nas 5 primeiras.
-- **Ainda não confere se a fase dá para vencer** e não grava a solução: os
-  testes de partida do roguelike (`run_tests.bat completo`) vão falhar até
-  isso existir. Isso é de propósito, enquanto o usuário aprova o visual
-  (ver "Quando escrever testes").
-- **Visual:** temas de terreno novos `city`, `alien` e `station`
-  (`tools/build_terrain_themes.py`); ambientes `FOREST`, `CITY`,
-  `ALIEN_PLANET` e `SPACE` (`LevelEnvironment`, os novos no fim do enum,
-  porque as fases guardam o número); horizonte de prédios (`BUILDINGS`) e
-  nenhum horizonte (`NONE`); `has_frame = false` no espaço.
-- **`TerrainSkin`** (`scripts/level/terrain_skin.gd`) desenha por cima de
-  células sem mudar o bloco: parede de prédio, casco de estação, a borda e,
-  atrás do ar subterrâneo, a parede de caverna ou de gelo. Segue o terreno
-  pelo sinal novo `TerrainDestructible.cells_changed`.
-- **Árvores inteiras** (`TreeArt`, `scripts/level/tree_art.gd`): carvalho,
-  cerejeira, pinheiro, pinheiro com neve, palmeira e cogumelo gigante. O
-  tronco fica atrás dos bonecos, que passam por ele; a copa é sólida e dá
-  para ficar em cima. O desenho é feito uma vez e cortado em células, e uma
-  célula da copa cavada perde o seu pedaço. As células da copa são sólidas
-  mas invisíveis (`TerrainDestructible.hidden_cells`, pelo gancho
-  `_tile_data_runtime_update`). Uma árvore só nasce em chão plano e
-  afastada das outras (antes nasciam flutuando sobre crateras).
+  núcleo): 10 ambientes, 3 fases cada (Prado, Floresta, Deserto, Mina,
+  Caverna de Cristal, Geleira, Vulcão, Cidade, Outro Planeta, Espaço). Cada
+  fase tem:
+  - **tamanho que cresce** com a fase (`stage_size`): a 1ª cabe numa tela
+    (56x30 blocos); a última é `GROWTH_AT_LAST_STAGE` (3,6) vezes maior no
+    lado comprido. **Formato** comprida (`WIDE`), alta (`TALL`) ou os dois
+    (`BOTH`), escolhido por ambiente e fase (`BIOMES[...].shapes`);
+  - um **caminho**: atravessar (`TRAVERSE`), **subir** até uma saída lá em
+    cima (`ASCEND`) ou descer até o fundo (`DESCEND`) (`routes`);
+  - **relevo** (`_relief`): morros que se anda (1 bloco por coluna) e, de vez
+    em quando, paredões de 2 a 5 blocos que pedem ferramenta; ravinas;
+    **subsolo** de cavernas em quase todos os ambientes, com buracos da
+    superfície até elas e a parede da caverna desenhada atrás do ar;
+    bolsões de rocha (concreto) só dentro da terra, nunca linhas soltas;
+  - peças do ambiente: **árvores de copa quadrada para subir** (Prado,
+    Floresta; tronco encostado na copa, sem fresta; algumas com item em
+    cima), pirâmide de degraus altos que cresce (saída no topo na 3ª do
+    Deserto), galerias da mina, caverna de gelo no início da Geleira,
+    cone do vulcão com a saída na borda da cratera, **arranha-céus com
+    andaimes** (plataformas de madeira e algumas escadas já montadas; a
+    saída no telhado mais alto) e metrô sob a rua, ilhas flutuantes,
+    módulos de estação em várias alturas.
+- **Árvores de enfeite** (pinheiro, pinheiro com neve, palmeira, cogumelo;
+  `TreeArt` + `BackgroundDecor`): atrás do terreno, não são sólidas, sem
+  item. Carvalho e cerejeira redondos foram removidos.
 - **Borda inquebrável** (`TerrainDestructible.unbreakable_cells`): duas
-  colunas de rocha escura com parafusos de cada lado, mais a rocha da
-  primeira e da última linha. Nenhuma ferramenta nem explosivo quebra a
-  borda; a ferramenta que tenta dá uma **explosãozinha** ali (sinal
-  `unbreakable_hit`, efeito em `LevelManager`). O espaço não tem borda.
+  colunas de rocha escura com parafusos de cada lado e a rocha da primeira e
+  da última linha; a ferramenta que tenta quebrar dá uma explosãozinha
+  (sinal `unbreakable_hit`, efeito em `LevelManager`). O espaço não tem
+  borda nem moldura (`has_frame = false`) e ganhou nebulosa e um planeta com
+  anel (`nebula_colours`, `ringed_planet`).
+- **Visual:** temas de terreno `city`, `alien` e `station`; ambientes
+  `FOREST`, `CITY`, `ALIEN_PLANET` e `SPACE` (no fim do enum, porque as fases
+  guardam o número); `TerrainSkin` desenha parede de prédio, casco de
+  estação, borda, folhas quadradas e, atrás do ar subterrâneo, parede de
+  caverna ou de gelo (segue `TerrainDestructible.cells_changed`).
+- **Ainda não confere se a fase dá para vencer** e não grava a solução: os
+  testes de partida do roguelike (`run_tests.bat completo`) falham até isso
+  existir. De propósito, enquanto o usuário aprova o visual.
 - **Prints de todas as fases:** `prints/ambientes/`, gerados por
   `godot --path . --resolution 1920x1080 res://modes/roguelike/tools/capture_stages.tscn -- <pasta> [semente] [primeira] [última]`.
 - **Itens ao cavar** (plano aprovado antes) **ainda não existem**.
+
+## Editor: coleções de fases e gerador (2 de novembro de 2026)
+
+- **Abrir** e **Salvar** (pergaminho e baú, para todos) pedem primeiro o
+  **modelo** (`LevelCollection.all()`): **Modo livre** (desenhos do
+  jogador em `user://free_levels/`, sempre), e no modo dev **Fases** (as 15
+  da campanha, `CampaignLevelCollection`) e **Roguelike** (as 30 fases,
+  `modes/roguelike/level_collection.gd`). Um modo novo aparece sozinho se
+  tiver `res://modes/<modo>/level_collection.gd` estendendo
+  `LevelCollection` (o núcleo não cita modo nenhum).
+- Depois, o espaço numerado (o nome no tooltip; vazio fica apagado ao
+  abrir) e, se houver backups, a versão. Salvar por cima pede confirmação e
+  **guarda backup** (`user://level_backups/<modelo>/slot_NN/<data>/`; a
+  campanha continua em `user://campaign_backups/`).
+- **Roguelike:** uma fase que ninguém desenhou abre como o gerador a faz
+  (semente 1); salvar a torna **fixa**
+  (`modes/roguelike/resources/stages/stage_NN.tres`) e toda run passa a
+  jogá-la ali (`RoguelikeStageFactory` pergunta `override_maze`). As
+  ferramentas contadas no editor viram itens nos chãos mais perto da
+  entrada. A fase desenhada perde as árvores e as paredes de prédio (o
+  editor só guarda o terreno).
+- **Gerar** (dado): escolhe o ambiente, o tamanho (1 tela, Comprido, Alto,
+  Grande, Enorme) e a dificuldade; a fase gerada vira o desenho, que pode
+  ser mudado e salvo. O tamanho do desenho agora acompanha a fase aberta ou
+  gerada (`LevelEditorController.set_map_size`).
+- Formato salvo: `LevelDrawing` (`scripts/level/collections/`), que também
+  converte `MazeStageData` em desenho e de volta.
 
 ## Situação do repositório (2 de novembro de 2026)
 

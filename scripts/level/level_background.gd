@@ -63,10 +63,14 @@ func _draw_background() -> void:
 	var camera := get_viewport().get_camera_2d()
 	var scroll := camera.get_screen_center_position() if camera != null else Vector2.ZERO
 	_draw_gradient(size)
+	if not environment.nebula_colours.is_empty():
+		_draw_nebula(size, scroll * 0.05)
 	if environment.sparkle_count > 0:
 		_draw_sparkles(size)
 	if environment.sun_radius > 0.0:
 		_draw_sun(size)
+	if environment.ringed_planet:
+		_draw_ringed_planet(size, scroll * 0.03)
 	if environment.cloud_count > 0:
 		_draw_clouds(size)
 	match environment.skyline:
@@ -110,6 +114,44 @@ func _draw_buildings(size: Vector2, scroll: Vector2, colour: Color, top_share: f
 			for column in int(width / 14.0):
 				if _hash01(index * 131 + row * 7 + column, 71 + seed_offset) < 0.22:
 					_canvas.draw_rect(Rect2(x + 4.0 + column * 14.0, top + 8.0 + row * 18.0, 5.0, 7.0), Color(1.0, 0.86, 0.5, 0.55 / seed_offset))
+
+
+## Clouds of coloured gas: many large, faint discs that add up to soft
+## shapes, drifting very slowly with the camera.
+func _draw_nebula(size: Vector2, scroll: Vector2) -> void:
+	# A few clouds, each many faint discs stepping inwards, so the edge
+	# fades instead of showing a circle.
+	for cloud in 7:
+		var colour: Color = environment.nebula_colours[cloud % environment.nebula_colours.size()]
+		var centre := Vector2(_hash01(cloud, 81) * size.x * 1.2 - size.x * 0.1, _hash01(cloud, 83) * size.y) - scroll
+		var radius := size.y * (0.25 + 0.25 * _hash01(cloud, 87))
+		for puff in 9:
+			var offset := Vector2(_hash01(cloud * 11 + puff, 89) - 0.5, _hash01(cloud * 11 + puff, 91) - 0.5) * radius * 1.4
+			for ring in 6:
+				_canvas.draw_circle(centre + offset, radius * (0.55 - ring * 0.08), colour)
+
+
+## A ringed planet high in the sky: a banded disc behind its ring.
+func _draw_ringed_planet(size: Vector2, scroll: Vector2) -> void:
+	var centre := Vector2(size.x * 0.78, size.y * 0.24) - scroll
+	var radius := size.y * 0.09
+	var ring := Color(0.95, 0.82, 0.60, 0.55)
+	_draw_ellipse_ring(centre, Vector2(radius * 2.1, radius * 0.55), ring, true)
+	_canvas.draw_circle(centre, radius, Color(0.86, 0.62, 0.40))
+	for band in 3:
+		var y := centre.y - radius * 0.5 + band * radius * 0.45
+		var half := sqrt(maxf(0.0, radius * radius - (y - centre.y) ** 2))
+		_canvas.draw_rect(Rect2(centre.x - half, y, half * 2.0, radius * 0.14), Color(0.70, 0.46, 0.30))
+	_draw_ellipse_ring(centre, Vector2(radius * 2.1, radius * 0.55), ring, false)
+
+
+## Half an ellipse's outline: the back half (top) or the front half (bottom).
+func _draw_ellipse_ring(centre: Vector2, radii: Vector2, colour: Color, back: bool) -> void:
+	var points := PackedVector2Array()
+	for step in 33:
+		var angle := PI + PI * step / 32.0 if back else PI * step / 32.0
+		points.append(centre + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
+	_canvas.draw_polyline(points, colour, 3.0)
 
 
 func _draw_gradient(size: Vector2) -> void:

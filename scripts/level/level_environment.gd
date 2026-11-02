@@ -31,6 +31,10 @@ enum Skyline { HILLS, HANGING, DUNES, PEAKS, BUILDINGS, NONE }
 @export var frame_tint: Color = Color(0.55, 0.50, 0.48)
 ## Rock around the level's area. Off in space: past the edge is the void.
 @export var has_frame := true
+## Soft clouds of coloured gas far behind everything (space). None if empty.
+@export var nebula_colours: Array[Color] = []
+## A second, ringed planet in the sky.
+@export var ringed_planet := false
 ## Folder under assets/sprites/terrain/themes/ (and level/themes/) with the
 ## blocks, entrance and exit of this setting. Empty: the default earth.
 @export var terrain_theme: StringName = &""
@@ -251,6 +255,8 @@ static func space() -> LevelEnvironment:
 	environment.frame_tint = Color(0.50, 0.54, 0.62)
 	environment.terrain_theme = &"station"
 	environment.has_frame = false
+	environment.nebula_colours.assign([Color(0.55, 0.20, 0.70, 0.025), Color(0.15, 0.45, 0.85, 0.025), Color(0.90, 0.35, 0.45, 0.018)])
+	environment.ringed_planet = true
 	environment.sun_radius = 90.0
 	environment.sun_position = Vector2(0.18, 0.78)
 	environment.sun_colour = Color(0.30, 0.55, 1.0, 0.85)

@@ -7,6 +7,7 @@ extends RefCounted
 ## the tool spots become tool pickups, the bonus spots a rescue, an
 ## hourglass, a bag, coins, an ability recharge or spare charges.
 
+const STAGE_COLLECTION := preload("res://modes/roguelike/level_collection.gd")
 const TIME_PICKUP_SECONDS := 60
 ## Coins lying in a stage (the user's idea: coins dropped around the map).
 const COIN_PICKUP_AMOUNT := 2
@@ -22,7 +23,10 @@ const MAX_TOOL_KINDS := RoguelikeToolInventory.DEFAULT_MAX_SLOTS
 
 
 static func procedural(run_seed: int, stage_index: int) -> RoguelikeStageDefinition:
-	var maze := BiomeStageGenerator.generate(run_seed, stage_index)
+	# A stage drawn in the editor for this place takes the generated one's.
+	var maze: MazeStageData = STAGE_COLLECTION.override_maze(stage_index)
+	if maze == null:
+		maze = BiomeStageGenerator.generate(run_seed, stage_index)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = MazeStageGenerator.mix_seed(run_seed, stage_index, -1)
 	var definition := _from_maze(maze, rng, maze.stage_name)

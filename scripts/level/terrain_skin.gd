@@ -42,11 +42,6 @@ var skins: Dictionary = {}
 ## Drawn on empty cells, behind the lemmings (they walk past it): a tree's
 ## trunk under its canopy. cell -> BARK or ALIEN_STEM.
 var backdrop: Dictionary = {}
-## Whole trees (TreeArt): each painted once, then cut into cells, a crown
-## cell's piece dropped once that cell is dug away.
-var trees: Array[Dictionary] = []
-var _tree_textures: Array[ImageTexture] = []
-var _tree_crowns: Array[Dictionary] = []
 
 var _terrain: TerrainDestructible
 
@@ -56,18 +51,6 @@ func _ready() -> void:
 	assert(_terrain != null, "A TerrainSkin dresses the TerrainDestructible it is a child of")
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_terrain.cells_changed.connect(func(_coords: Array[Vector2i]) -> void: queue_redraw())
-	var cell_size := int(_terrain.get_cell_size().x)
-	for tree in trees:
-		_tree_textures.append(TreeArt.build(tree, cell_size))
-		var crown := {}
-		for cell in tree.crown:
-			crown[cell] = true
-			_terrain.hidden_cells[cell] = true
-		_tree_crowns.append(crown)
-	# Over the terrain's edge overlay, which it adds in its own _ready
-	# (after this one's).
-	get_parent().move_child.call_deferred(self, -1)
-	_terrain.notify_runtime_tile_data_update()
 
 
 func _draw() -> void:
@@ -80,8 +63,6 @@ func _draw() -> void:
 			_draw_cave_wall(cell, rect, COLOURS[backdrop[cell]])
 		else:
 			_draw_trunk(cell, rect, COLOURS[backdrop[cell]])
-	for index in trees.size():
-		_draw_tree(index, size)
 	for cell: Vector2i in skins:
 		if _terrain.get_cell_source_id(cell) == -1:
 			continue
@@ -98,18 +79,6 @@ func _draw() -> void:
 			BORDER:
 				_draw_border(cell, rect, COLOURS[BORDER])
 		_draw_outline(cell, rect)
-
-
-func _draw_tree(index: int, size: Vector2) -> void:
-	var box: Rect2i = trees[index].box
-	var crown: Dictionary = _tree_crowns[index]
-	for row in range(box.position.y, box.end.y):
-		for column in range(box.position.x, box.end.x):
-			var cell := Vector2i(column, row)
-			if crown.has(cell) and _terrain.get_cell_source_id(cell) == -1:
-				continue
-			var region := Rect2(Vector2(cell - box.position) * size, size)
-			draw_texture_rect_region(_tree_textures[index], Rect2(Vector2(cell) * size, size), region)
 
 
 ## Dark rock with a few cracks and lumps, flat so the walls in front read.
@@ -145,23 +114,28 @@ func _draw_bark(cell: Vector2i, rect: Rect2, colours: Array) -> void:
 		draw_circle(rect.get_center() + Vector2(0, 4), 3.5, colours[3])
 
 
-## A mass of leaf clumps: discs of three greens, round at the outer edges
-## (only cells with leaves on every side are drawn square).
+## A square block of foliage, for the crowns a lemming can climb on: a
+## dark base, rows of small leaves in two greens, lighter along the top of
+## the crown and darker underneath, outlined where it meets the air.
 func _draw_leaves(cell: Vector2i, rect: Rect2, colours: Array) -> void:
-	var exposed := _exposed_sides(cell)
-	if exposed.is_empty():
-		draw_rect(rect, colours[1])
-	else:
-		draw_rect(rect.grow(-4.0), colours[1])
-	var centre := rect.get_center()
-	for clump in 5:
-		var offset := Vector2(float(_hash(cell, clump) % 21) - 10.0, float(_hash(cell, clump + 7) % 21) - 10.0)
-		draw_circle(centre + offset, 8.0 + float(_hash(cell, clump + 3) % 4), colours[0])
-	for clump in 3:
-		var offset := Vector2(float(_hash(cell, clump + 11) % 17) - 8.0, float(_hash(cell, clump + 13) % 13) - 9.0)
-		draw_circle(centre + offset, 4.0, colours[2])
-	if _hash(cell, 21) % 4 == 0:
-		draw_circle(centre + Vector2(6, -6), 2.0, colours[3])
+	draw_rect(rect, colours[1])
+	var air_above := _terrain.get_cell_source_id(cell + Vector2i.UP) == -1
+	var air_below := _terrain.get_cell_source_id(cell + Vector2i.DOWN) == -1
+	for row in 4:
+		for column in 4:
+			var leaf := Rect2(rect.position + Vector2(column * 8 + (row % 2) * 4, row * 8 + 1), Vector2(6, 5))
+			var shade: Color = colours[0]
+			if row == 0 and air_above:
+				shade = colours[2]
+			elif row == 3 and air_below:
+				shade = colours[1].darkened(0.15)
+			elif _hash(cell, row * 4 + column) % 3 == 0:
+				shade = colours[2]
+			draw_rect(leaf.intersection(rect), shade)
+	if air_above:
+		draw_rect(Rect2(rect.position + Vector2(0, 2), Vector2(rect.size.x, 3)), colours[2])
+		for tuft in 3:
+			draw_rect(Rect2(rect.position + Vector2(4 + tuft * 10 + _hash(cell, 50 + tuft) % 4, 0), Vector2(3, 2)), colours[3])
 
 
 ## Concrete wall with a lit or dark window in most cells.

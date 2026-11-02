@@ -1221,6 +1221,17 @@ def trophy():
     return outline(image)
 
 
+def procedural():
+    """A white die showing five, tilted a little: make a stage at random."""
+    image = new()
+    polygon(image, [(6, 9), (21, 5), (26, 20), (11, 25)], CREAM)
+    polygon(image, [(6, 9), (21, 5), (22, 8), (8, 12)], (255, 255, 255, 255))
+    line(image, (11, 25), (26, 20), (200, 190, 160, 255), 1)
+    for x, y in ((10, 12), (20, 9), (15, 15), (12, 20), (22, 17)):
+        rect(image, x, y, x + 2, y + 2, RED)
+    return outline(image)
+
+
 def level_save():
     """A green arrow pointing down into an open wooden chest: write the
     drawing into a level."""
@@ -1362,6 +1373,7 @@ EDITOR_ICONS = {
     "cursor_grab": cursor_grab,
     "trophy": trophy,
     "level_save": level_save,
+    "procedural": procedural,
 }
 
 

@@ -1,18 +1,15 @@
 class_name TreeArt
 extends RefCounted
-## Paints a whole tree (crown and trunk) into one image, in the game's pixel
-## style: dark outline, a base colour, light on the upper left. The crown
-## follows the solid cells it stands for, so what is drawn is what can be
-## walked on; TerrainSkin cuts the picture into cells and drops a cell's
-## piece when that cell is dug away.
+## Paints a whole scenery tree (crown and trunk) into one image, in the
+## game's pixel style: dark outline, a base colour, light on the upper left.
+## Drawn behind the terrain by BackgroundDecor; never solid. The trunk runs
+## up into the crown, so there is no gap between them.
 ##
 ## A tree: {"kind": one of the kinds below, "box": Rect2i in cells (crown
 ## and trunk), "crown": Array[Vector2i] of the crown's cells, "trunk":
 ## Array[Vector2i] of the cells the trunk passes (drawn behind lemmings),
 ## "seed": int}.
 
-const OAK := &"oak"
-const CHERRY := &"cherry"
 const PINE := &"pine"
 const SNOW_PINE := &"snow_pine"
 const PALM := &"palm"
@@ -24,8 +21,6 @@ const PALM_BARK := [Color(0.62, 0.46, 0.26), Color(0.44, 0.31, 0.16), Color(0.76
 const STEM := [Color(0.80, 0.78, 0.66), Color(0.58, 0.56, 0.46), Color(0.94, 0.92, 0.82)]
 ## base, dark, light, highlight
 const LEAVES := {
-	OAK: [Color(0.24, 0.54, 0.22), Color(0.13, 0.36, 0.15), Color(0.40, 0.70, 0.28), Color(0.62, 0.84, 0.38)],
-	CHERRY: [Color(0.93, 0.56, 0.70), Color(0.74, 0.36, 0.52), Color(1.0, 0.74, 0.84), Color(1.0, 0.92, 0.96)],
 	PINE: [Color(0.13, 0.42, 0.28), Color(0.07, 0.27, 0.18), Color(0.22, 0.56, 0.34), Color(0.36, 0.68, 0.40)],
 	SNOW_PINE: [Color(0.16, 0.40, 0.34), Color(0.09, 0.26, 0.22), Color(0.26, 0.54, 0.44), Color(0.96, 0.98, 1.0)],
 	PALM: [Color(0.36, 0.62, 0.24), Color(0.20, 0.42, 0.14), Color(0.54, 0.78, 0.32), Color(0.72, 0.88, 0.40)],
@@ -62,9 +57,6 @@ func _paint(tree: Dictionary, cell_size: int) -> Image:
 		MUSHROOM:
 			_trunk(trunk, STEM, 12)
 			_mushroom(crown, LEAVES[MUSHROOM])
-		_:
-			_trunk(trunk, BARK, 12)
-			_round_crown(crown, LEAVES[tree.kind], tree.kind == CHERRY)
 	return _image
 
 
@@ -87,43 +79,6 @@ func _trunk(cells: Array, colours: Array, width: int) -> void:
 	# Roots spreading at the foot.
 	_rect(left - 3, bottom - 4, width + 6, 4, OUTLINE)
 	_rect(left - 2, bottom - 3, width + 4, 3, colours[1])
-
-
-## Oak and cherry: overlapping leafy clumps over every crown cell, outlined
-## as one shape, lighter on the upper left. The cherry adds blossoms.
-func _round_crown(cells: Array, colours: Array, blossoms: bool) -> void:
-	var top := 1 << 20
-	var bottom := -(1 << 20)
-	for cell in cells:
-		top = mini(top, _local(cell).y)
-		bottom = maxi(bottom, _local(cell).y + _cell)
-	var clumps: Array[Vector3] = []
-	for cell in cells:
-		var centre := _local(cell) + Vector2i(_cell / 2, _cell / 2)
-		for clump in 2:
-			var offset := Vector2(_rng.randf_range(-7, 7), _rng.randf_range(-7, 5))
-			clumps.append(Vector3(centre.x + offset.x, centre.y + offset.y, _rng.randf_range(13.0, 16.0)))
-	# One silhouette: outline, then the shadowed body, then the lit body
-	# shifted up and left, so the clumps melt into one crown.
-	for clump in clumps:
-		_disc(clump.x, clump.y, clump.z + 2.0, OUTLINE)
-	for clump in clumps:
-		_disc(clump.x, clump.y, clump.z, colours[1])
-	for clump in clumps:
-		_disc(clump.x - 2.0, clump.y - 3.0, clump.z - 3.0, colours[0])
-	# Light only where the sun reaches: the upper part of the crown.
-	var lit_line := top + (bottom - top) * 0.45
-	for clump in clumps:
-		if clump.y < lit_line:
-			_disc(clump.x - 4.0, clump.y - 6.0, clump.z * 0.5, colours[2])
-	for dot in cells.size() * 2:
-		var clump: Vector3 = clumps[_rng.randi_range(0, clumps.size() - 1)]
-		var spot := Vector2(clump.x + _rng.randf_range(-9, 9), clump.y + _rng.randf_range(-9, 6))
-		if blossoms:
-			_disc(spot.x, spot.y, 2.2, colours[3])
-			_disc(spot.x, spot.y, 0.8, Color(1.0, 0.86, 0.3))
-		elif spot.y < lit_line:
-			_disc(spot.x, spot.y, 1.2, colours[3])
 
 
 ## Pine: a stack of tiers, one per crown row, each a wide drooping triangle
@@ -170,11 +125,11 @@ func _palm(cells: Array, colours: Array) -> void:
 		for step in 24:
 			var t := float(step) / 23.0
 			var point := centre + Vector2(side * reach * t, -lift * sin(t * PI) + t * t * 10.0)
-			_disc(point.x, point.y, 4.5 - t * 2.0, OUTLINE)
+			_disc(point.x, point.y, 6.0 - t * 2.5, OUTLINE)
 		for step in 24:
 			var t := float(step) / 23.0
 			var point := centre + Vector2(side * reach * t, -lift * sin(t * PI) + t * t * 10.0)
-			_disc(point.x, point.y, 3.0 - t * 1.5, colours[0] if frond < 4 else colours[2])
+			_disc(point.x, point.y, 4.5 - t * 2.0, colours[0] if frond < 4 else colours[2])
 	_disc(centre.x, centre.y + 2.0, 5.0, OUTLINE)
 	_disc(centre.x - 3.0, centre.y + 3.0, 3.0, Color(0.42, 0.28, 0.14))
 	_disc(centre.x + 3.0, centre.y + 3.0, 3.0, Color(0.42, 0.28, 0.14))

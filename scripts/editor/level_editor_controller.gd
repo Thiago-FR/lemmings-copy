@@ -17,9 +17,11 @@ extends Node2D
 ## on one removes it while others are left. Several entrances share the
 ## troop.
 ##
-## Developer mode adds Open and Save: any of the 15 campaign levels (or a
-## backup of one) can be opened here, and the drawing saved over any of
-## them; the level replaced is backed up first (CampaignLevelStore).
+## Open and Save work with collections of levels (LevelCollection): the
+## free mode's own drawings, and in developer mode the campaign's 15 levels
+## and each game mode's stages. Saving over a level backs it up first, and
+## a backup can be opened again. Generate makes a drawing with the stage
+## generator (any setting, size and difficulty).
 
 enum Mode { EDITING, PLAYING, PAUSED }
 
@@ -34,7 +36,7 @@ const EXIT_HALF_HEIGHT := 24.0
 const STROKE_STEP := 8.0
 ## Size of the drawing, in blocks: much bigger than one screen, scrolled
 ## with the camera (arrow keys/WASD, middle mouse drag, window edges).
-const MAP_SIZE_TILES := Vector2i(120, 60)
+const DEFAULT_MAP_SIZE := Vector2i(120, 60)
 ## Screen space covered by the toolbar at the top and the counters at the
 ## bottom, which the camera can scroll past the drawing's edges.
 const TOOLBAR_TOP_MARGIN := 84.0
@@ -55,8 +57,14 @@ var _exit: ExitPoint = null
 var _is_stroking := false
 var _stroke_tool: EditorTool.Kind = EditorTool.Kind.BLOCK
 var _last_stroke_position := Vector2.ZERO
-## The campaign level last opened or saved (developer mode), -1 if none.
-var _campaign_index := -1
+## The collection and slot last opened or saved (null and -1 if none).
+var _collection: LevelCollection = null
+var _slot_index := -1
+## Size of the drawing, in cells. A level opened or generated brings its own.
+var map_size := DEFAULT_MAP_SIZE
+var _environment_kind: LevelEnvironment.Kind = LevelEnvironment.Kind.SURFACE
+var _background: LevelBackground
+var _backdrop: LevelBackdrop
 
 
 func _ready() -> void:
@@ -76,23 +84,35 @@ func _ready() -> void:
 	toolbar.menu_requested.connect(go_to_main_menu)
 	toolbar.open_level_requested.connect(_open_level_picker)
 	toolbar.save_level_requested.connect(_save_level_picker)
+	toolbar.generate_requested.connect(_open_generator)
 	toolbar.select_tool(current_tool)
 	_enter_editing_mode()
 
 
 ## The area that can be painted: the whole drawing, not just the screen.
 func get_paint_area() -> Rect2:
-	return Rect2(Vector2.ZERO, Vector2(MAP_SIZE_TILES) * terrain.get_cell_size())
+	return Rect2(Vector2.ZERO, Vector2(map_size) * terrain.get_cell_size())
+
+
+## Resizes the drawing area (the grid, the frame, how far the camera goes).
+func set_map_size(size: Vector2i) -> void:
+	map_size = size
+	_grid_overlay.area = get_paint_area()
+	_grid_overlay.queue_redraw()
+	_backdrop.area = get_paint_area()
+	_backdrop.queue_redraw()
+	(get_node("Camera") as LevelCamera).bounds = get_paint_area()
 
 
 ## Backdrop and camera over the drawing. Children of the editor, not of
 ## EditLayer, so they stay while a test run replaces EditLayer; the run's
 ## LevelManager sees this camera and does not make its own.
 func _set_up_view() -> void:
-	add_child(LevelBackground.new())
-	var backdrop := LevelBackdrop.new()
-	backdrop.area = get_paint_area()
-	add_child(backdrop)
+	_background = LevelBackground.new()
+	add_child(_background)
+	_backdrop = LevelBackdrop.new()
+	_backdrop.area = get_paint_area()
+	add_child(_backdrop)
 	var camera := LevelCamera.new()
 	# The left button paints here.
 	camera.left_drag = false
@@ -378,11 +398,11 @@ func _entrance_specs() -> Array[Dictionary]:
 	return specs
 
 
-# --- Campaign levels (developer mode) ----------------------------------------
+# --- Opening, saving, generating -------------------------------------------------
 
 func _open_level_picker() -> void:
-	var picker := EditorLevelPicker.new(EditorLevelPicker.Purpose.OPEN, _campaign_index)
-	picker.picked.connect(open_campaign_level)
+	var picker := EditorLevelPicker.new(EditorLevelPicker.Purpose.OPEN, _collection, _slot_index)
+	picker.picked.connect(open_level)
 	add_child(picker)
 
 
@@ -390,40 +410,74 @@ func _save_level_picker() -> void:
 	if not has_entrance():
 		toolbar.flash(&"entrance")
 		return
-	var picker := EditorLevelPicker.new(EditorLevelPicker.Purpose.SAVE, _campaign_index)
-	picker.picked.connect(func(index: int, _folder: String) -> void: _confirm_save(index))
+	var picker := EditorLevelPicker.new(EditorLevelPicker.Purpose.SAVE, _collection, _slot_index)
+	picker.picked.connect(func(collection: LevelCollection, index: int, _folder: String) -> void: _confirm_save(collection, index))
 	add_child(picker)
 
 
-func _confirm_save(index: int) -> void:
-	var modal := ConfirmModal.new("level_save", "Substituir a fase %d?" % (index + 1), "Salvar")
-	modal.add_fact("campaign", index + 1, Campaign.load_level_data(index).level_name)
+func _open_generator() -> void:
+	var panel := EditorGeneratorPanel.new()
+	panel.generate_requested.connect(generate_level)
+	add_child(panel)
+
+
+## An empty slot is saved at once; a filled one asks first.
+func _confirm_save(collection: LevelCollection, index: int) -> void:
+	if collection.get_slot_name(index).is_empty():
+		save_level(collection, index)
+		return
+	var modal := ConfirmModal.new("level_save", "Substituir %s %d?" % [collection.get_display_name(), index + 1], "Salvar")
+	modal.add_fact(collection.get_icon_id(), index + 1, collection.get_slot_name(index))
 	modal.add_fact("hud_clock", "backup", "A versão de agora fica guardada e pode ser aberta de novo")
-	modal.confirmed.connect(func() -> void: save_campaign_level(index))
+	modal.confirmed.connect(func() -> void: save_level(collection, index))
 	add_child(modal)
 
 
-## Replaces the drawing with a campaign level, or one of its backups.
-func open_campaign_level(index: int, backup_folder: String = "") -> void:
-	var drawing := CampaignLevelStore.read(index) if backup_folder == "" else CampaignLevelStore.read_backup(backup_folder)
+## Replaces the drawing with a level from a collection, or a backup of it.
+func open_level(collection: LevelCollection, index: int, backup_folder: String = "") -> void:
+	var drawing := collection.read(index) if backup_folder == "" else collection.read_backup(backup_folder)
+	if drawing.is_empty():
+		toolbar.flash(&"entrance")
+		return
 	_load_drawing(drawing)
-	_campaign_index = index
+	_collection = collection
+	_slot_index = index
 	AudioManager.play_sound(&"select_tool")
 
 
-## Writes the drawing over a campaign level, backing it up first. Returns
-## the backup folder, "" if it failed.
-func save_campaign_level(index: int) -> String:
-	var backup := CampaignLevelStore.write(index, get_drawing())
-	if backup == "":
+## Writes the drawing into a collection's slot, backing up what was there.
+## Returns the backup folder (or the file, for a first save), "" if it
+## failed.
+func save_level(collection: LevelCollection, index: int) -> String:
+	var result := collection.write(index, get_drawing())
+	if result == "":
 		toolbar.flash(&"entrance")
 		return ""
-	_campaign_index = index
+	_collection = collection
+	_slot_index = index
 	AudioManager.play_sound(&"select_tool")
-	return backup
+	return result
 
 
-## The drawing, as CampaignLevelStore reads and writes it.
+## The campaign levels, as the developer tools and their test use them.
+func open_campaign_level(index: int, backup_folder: String = "") -> void:
+	open_level(CampaignLevelCollection.new(), index, backup_folder)
+
+
+func save_campaign_level(index: int) -> String:
+	return save_level(CampaignLevelCollection.new(), index)
+
+
+## A new drawing from the stage generator: any setting, size and difficulty.
+func generate_level(biome_id: StringName, size: Vector2i, tier: int) -> void:
+	var maze := BiomeStageGenerator.generate_custom(randi(), biome_id, size, tier / 2.0, tier)
+	_load_drawing(LevelDrawing.dictionary_from_maze(maze))
+	_collection = null
+	_slot_index = -1
+	AudioManager.play_sound(&"select_tool")
+
+
+## The drawing, as collections read and write it.
 func get_drawing() -> Dictionary:
 	return {
 		"tile_map_data": terrain.tile_map_data,
@@ -432,6 +486,8 @@ func get_drawing() -> Dictionary:
 		"exit": _exit.position if has_exit() else null,
 		"total_lemmings": toolbar.get_lemming_count(),
 		"skill_counts": toolbar.get_skill_counts(),
+		"environment_kind": _environment_kind,
+		"size": map_size,
 	}
 
 
@@ -457,6 +513,9 @@ func _load_drawing(drawing: Dictionary) -> void:
 			edit_layer.add_child(_exit)
 		_exit.position = drawing.exit
 	toolbar.set_counts(drawing.total_lemmings, drawing.skill_counts)
+	_environment_kind = drawing.get("environment_kind", LevelEnvironment.Kind.SURFACE)
+	_background.environment = LevelEnvironment.by_kind(_environment_kind)
+	set_map_size(drawing.get("size", DEFAULT_MAP_SIZE))
 	if has_entrance():
 		(get_node("Camera") as LevelCamera).focus_on(_entrances[0].position)
 

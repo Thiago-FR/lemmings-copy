@@ -40,8 +40,9 @@ var layout: MazeLayout = null
 var skins: Dictionary = {}
 ## Drawn behind the lemmings on empty cells (cell -> TerrainSkin name).
 var backdrop: Dictionary = {}
-## Whole trees painted over their crown and trunk cells (see TreeArt).
-var trees: Array[Dictionary] = []
+## Scenery trees painted behind the terrain (TreeArt, BackgroundDecor):
+## not solid, no items.
+var decor_trees: Array[Dictionary] = []
 ## Cells nothing breaks (the border), see TerrainDestructible.
 var unbreakable: Dictionary = {}
 ## The entrance releases lemmings walking left.
@@ -76,15 +77,19 @@ func paint_onto(terrain: TerrainDestructible) -> void:
 	var tile := Constants.TERRAIN_TILE_SIZE
 	for ladder in ladders:
 		terrain.place_ladder_at(Vector2((ladder.x + 0.5) * tile, (ladder.y + 0.5) * tile))
-	for brick in bricks:
-		terrain.place_brick(brick)
+	# Bricks need the terrain's brick body, made when it enters the tree.
+	terrain.initial_bricks.append_array(bricks)
 	terrain.unbreakable_cells = unbreakable
-	if not skins.is_empty() or not backdrop.is_empty() or not trees.is_empty():
+	if not decor_trees.is_empty():
+		var decor := BackgroundDecor.new()
+		decor.name = "Decor"
+		decor.trees = decor_trees
+		terrain.add_child(decor)
+	if not skins.is_empty() or not backdrop.is_empty():
 		var skin := TerrainSkin.new()
 		skin.name = "Skin"
 		skin.skins = skins
 		skin.backdrop = backdrop
-		skin.trees = trees
 		terrain.add_child(skin)
 
 

@@ -13,9 +13,11 @@ signal play_requested
 signal pause_requested
 signal restart_requested
 signal menu_requested
-## Developer mode only: open one of the campaign levels, or save over one.
+## Open a level from a collection, save into one (LevelCollection), or
+## make one with the stage generator.
 signal open_level_requested
 signal save_level_requested
+signal generate_requested
 
 const FONT_SIZE := 12
 const COUNTER_COLUMNS := 6
@@ -162,15 +164,17 @@ func _build_top_bar(theme: Theme) -> void:
 	_counters_toggle.toggle_mode = true
 	_counters_toggle.button_pressed = true
 	_counters_toggle.toggled.connect(func(_on: bool) -> void: _refresh_counters_visibility())
-	if GameManager.developer_mode:
-		row.add_child(VSeparator.new())
-		var open_button := _make_icon_button(row, "campaign", "Abrir uma das 15 fases")
-		open_button.name = "OpenLevelButton"
-		open_button.pressed.connect(open_level_requested.emit)
-		var save_button := _make_icon_button(row, "level_save", "Salvar por cima de uma das 15 fases")
-		save_button.name = "SaveLevelButton"
-		save_button.pressed.connect(save_level_requested.emit)
-		_level_buttons.assign([open_button, save_button])
+	row.add_child(VSeparator.new())
+	var open_button := _make_icon_button(row, "campaign", "Abrir")
+	open_button.name = "OpenLevelButton"
+	open_button.pressed.connect(open_level_requested.emit)
+	var save_button := _make_icon_button(row, "level_save", "Salvar")
+	save_button.name = "SaveLevelButton"
+	save_button.pressed.connect(save_level_requested.emit)
+	var generate_button := _make_icon_button(row, "procedural", "Gerar uma fase")
+	generate_button.name = "GenerateButton"
+	generate_button.pressed.connect(generate_requested.emit)
+	_level_buttons.assign([open_button, save_button, generate_button])
 	var menu_button := _make_icon_button(row, "editor_menu", "Menu")
 	menu_button.pressed.connect(menu_requested.emit)
 

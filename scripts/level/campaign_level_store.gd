@@ -21,6 +21,8 @@ extends RefCounted
 const BACKUP_DIRECTORY := "user://campaign_backups/"
 ## Tests point it elsewhere.
 static var backup_directory := BACKUP_DIRECTORY
+## The campaign levels' drawing size, in cells (tools/build_campaign_levels.gd).
+const CAMPAIGN_SIZE := Vector2i(80, 45)
 const BACKUP_SCENE_FILE := "scene.tscn"
 const BACKUP_DATA_FILE := "data.tres"
 const LEVEL_MANAGER_SCRIPT := preload("res://scripts/level/level_manager.gd")
@@ -105,6 +107,7 @@ static func _read_files(scene_path: String, data: LevelData) -> Dictionary:
 		"total_lemmings": data.total_lemmings,
 		"skill_counts": data.skill_counts.duplicate(),
 		"environment_kind": data.environment_kind,
+		"size": CAMPAIGN_SIZE,
 	}
 	for child in scene.get_children():
 		if child is TileMapLayer:
