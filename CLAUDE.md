@@ -73,6 +73,20 @@ res://
 - `resources/` guarda dados configuráveis via `Resource` customizado (ex: dados de nível, estatísticas), permitindo criar/editar níveis sem tocar em código.
 - `autoload/` centraliza managers globais (Singletons), acessíveis via Autoload do Godot.
 
+### Modos de jogo (`modes/`)
+
+Tudo nas pastas acima é o **núcleo** do jogo (bonecos, ferramentas, terreno,
+fases, editor, áudio). Um modo de jogo construído sobre ele (ex.: roguelike)
+fica numa pasta **autocontida** `res://modes/<modo>/` com seus próprios
+`scenes/`, `scripts/`, `resources/` e `tests/`, e é aberto por um botão no
+menu.
+
+- **O núcleo nunca depende de um modo.** Um modo usa o núcleo; o núcleo não
+  importa nada de `modes/`. Se um modo precisa de algo novo, o núcleo ganha
+  um gancho genérico (sinal, parâmetro, propriedade exportada), nunca um
+  `if modo == ...`.
+- Apagar a pasta de um modo remove o modo sem quebrar o resto.
+
 Crie pastas/scripts conforme as features forem implementadas — não scaffold
 arquivos vazios especulativamente.
 

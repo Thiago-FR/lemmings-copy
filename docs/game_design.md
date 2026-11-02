@@ -207,7 +207,7 @@ Ordem (geometria mais simples primeiro, que difere da ordem da seção 8):
 | 3 | Builder — botão "Escada diagonal" | ✅ refeita (degraus de 8px) |
 | 4 | Miner — botão "Picareta", refeita como Pá na horizontal | ✅ fechado (fase 13) |
 | 5 | Climber — botão "Garras" | ✅ fechado (fase 9) |
-| 6 | Blocker — botão "Escudo" | ✅ fechado (fase 10) |
+| 6 | Blocker — trocado pelo Bloco: o boneco põe um bloco de terra na frente | ✅ fechado (fase 10) |
 | 7 | Floater — botão "Paraquedas" | ✅ fechado (fase 8) |
 | 8 | Bomber — virou Dinamite (fase 11) e TNT (fase 14): o boneco coloca a carga e se afasta | ✅ fechado |
 
