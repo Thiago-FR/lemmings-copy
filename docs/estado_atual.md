@@ -1,4 +1,4 @@
-# Estado Atual — 1º de novembro de 2026
+# Estado Atual — 2 de novembro de 2026
 
 Registro de onde o projeto está, o que foi decidido e por quê. Convenções de
 código em [CLAUDE.md](../CLAUDE.md), mecânicas em [game_design.md](game_design.md),
@@ -391,12 +391,49 @@ terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
   terra embaixo. Antes não achava terra, parava e gastava a carga.
   `TerrainDestructible.remove_bricks_in`. Teste: `test_shovel_on_bricks`.
 
+### Gerador de fases procedurais (`scripts/procedural/`)
+
+Núcleo, sem saber de modo nenhum (serve ao roguelike e, depois, a um botão
+"Gerar fase" no editor).
+
+- `MazeStageGenerator.generate(semente, dificuldade 0-4)` devolve um
+  `MazeStageData`: células (vazio/terra/concreto), entrada, saída, "spots"
+  de item (ferramenta com quantidade, ou bônus) e a **solução gravada**
+  (onde dar cada ferramenta). `MazeStageData.paint_onto(terreno)` pinta num
+  `TerrainDestructible`.
+- Labirinto de 5 x 3 salas numa tela de 60x34; andares 11 linhas um do
+  outro. Ligações: **porta** (livre), **parede** de terra (Picareta ou
+  Britadeira) ou concreto (só Britadeira), **fosso** de um bloco (Ponte, ou
+  cair nele e sair com Escada vertical de 1 peça), **remendo de terra no
+  chão** sobre uma escadaria de degraus de 2 blocos (Pá, só desce) e
+  **poço** encostado num separador que a Escada vertical sobe (12 peças,
+  exatamente o limite; sobe para a sala na diagonal). Nenhuma sala tem
+  beirada mortal: antes de abrir, toda ligação é parede.
+- Entrada e saída em qualquer sala, até vizinhas, desde que haja
+  ferramentas entre elas. Garras e Paraquedas não entram (um escalador sobe
+  a parede da sala até o teto e cai).
+- **Garantia:** `MazeSolver` (modelo de alcance: um boneco só, barra vazia,
+  só os itens da fase) tem de chegar à saída; senão o gerador descarta e
+  tenta de novo. No máximo 4 ferramentas diferentes por fase (a barra nunca
+  descarta o que foi pego ali).
+- `MazeLayout` também desenha fase à mão (`add_open`, `add_wall`,
+  `add_trough`, `add_stairs`, `add_ladder`, `add_tool_spot`...) e
+  `MazeStageGenerator.from_layout` confere e pinta. As 5 fases prontas do
+  roguelike são feitas assim (`modes/roguelike/scripts/stages/handmade_stages.gd`).
+- No roguelike, o modo desenvolvedor tem **Fases: Procedurais / Prontas**.
+- Testes: `tests/test_maze_generator` (100 fases, medidas de cada ligação);
+  `modes/roguelike/tests/test_procedural_stages` (modelo, 20 sementes x 5
+  fases), `test_procedural_play_1..3` (um robô joga fases geradas seguindo a
+  solução) e `test_stage_01..05` (as fases prontas).
+
 ### Modo roguelike (`modes/roguelike/`)
 
 Primeira versão, feita por um agente; botão "Roguelike" no menu.
 
-- Run de **5 fases** de 80x45 blocos montadas de pedaços (fixas por
-  enquanto, sem sorteio). Começa só com o **Mago**; quem é salvo segue para
+- Run de **5 fases-labirinto** de 60x34 blocos (uma tela Full HD), geradas
+  pelo gerador procedural do núcleo a partir da semente da run (ou as 5
+  fases prontas, ver "Gerador de fases procedurais"). Começa só com o
+  **Mago**; quem é salvo segue para
   a próxima fase; a cada fase um personagem novo entra (Mineiro, Engenheiro,
   Batedor, Inventor). Sem sobreviventes: "Fim da run".
 - **Personagens:** Mago (+1 carga por ferramenta pega), Mineiro (cava 2x
@@ -689,12 +726,53 @@ seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
   automáticas nas bordas. Sem salvar/carregar (por enquanto).
 - Teste: `test_level_editor` (não usa mouse de verdade).
 
-## Próximo passo
+## Situação do repositório (2 de novembro de 2026)
 
-A definir com o usuário. Pendências conhecidas: animação de colocar escada
-(as duas escadas usam animações provisórias); e as
-ideias em
-[ideias_futuras.md](ideias_futuras.md).
+- No GitHub (`Thiago-FR/lemmings-copy`, branch `main`) está **tudo do
+  núcleo**: ferramentas, tela cheia, câmera, configurações, editor, áudio,
+  arte de terreno/UI/entrada/saída, documentação.
+- **Ainda sem commit, esperando o usuário testar:** o modo roguelike
+  (`modes/`), o gerador de labirinto (`scripts/procedural/`,
+  `tests/test_maze_generator.*`), a arte só do roguelike (cartas em
+  `assets/sprites/ui/cards/`, personagens em
+  `assets/sprites/characters/{miner,engineer,scout,tinkerer}/` e
+  `resources/sprite_frames/`). Os geradores dessa arte
+  (`tools/build_card_art.py`, `tools/build_character_variants.py`) já
+  entraram no commit do núcleo.
+- Os testes do roguelike ficam em `modes/roguelike/tests/` e não são rodados
+  pelo `run_tests.bat` (só `tests/`). Para rodar tudo:
+  `for t in tests/test_*.tscn modes/roguelike/tests/test_*.tscn` com
+  `timeout 400 <godot> --headless --path . res://$t`.
+
+## O que falta fazer (pendências conhecidas)
+
+Roguelike e procedural (o usuário vai testar bastante o procedural):
+- **Testar e ajustar o gerador de labirinto**: as fases ficam "em caixas"
+  (só tetos e materiais variam); fossos e escadas aparecem pouco nas rotas
+  do solver; Garras, Paraquedas, Escada diagonal e explosivos ainda não são
+  usados como obstáculos; a estimativa de tempo é grosseira. 34 linhas de
+  32px dão 1088px, 8px a mais que Full HD (a câmera rola 8px).
+- Botão **"Gerar fase" no editor** (o `MazeStageData.paint_onto` já existe).
+- Decidir **acelerar o tempo / desistir da fase / profundidade da Pá**
+  (sugestões feitas ao usuário depois que um boneco cavou até o concreto e
+  ele esperou 3 minutos).
+- Bug relatado e **não reproduzido**: Picareta que quebrou um bloco e parou
+  (`prints/bug9.png`). Pedido ao usuário para reproduzir com o modo dev.
+- Câmera: talvez uma opção para desligar a rolagem pela borda do mouse (o
+  usuário não tem certeza de que é boa experiência).
+- Loja e telas entre fases ainda com visual simples (lista); cartas já têm
+  arte.
+
+Núcleo:
+- **Salvar/carregar cenários no editor.**
+- **Tutorial** (o usuário quer que o jogo ensine as ferramentas, sem texto
+  explicando a fase).
+- Animações que faltam: montar a escada vertical, a diagonal e a ponte
+  (usam animações provisórias); pedrinhas da britadeira já existem.
+- Fases de teste antigas são pequenas (800x450); o padrão novo é tela
+  inteira.
+- Ideias em [ideias_futuras.md](ideias_futuras.md) (roguelike completo,
+  um boneco/uma ferramenta reutilizável, terreno que nada quebra).
 
 ## Pendências de arte
 
