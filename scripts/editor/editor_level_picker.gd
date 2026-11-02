@@ -85,6 +85,9 @@ func _show_collections(collections: Array[LevelCollection]) -> void:
 		button.custom_minimum_size = COLLECTION_BUTTON_SIZE
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.pressed.connect(_show_slots.bind(collection))
+		if _purpose == Purpose.OPEN and not _has_any_level(collection):
+			button.disabled = true
+			button.tooltip_text = "Nada salvo ainda"
 		_column.add_child(button)
 	_add_back_button(func() -> void: queue_free())
 
@@ -102,6 +105,8 @@ func _show_slots(collection: LevelCollection) -> void:
 	grid.add_theme_constant_override("v_separation", 6)
 	_column.add_child(grid)
 	for index in collection.get_slot_count():
+		if _purpose == Purpose.OPEN and not collection.has_level(index):
+			continue
 		grid.add_child(_make_slot_button(collection, index))
 	_add_back_button(func() -> void:
 		var collections := LevelCollection.all()
@@ -160,6 +165,13 @@ func _add_back_button(action: Callable) -> void:
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(action)
 	_column.add_child(back)
+
+
+func _has_any_level(collection: LevelCollection) -> bool:
+	for index in collection.get_slot_count():
+		if collection.has_level(index):
+			return true
+	return false
 
 
 func _is_current(collection: LevelCollection) -> bool:

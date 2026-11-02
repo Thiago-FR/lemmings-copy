@@ -18,6 +18,8 @@ signal menu_requested
 signal open_level_requested
 signal save_level_requested
 signal generate_requested
+## Clear the drawing and start a new one.
+signal new_requested
 
 const FONT_SIZE := 12
 const COUNTER_COLUMNS := 6
@@ -43,6 +45,7 @@ var _pause_button: Button
 var _restart_button: Button
 var _counters_toggle: Button
 var _counters_panel: PanelContainer
+var _counters_grid: GridContainer
 var _run_counts: PanelContainer
 var _run_labels: Dictionary = {}
 var _is_editing := true
@@ -143,15 +146,6 @@ func _build_top_bar(theme: Theme) -> void:
 	row.add_theme_constant_override("separation", 4)
 	scroll.add_child(row)
 
-	var tool_group := ButtonGroup.new()
-	for kind: EditorTool.Kind in EditorTool.Kind.values():
-		var button := _make_icon_button(row, EditorTool.get_icon_id(kind), EditorTool.get_display_name(kind))
-		button.toggle_mode = true
-		button.button_group = tool_group
-		button.pressed.connect(func() -> void: tool_selected.emit(kind))
-		_tool_buttons[kind] = button
-
-	row.add_child(VSeparator.new())
 	_play_button = _make_icon_button(row, "editor_play", "Jogar")
 	_play_button.pressed.connect(play_requested.emit)
 	_pause_button = _make_icon_button(row, "editor_pause", "Pausar")
@@ -165,6 +159,9 @@ func _build_top_bar(theme: Theme) -> void:
 	_counters_toggle.button_pressed = true
 	_counters_toggle.toggled.connect(func(_on: bool) -> void: _refresh_counters_visibility())
 	row.add_child(VSeparator.new())
+	var new_button := _make_icon_button(row, "level_new", "Novo (limpa o desenho)")
+	new_button.name = "NewLevelButton"
+	new_button.pressed.connect(new_requested.emit)
 	var open_button := _make_icon_button(row, "campaign", "Abrir")
 	open_button.name = "OpenLevelButton"
 	open_button.pressed.connect(open_level_requested.emit)
@@ -174,7 +171,7 @@ func _build_top_bar(theme: Theme) -> void:
 	var generate_button := _make_icon_button(row, "procedural", "Gerar uma fase")
 	generate_button.name = "GenerateButton"
 	generate_button.pressed.connect(generate_requested.emit)
-	_level_buttons.assign([open_button, save_button, generate_button])
+	_level_buttons.assign([new_button, open_button, save_button, generate_button])
 	var menu_button := _make_icon_button(row, "editor_menu", "Menu")
 	menu_button.pressed.connect(menu_requested.emit)
 
@@ -217,11 +214,29 @@ func _build_counters_panel(theme: Theme) -> void:
 	_counters_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_counters_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(_counters_panel)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 6)
+	_counters_panel.add_child(column)
+
+	# What can be put in the drawing, all together at the bottom: terrain,
+	# the entrance and the exit, turning an entrance round.
+	var tools := HBoxContainer.new()
+	tools.name = "Tools"
+	tools.add_theme_constant_override("separation", 4)
+	column.add_child(tools)
+	var tool_group := ButtonGroup.new()
+	for kind: EditorTool.Kind in EditorTool.Kind.values():
+		var button := _make_icon_button(tools, EditorTool.get_icon_id(kind), EditorTool.get_display_name(kind))
+		button.toggle_mode = true
+		button.button_group = tool_group
+		button.pressed.connect(func() -> void: tool_selected.emit(kind))
+		_tool_buttons[kind] = button
 
 	var grid := GridContainer.new()
 	grid.columns = COUNTER_COLUMNS
 	grid.add_theme_constant_override("h_separation", 16)
-	_counters_panel.add_child(grid)
+	column.add_child(grid)
+	_counters_grid = grid
 
 	lemming_counter = EditorCounter.new("Bonecos", DEFAULT_LEMMING_COUNT, MIN_COUNT, MAX_COUNT, UiStyle.icon("editor_entrance"))
 	grid.add_child(lemming_counter)
@@ -231,8 +246,11 @@ func _build_counters_panel(theme: Theme) -> void:
 		skill_counters[skill_id] = counter
 
 
+## The bottom panel shows while editing; the counters in it only when
+## asked for (the tools always).
 func _refresh_counters_visibility() -> void:
-	_counters_panel.visible = _is_editing and _counters_toggle.button_pressed
+	_counters_panel.visible = _is_editing
+	_counters_grid.visible = _counters_toggle.button_pressed
 
 
 func _make_icon_button(parent: Node, icon_id: String, tooltip: String) -> Button:

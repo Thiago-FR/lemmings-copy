@@ -107,7 +107,9 @@ func _pine(cells: Array, colours: Array, snowy: bool) -> void:
 				_disc(centre + _rng.randf_range(-half * 0.8, half * 0.8), base - 2.0, 3.0, colours[3])
 
 
-## Palm: fronds fanning out from the top of the trunk, drooping at the tips.
+## Palm: a ringed trunk and, from its very top, long fronds arching out
+## and drooping, each a tapering stroke with leaflets hanging from it, and
+## coconuts where they meet.
 func _palm(cells: Array, colours: Array) -> void:
 	var left := 1 << 20
 	var right := -(1 << 20)
@@ -117,22 +119,38 @@ func _palm(cells: Array, colours: Array) -> void:
 		left = mini(left, local.x)
 		right = maxi(right, local.x + _cell)
 		y = local.y
-	var centre := Vector2((left + right) / 2.0, y + _cell * 0.45)
-	for frond in 6:
-		var side := -1.0 if frond % 2 == 0 else 1.0
-		var reach := (right - left) / 2.0 * (0.6 + 0.4 * float(frond / 2) / 2.0)
-		var lift := 6.0 - float(frond / 2) * 5.0
-		for step in 24:
-			var t := float(step) / 23.0
-			var point := centre + Vector2(side * reach * t, -lift * sin(t * PI) + t * t * 10.0)
-			_disc(point.x, point.y, 6.0 - t * 2.5, OUTLINE)
-		for step in 24:
-			var t := float(step) / 23.0
-			var point := centre + Vector2(side * reach * t, -lift * sin(t * PI) + t * t * 10.0)
-			_disc(point.x, point.y, 4.5 - t * 2.0, colours[0] if frond < 4 else colours[2])
-	_disc(centre.x, centre.y + 2.0, 5.0, OUTLINE)
-	_disc(centre.x - 3.0, centre.y + 3.0, 3.0, Color(0.42, 0.28, 0.14))
-	_disc(centre.x + 3.0, centre.y + 3.0, 3.0, Color(0.42, 0.28, 0.14))
+	var centre := Vector2((left + right) / 2.0, y + _cell * 0.6)
+	var reach := (right - left) / 2.0 + 6.0
+	# Back fronds darker, front ones lighter, drawn back to front.
+	var angles := [-150.0, -30.0, -170.0, -10.0, -120.0, -60.0, -95.0]
+	for index in angles.size():
+		var shade: Color = colours[1] if index < 2 else (colours[0] if index < 5 else colours[2])
+		_frond(centre, deg_to_rad(angles[index]), reach * (0.75 if index >= 4 else 1.0), shade)
+	_disc(centre.x - 3.0, centre.y + 3.0, 3.5, OUTLINE)
+	_disc(centre.x + 3.0, centre.y + 4.0, 3.5, OUTLINE)
+	_disc(centre.x - 3.0, centre.y + 3.0, 2.5, Color(0.45, 0.30, 0.14))
+	_disc(centre.x + 3.0, centre.y + 4.0, 2.5, Color(0.52, 0.35, 0.16))
+
+
+## One frond: out along the angle, bending down under its own weight.
+func _frond(start: Vector2, angle: float, length: float, colour: Color) -> void:
+	var points: Array[Vector2] = []
+	var direction := Vector2.from_angle(angle)
+	var position := start
+	for step in 18:
+		points.append(position)
+		direction = (direction + Vector2(0, 0.09)).normalized()
+		position += direction * (length / 18.0)
+	for index in points.size():
+		var t := float(index) / (points.size() - 1)
+		_disc(points[index].x, points[index].y, 3.2 - t * 1.8, OUTLINE)
+	for index in points.size():
+		var t := float(index) / (points.size() - 1)
+		_disc(points[index].x, points[index].y, 2.2 - t * 1.4, colour)
+		# Leaflets hanging below the stem.
+		if index % 2 == 1 and index < points.size() - 1:
+			for drop in range(1, 6 - int(t * 3)):
+				_put(int(points[index].x), int(points[index].y) + drop, colour.darkened(0.15))
 
 
 ## A giant mushroom: a dome over the crown cells with glowing spots.

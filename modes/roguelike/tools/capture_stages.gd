@@ -2,8 +2,9 @@ extends Node
 ## Saves a picture of every roguelike stage, whole (the camera zoomed out to
 ## fit it), with its items and the troop coming out, so the stages can be
 ## looked at without playing them. Needs a real renderer (a window opens):
-##   godot --path . --resolution 1920x1080 res://modes/roguelike/tools/capture_stages.tscn -- <output dir> [seed] [first stage] [last stage]
-## Stage numbers start at 1. Writes <nn>_<biome>_<stage name>.png.
+##   godot --path . --resolution 1920x1080 res://modes/roguelike/tools/capture_stages.tscn -- <output dir> [seed] [first stage] [last stage] [exit]
+## Stage numbers start at 1. Writes <nn>_<biome>_<stage name>.png; with
+## "exit" also <nn>_exit.png, the exit at its real size.
 
 const SETTLE_SECONDS := 2.5
 const MARGIN := 1.04
@@ -37,6 +38,12 @@ func _run() -> void:
 		var file := "%02d_%s_%s.png" % [number, biome.id, session.definition.stage_name.to_lower().replace(" ", "_")]
 		get_viewport().get_texture().get_image().save_png(output_dir.path_join(file))
 		print("saved ", file)
+		if args.size() > 4 and args[4] == "exit":
+			var camera := get_viewport().get_camera_2d()
+			camera.zoom = Vector2.ONE
+			camera.global_position = MazeStageData.surface_point(session.definition.maze.exit_cell)
+			await get_tree().create_timer(0.3).timeout
+			get_viewport().get_texture().get_image().save_png(output_dir.path_join("%02d_exit.png" % number))
 		remove_child(session)
 		session.queue_free()
 		GameManager.resume_game()

@@ -1221,6 +1221,30 @@ def trophy():
     return outline(image)
 
 
+def level_new():
+    """A blank sheet with its corner folded and a green plus: start over."""
+    image = new()
+    polygon(image, [(7, 3), (19, 3), (25, 9), (25, 28), (7, 28)], CREAM)
+    polygon(image, [(19, 3), (25, 9), (19, 9)], (200, 190, 160, 255))
+    for y in (13, 17, 21):
+        hline(image, 10, 21, y, (210, 200, 175, 255))
+    rect(image, 18, 18, 27, 21, GRASS)
+    rect(image, 21, 15, 24, 24, GRASS)
+    hline(image, 18, 27, 18, GRASS_LIGHT)
+    return outline(image)
+
+
+def editor_turn():
+    """Two arrows, one each way: turn an entrance to face the other side."""
+    image = new()
+    rect(image, 9, 9, 24, 12, YELLOW)
+    polygon(image, [(24, 5), (30, 10.5), (24, 16)], YELLOW)
+    hline(image, 9, 24, 9, YELLOW_LIGHT)
+    rect(image, 8, 20, 23, 23, ORANGE)
+    polygon(image, [(8, 16), (2, 21.5), (8, 27)], ORANGE)
+    return outline(image)
+
+
 def procedural():
     """A white die showing five, tilted a little: make a stage at random."""
     image = new()
@@ -1374,6 +1398,8 @@ EDITOR_ICONS = {
     "trophy": trophy,
     "level_save": level_save,
     "procedural": procedural,
+    "level_new": level_new,
+    "editor_turn": editor_turn,
 }
 
 

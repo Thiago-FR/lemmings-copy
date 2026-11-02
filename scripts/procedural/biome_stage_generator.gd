@@ -367,12 +367,18 @@ func _build_planet() -> void:
 ## A fall is a fall into space.
 func _build_space() -> void:
 	var modules: Array[Vector2i] = []
-	var bands := maxi(1, _rows / 14)
+	# Rows of modules, each tall enough for a module (8 blocks) and its
+	# wandering height, so two rows never overlap.
+	var band_height := 16
+	var bands := maxi(1, (_rows - 4) / band_height)
 	for band in bands:
 		var x := 2 + _rng.randi_range(0, 4)
+		var lowest := mini(band * band_height + band_height, _rows - 4)
+		var highest := band * band_height + 10
+		var floor_row := _rng.randi_range(highest, lowest)
 		while x < _columns - 9:
 			var width := _rng.randi_range(7, 11)
-			var floor_row := clampi(band * 14 + _rng.randi_range(8, 12), 8, _rows - 4)
+			floor_row = clampi(floor_row + _rng.randi_range(-4, 4), highest, lowest)
 			var right := mini(x + width - 1, _columns - 3)
 			_module(x, right, floor_row)
 			modules.append(Vector2i((x + right) / 2, floor_row))
@@ -529,6 +535,20 @@ func _start_cave(heights: PackedInt32Array, wall: StringName) -> void:
 	_spawn = Vector2i(left + 2, floor_row)
 
 
+## A chamber carved at the bottom right with the exit in it: the deepest
+## place of a stage that goes down, easy to spot. Returns the exit.
+func _bottom_chamber(wall: StringName) -> Vector2i:
+	var floor_row := _rows - 3
+	var right := _columns - BORDER - 2
+	var left := right - 9
+	_fill(left, floor_row - 4, right, floor_row - 1, EMPTY)
+	_fill(left, floor_row, right, floor_row, EARTH)
+	for row in range(floor_row - 4, floor_row):
+		for column in range(left, right + 1):
+			_backdrop[Vector2i(column, row)] = wall
+	return Vector2i(left + 6, floor_row)
+
+
 ## A volcano filling the stage: slopes rising from both sides to a crater
 ## near the top, cliffs on the way.
 func _volcano_cone() -> PackedInt32Array:
@@ -588,16 +608,26 @@ func _scaffold(left: int, right: int, top: int, street: int) -> void:
 		row -= 4
 
 
-## A station module: a hull floor, walls with a hatch on each side, a roof.
+## A station module: a room with a thick hull floor, a roof, walls down
+## to a hatch on each side (3 blocks high, enough to walk through), and
+## its inner wall drawn behind the air inside.
 func _module(left: int, right: int, floor_row: int) -> void:
+	var roof := floor_row - 8
 	_fill(left, floor_row, right, floor_row + 1, CONCRETE)
-	_fill(left, floor_row - 5, right, floor_row - 5, CONCRETE)
-	_fill(left, floor_row - 4, left, floor_row - 4, CONCRETE)
-	_fill(right, floor_row - 4, right, floor_row - 4, CONCRETE)
-	for row in range(floor_row - 5, floor_row + 2):
+	_fill(left, roof, right, roof, CONCRETE)
+	_fill(left, roof, left, floor_row - 4, CONCRETE)
+	_fill(right, roof, right, floor_row - 4, CONCRETE)
+	# Rounded ends: the roof's and the floor's outer corners cut.
+	_set_cell(left, roof, EMPTY)
+	_set_cell(right, roof, EMPTY)
+	_set_cell(left, floor_row + 1, EMPTY)
+	_set_cell(right, floor_row + 1, EMPTY)
+	for row in range(roof, floor_row + 2):
 		for column in range(left, right + 1):
 			if _cell(column, row) != EMPTY:
 				_skins[Vector2i(column, row)] = TerrainSkin.HULL
+			elif row > roof and row < floor_row and column > left and column < right:
+				_backdrop[Vector2i(column, row)] = TerrainSkin.STATION_INSIDE
 
 
 func _carve_disc(centre: Vector2, radius: float) -> void:
@@ -680,6 +710,8 @@ func _plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName
 			continue
 		if used.any(func(other: int) -> bool: return absi(other - column) < 5):
 			continue
+		if _climb_trees.any(func(tree: Vector2i) -> bool: return absi(tree.x - column) < 7):
+			continue
 		var kind := kinds[_rng.randi_range(0, kinds.size() - 1)]
 		var half := _rng.randi_range(2, 3)
 		var height := _rng.randi_range(6, 9)
@@ -694,7 +726,7 @@ func _plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName
 			for x in range(column - reach, column + reach + 1):
 				crown.append(Vector2i(x, row))
 		var trunk: Array[Vector2i] = []
-		for row in range(top + 1, ground):
+		for row in range(top, ground):
 			trunk.append(Vector2i(column, row))
 		_decor.append({"kind": kind, "box": Rect2i(column - half - 1, top - 1, half * 2 + 3, ground - top + 1), "crown": crown, "trunk": trunk, "seed": _rng.randi()})
 		used.append(column)
@@ -780,7 +812,7 @@ func _spawn_and_exit(heights: PackedInt32Array) -> void:
 			_exit = _highest(_floors(right - third, right))
 		Route.DESCEND:
 			_spawn = _floor_near(left + 2, heights)
-			_exit = _lowest(_floors(right - third, right))
+			_exit = _bottom_chamber(TerrainSkin.CAVE_WALL)
 	if _spawn == Vector2i(-1, -1):
 		_spawn = _floor_near(left + 2, heights)
 	if _exit == Vector2i(-1, -1):

@@ -1226,6 +1226,16 @@ palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
     andaimes** (plataformas de madeira e algumas escadas já montadas; a
     saída no telhado mais alto) e metrô sob a rua, ilhas flutuantes,
     módulos de estação em várias alturas.
+- **Copas para subir** no estilo de jogos de blocos (grade 8x8 de
+  "pixels" em tons de verde com buracos escuros; o usuário achou as
+  anteriores parecidas com pisca-pisca). Os enfeites não nascem perto delas.
+- **Saída das fases de descida** numa câmara no fundo, à direita
+  (`_bottom_chamber`). As paredes de caverna e os troncos ficam numa camada
+  própria atrás dos portais (z -2): antes cobriam o portal de saída, que é
+  desenhado logo atrás do terreno (z -1), e a saída "sumia".
+- **Módulos do espaço** viraram salas (8 blocos de altura, portinhola de 3
+  em cada lado, parede interna atrás), em fileiras que não se sobrepõem e
+  com alturas variando.
 - **Árvores de enfeite** (pinheiro, pinheiro com neve, palmeira, cogumelo;
   `TreeArt` + `BackgroundDecor`): atrás do terreno, não são sólidas, sem
   item. Carvalho e cerejeira redondos foram removidos.
@@ -1273,6 +1283,13 @@ palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
   gerada (`LevelEditorController.set_map_size`).
 - Formato salvo: `LevelDrawing` (`scripts/level/collections/`), que também
   converte `MazeStageData` em desenho e de volta.
+- **Arrumação pedida pelo usuário:** tudo o que se põe no desenho fica
+  **embaixo** (terra, concreto, escada, ponte, borracha, entrada, saída e
+  **Virar entrada**, que vira o lado de saída dos bonecos de uma entrada
+  clicada), junto dos contadores; em cima ficam Jogar/Pausar/Reiniciar,
+  Quantidades, **Novo** (limpa tudo, com confirmação), Abrir, Salvar, Gerar
+  e Menu. Ao abrir, só aparecem os espaços com fase; um modelo sem nada
+  salvo fica apagado.
 
 ## Situação do repositório (2 de novembro de 2026)
 

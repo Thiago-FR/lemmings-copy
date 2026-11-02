@@ -12,10 +12,9 @@ extends Node2D
 ## it was without having to undo anything the lemmings did.
 ##
 ## Entrances: a click with the Entrance tool moves the nearest one (or
-## makes the first), Shift+click adds another, a click on an entrance turns
-## it to face the other way (the arrow shows which), and the right button
-## on one removes it while others are left. Several entrances share the
-## troop.
+## makes the first), Shift+click adds another, the Turn tool turns one to
+## face the other way (the arrow shows which), and the right button on one
+## removes it while others are left. Several entrances share the troop.
 ##
 ## Open and Save work with collections of levels (LevelCollection): the
 ## free mode's own drawings, and in developer mode the campaign's 15 levels
@@ -85,6 +84,7 @@ func _ready() -> void:
 	toolbar.open_level_requested.connect(_open_level_picker)
 	toolbar.save_level_requested.connect(_save_level_picker)
 	toolbar.generate_requested.connect(_open_generator)
+	toolbar.new_requested.connect(_confirm_new)
 	toolbar.select_tool(current_tool)
 	_enter_editing_mode()
 
@@ -254,16 +254,19 @@ func _apply_tool(kind: EditorTool.Kind, world_position: Vector2) -> void:
 			_place_entrance(world_position)
 		EditorTool.Kind.EXIT:
 			_place_exit(world_position)
+		EditorTool.Kind.TURN:
+			var entrance := _entrance_at(world_position)
+			if entrance == null:
+				toolbar.flash(&"entrance")
+			else:
+				_set_facing(entrance, not entrance.faces_left)
 		_:
 			_brush.apply(kind, world_position)
 
 
-## Moves the nearest entrance here (makes the first one if there is none);
-## on an entrance's own cell, turns it around instead.
+## Moves the nearest entrance here (makes the first one if there is none).
 func _place_entrance(world_position: Vector2) -> void:
-	var on_cell := _entrance_at(world_position)
-	if on_cell != null:
-		_set_facing(on_cell, not on_cell.faces_left)
+	if _entrance_at(world_position) != null:
 		return
 	if not _can_hold_entrance(world_position):
 		return
@@ -413,6 +416,33 @@ func _save_level_picker() -> void:
 	var picker := EditorLevelPicker.new(EditorLevelPicker.Purpose.SAVE, _collection, _slot_index)
 	picker.picked.connect(func(collection: LevelCollection, index: int, _folder: String) -> void: _confirm_save(collection, index))
 	add_child(picker)
+
+
+func _confirm_new() -> void:
+	var modal := ConfirmModal.new("level_new", "Começar um desenho novo?", "Novo")
+	modal.confirmed.connect(new_drawing)
+	add_child(modal)
+
+
+## Clears everything: an empty drawing of the default size, no entrance,
+## no exit, the counters back to their start.
+func new_drawing() -> void:
+	_load_drawing({
+		"tile_map_data": PackedByteArray(), "bricks": [], "entrances": [], "exit": null,
+		"total_lemmings": EditorToolbar.DEFAULT_LEMMING_COUNT, "skill_counts": {},
+		"environment_kind": LevelEnvironment.Kind.SURFACE, "size": DEFAULT_MAP_SIZE,
+	})
+	toolbar.set_counts(EditorToolbar.DEFAULT_LEMMING_COUNT, _default_tool_counts())
+	_collection = null
+	_slot_index = -1
+	(get_node("Camera") as LevelCamera).focus_on(Vector2(0.0, get_paint_area().end.y))
+
+
+func _default_tool_counts() -> Dictionary:
+	var counts := {}
+	for skill_id in SkillManager.get_skill_ids():
+		counts[skill_id] = EditorToolbar.DEFAULT_TOOL_COUNT
+	return counts
 
 
 func _open_generator() -> void:
