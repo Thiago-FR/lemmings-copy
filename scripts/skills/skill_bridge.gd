@@ -44,6 +44,8 @@ extends SkillBase
 ## A hair of space kept between the body and the next piece's spot, so the
 ## body never touches whatever ends the bridge there.
 const PIECE_CLEARANCE := 0.5
+## Narrowest last piece cut to fit against the far side.
+const MIN_PIECE_WIDTH := 2.0
 ## Half a pixel above or below the walking surface, so a probe lands inside
 ## whatever is there instead of on its edge.
 const PROBE_INSET := 0.5
@@ -58,6 +60,9 @@ var _piece_height: float = 0.0
 var _origin_x: float = 0.0
 var _floor_y: float = 0.0
 var _pieces_laid: int = 0
+## Set once a piece had to be cut to fit against the far side: the bridge
+## ends with it.
+var _reached_far_side := false
 var _time_since_last_piece: float = 0.0
 var _move_remaining: Vector2 = Vector2.ZERO
 
@@ -116,7 +121,7 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 	if _move_remaining != Vector2.ZERO:
 		_walk(lemming, delta)
 		return true
-	if _pieces_laid >= max_pieces:
+	if _pieces_laid >= max_pieces or _reached_far_side:
 		return false
 
 	_time_since_last_piece += delta
@@ -131,15 +136,19 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 ## false when the bridge has to end here: the piece's spot is not empty, or
 ## the body would run into something walking along it.
 func _lay_next_piece(lemming: LemmingController) -> bool:
-	var offset := _offset_to_piece_end(lemming, _pieces_laid)
-	if lemming.is_body_blocked_at(offset):
+	# The last piece is cut to the room left, so the bridge always reaches
+	# the far side; it used to stop up to a piece short of it, leaving a gap.
+	var piece := lemming.terrain.fit_brick(_piece_rect(lemming.direction, _pieces_laid), lemming.direction, MIN_PIECE_WIDTH)
+	if not piece.has_area() or _overlaps_ladder(lemming.terrain, piece):
 		return false
-	var piece := _piece_rect(lemming.direction, _pieces_laid)
-	if _overlaps_ladder(lemming.terrain, piece):
+	var offset := _offset_to_piece_end(lemming, piece)
+	if lemming.is_body_blocked_at(offset):
 		return false
 	if not lemming.terrain.place_brick(piece):
 		return false
+	AudioManager.play_sound(&"place_brick")
 	_pieces_laid += 1
+	_reached_far_side = piece.size.x < _piece_width
 	_move_remaining = offset
 	return true
 
@@ -190,12 +199,13 @@ func _piece_rect(direction: int, index: int) -> Rect2:
 	return Rect2(Vector2(_origin_x - _piece_width * (index + 1), _floor_y), size)
 
 
-## How far the lemming moves to stand at the end of piece index: feet on the
-## walking surface, and the leading edge stopped just short of where the
-## next piece goes.
-func _offset_to_piece_end(lemming: LemmingController, index: int) -> Vector2:
+## How far the lemming moves to stand at the end of a piece: feet on the
+## walking surface, and the leading edge stopped just short of its far end
+## (where the next piece goes, or the far side a cut piece reaches).
+func _offset_to_piece_end(lemming: LemmingController, piece: Rect2) -> Vector2:
 	var body := lemming.get_body_rect()
-	var target_front := _origin_x + lemming.direction * (_piece_width * (index + 1) - PIECE_CLEARANCE)
+	var far_end := piece.end.x if lemming.direction > 0 else piece.position.x
+	var target_front := far_end - lemming.direction * PIECE_CLEARANCE
 	return Vector2(target_front - _front_edge(body, lemming.direction), _floor_y - body.end.y)
 
 

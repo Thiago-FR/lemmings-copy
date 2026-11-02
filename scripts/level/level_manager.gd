@@ -20,6 +20,15 @@ var lemmings_saved_count: int = 0
 var lemmings_lost_count: int = 0
 var time_remaining: float = 0.0
 
+## Screen space taken by the HUD at the top and the tool panel at the
+## bottom, which the camera can scroll past the level's edges (LevelCamera).
+const HUD_TOP_MARGIN := 48.0
+const TOOL_PANEL_BOTTOM_MARGIN := 64.0
+## Rows above the top of an authored level only hold boundary walls that
+## keep lemmings from climbing out; the view starts this far above the
+## highest entrance or exit instead of at the top of those walls.
+const VIEW_HEADROOM := 64.0
+
 var _spawn_points: Array = []
 var _finished_spawn_point_count: int = 0
 var _level_ended: bool = false
@@ -49,6 +58,54 @@ func _ready() -> void:
 		spawn_point.all_lemmings_spawned.connect(_on_spawn_point_finished)
 		spawn_point.start(level_data.spawn_rate, level_data.total_lemmings)
 
+	AudioManager.play_music_track(&"level_theme")
+	_set_up_view()
+
+
+## The background filling the screen, the rock frame around the level's
+## area, and a camera over it, unless a camera is already in charge (the
+## editor keeps its own view while testing a drawing).
+func _set_up_view() -> void:
+	if get_viewport().get_camera_2d() != null:
+		return
+	var bounds := _compute_view_bounds()
+	var environment := LevelEnvironment.by_kind(level_data.environment_kind)
+	var background := LevelBackground.new()
+	background.environment = environment
+	add_child(background)
+	var backdrop := LevelBackdrop.new()
+	backdrop.area = bounds
+	backdrop.environment = environment
+	add_child(backdrop)
+	var camera := LevelCamera.new()
+	camera.bounds = bounds
+	camera.top_margin = HUD_TOP_MARGIN
+	camera.bottom_margin = TOOL_PANEL_BOTTOM_MARGIN
+	add_child(camera)
+	camera.focus_on(_spawn_points[0].global_position)
+
+
+## The terrain's extent, plus the entrances and exits, cut at the top a
+## little above the highest of those (see VIEW_HEADROOM).
+func _compute_view_bounds() -> Rect2:
+	var bounds := Rect2()
+	var terrain: TerrainDestructible = get_tree().get_first_node_in_group("terrain")
+	if terrain != null and terrain.get_used_rect().has_area():
+		var cells := terrain.get_used_rect()
+		var cell_size := terrain.get_cell_size()
+		bounds = Rect2(terrain.to_global(Vector2(cells.position) * cell_size), Vector2(cells.size) * cell_size)
+	var markers: Array = _spawn_points + get_tree().get_nodes_in_group("exit_points")
+	var highest := INF
+	for marker in markers:
+		var point: Vector2 = marker.global_position
+		bounds = bounds.expand(point) if bounds.has_area() else Rect2(point, Vector2.ONE)
+		highest = minf(highest, point.y)
+	var top := minf(highest - VIEW_HEADROOM, 0.0)
+	if bounds.position.y < top:
+		bounds.size.y -= top - bounds.position.y
+		bounds.position.y = top
+	return bounds
+
 
 func _process(delta: float) -> void:
 	if _level_ended:
@@ -63,11 +120,15 @@ func _process(delta: float) -> void:
 
 func _on_lemming_spawned(lemming: LemmingController) -> void:
 	lemmings_spawned_count += 1
+	AudioManager.play_sound(&"spawn")
 	lemming.died.connect(_on_lemming_died)
 	lemming.clicked.connect(SkillManager.try_assign_to)
 
 
-func _on_lemming_died(_cause: LemmingController.DeathCause) -> void:
+func _on_lemming_died(cause: LemmingController.DeathCause) -> void:
+	# An explosion already makes its own sound.
+	if cause == LemmingController.DeathCause.FALL:
+		AudioManager.play_sound(&"splat")
 	lemmings_lost_count += 1
 	_emit_counts_changed()
 	_check_level_resolved()
@@ -75,6 +136,7 @@ func _on_lemming_died(_cause: LemmingController.DeathCause) -> void:
 
 func _on_lemming_exited(_lemming: LemmingController) -> void:
 	lemmings_saved_count += 1
+	AudioManager.play_sound(&"saved")
 	_emit_counts_changed()
 	_check_level_resolved()
 
@@ -105,6 +167,8 @@ func _finish_level() -> void:
 		percentage_saved = float(lemmings_saved_count) / float(level_data.total_lemmings)
 
 	if percentage_saved >= level_data.required_percentage:
+		AudioManager.play_sound(&"level_won")
 		level_completed.emit(percentage_saved)
 	else:
+		AudioManager.play_sound(&"level_lost")
 		level_failed.emit(percentage_saved)

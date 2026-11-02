@@ -11,3 +11,4 @@ func _init() -> void:
 	dig_speed = 20.0
 	breaks_concrete = false
 	dig_state = LemmingStateMachine.State.MINING
+	dig_sound = &"pickaxe_hit"

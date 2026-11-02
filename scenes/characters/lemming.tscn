@@ -187,9 +187,6 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lemming"]
 size = Vector2(26, 30)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_blocker_zone"]
-size = Vector2(30, 34)
-
 [node name="Lemming" type="CharacterBody2D" unique_id=843850481]
 input_pickable = true
 script = ExtResource("1_script")
@@ -203,13 +200,3 @@ autoplay = "walk"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1149958183]
 position = Vector2(1, 2)
 shape = SubResource("RectangleShape2D_lemming")
-
-[node name="BlockerZone" type="Area2D" parent="." unique_id=468859171]
-position = Vector2(1, 2)
-collision_layer = 0
-collision_mask = 0
-monitoring = false
-monitorable = false
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="BlockerZone"]
-shape = SubResource("RectangleShape2D_blocker_zone")

@@ -1,8 +1,9 @@
 class_name EditorToolbar
 extends CanvasLayer
 ## The level editor's on-screen controls: paint tools and test controls on
-## top, a status line under them, and the lemming/tool counters at the
-## bottom. It only reports what the player pressed through signals and shows
+## top (icon slots, names on hover), a status line under them, and the
+## lemming/tool counters at the bottom, on the same wooden panels as the
+## level's tool bar (UiStyle). It only reports what the player pressed through signals and shows
 ## whatever state it is told; LevelEditorController decides what happens.
 
 signal tool_selected(kind: EditorTool.Kind)
@@ -17,6 +18,8 @@ const MIN_COUNT := 0
 const MAX_COUNT := 50
 const DEFAULT_LEMMING_COUNT := 10
 const DEFAULT_TOOL_COUNT := 5
+## Where the status line sits, just under the top bar of icon slots.
+const STATUS_LINE_Y := 60.0
 
 var lemming_counter: EditorCounter
 ## skill id -> EditorCounter
@@ -81,6 +84,8 @@ func _build_top_bar(theme: Theme) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "TopBar"
 	panel.theme = theme
+	panel.add_theme_stylebox_override("panel", UiStyle.panel_style())
+	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	add_child(panel)
 
@@ -95,26 +100,26 @@ func _build_top_bar(theme: Theme) -> void:
 
 	var tool_group := ButtonGroup.new()
 	for kind: EditorTool.Kind in EditorTool.Kind.values():
-		var button := _make_button(row, EditorTool.get_display_name(kind))
+		var button := _make_icon_button(row, EditorTool.get_icon_id(kind), EditorTool.get_display_name(kind))
 		button.toggle_mode = true
 		button.button_group = tool_group
 		button.pressed.connect(func() -> void: tool_selected.emit(kind))
 		_tool_buttons[kind] = button
 
 	row.add_child(VSeparator.new())
-	_play_button = _make_button(row, "Jogar")
+	_play_button = _make_icon_button(row, "editor_play", "Jogar")
 	_play_button.pressed.connect(play_requested.emit)
-	_pause_button = _make_button(row, "Pausar")
+	_pause_button = _make_icon_button(row, "editor_pause", "Pausar")
 	_pause_button.pressed.connect(pause_requested.emit)
-	_restart_button = _make_button(row, "Reiniciar")
+	_restart_button = _make_icon_button(row, "editor_restart", "Reiniciar (volta ao desenho)")
 	_restart_button.pressed.connect(restart_requested.emit)
 
 	row.add_child(VSeparator.new())
-	_counters_toggle = _make_button(row, "Quantidades")
+	_counters_toggle = _make_icon_button(row, "editor_counts", "Quantidades")
 	_counters_toggle.toggle_mode = true
 	_counters_toggle.button_pressed = true
 	_counters_toggle.toggled.connect(func(_on: bool) -> void: _refresh_counters_visibility())
-	var menu_button := _make_button(row, "Menu")
+	var menu_button := _make_icon_button(row, "editor_menu", "Menu")
 	menu_button.pressed.connect(menu_requested.emit)
 
 
@@ -123,7 +128,7 @@ func _build_status_label(theme: Theme) -> void:
 	_status_label.name = "StatusLabel"
 	_status_label.theme = theme
 	_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_status_label.position = Vector2(8, 34)
+	_status_label.position = Vector2(8, STATUS_LINE_Y)
 	_status_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	_status_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	_status_label.add_theme_constant_override("outline_size", 3)
@@ -134,6 +139,8 @@ func _build_counters_panel(theme: Theme) -> void:
 	_counters_panel = PanelContainer.new()
 	_counters_panel.name = "CountersPanel"
 	_counters_panel.theme = theme
+	_counters_panel.add_theme_stylebox_override("panel", UiStyle.panel_style())
+	_counters_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_counters_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_counters_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	add_child(_counters_panel)
@@ -143,10 +150,10 @@ func _build_counters_panel(theme: Theme) -> void:
 	grid.add_theme_constant_override("h_separation", 16)
 	_counters_panel.add_child(grid)
 
-	lemming_counter = EditorCounter.new("Bonecos", DEFAULT_LEMMING_COUNT, MIN_COUNT, MAX_COUNT)
+	lemming_counter = EditorCounter.new("Bonecos", DEFAULT_LEMMING_COUNT, MIN_COUNT, MAX_COUNT, UiStyle.icon("editor_entrance"))
 	grid.add_child(lemming_counter)
 	for skill_id in SkillManager.get_skill_ids():
-		var counter := EditorCounter.new(SkillManager.get_display_name(skill_id), DEFAULT_TOOL_COUNT, MIN_COUNT, MAX_COUNT)
+		var counter := EditorCounter.new(SkillManager.get_display_name(skill_id), DEFAULT_TOOL_COUNT, MIN_COUNT, MAX_COUNT, UiStyle.icon(skill_id))
 		grid.add_child(counter)
 		skill_counters[skill_id] = counter
 
@@ -155,10 +162,7 @@ func _refresh_counters_visibility() -> void:
 	_counters_panel.visible = _is_editing and _counters_toggle.button_pressed
 
 
-func _make_button(parent: Node, text: String) -> Button:
-	var button := Button.new()
-	button.text = text
-	# Without this, Space/Enter would re-press the last clicked button.
-	button.focus_mode = Control.FOCUS_NONE
+func _make_icon_button(parent: Node, icon_id: String, tooltip: String) -> Button:
+	var button := UiStyle.make_icon_button(icon_id, tooltip)
 	parent.add_child(button)
 	return button

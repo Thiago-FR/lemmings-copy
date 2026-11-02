@@ -1,9 +1,12 @@
 extends SceneTree
-## One-off build script: generates the placeholder terrain tiles and a
-## TileSet with a destructible-terrain physics layer, matching
-## Constants.TERRAIN_COLLISION_LAYER. Run via:
+## One-off build script: builds the terrain TileSet with a destructible-terrain
+## physics layer, matching Constants.TERRAIN_COLLISION_LAYER. Run via:
+##   python tools/build_terrain_art.py          (draws the PNGs)
+##   godot --headless --path . --import         (imports new/changed PNGs)
 ##   godot --headless --script res://tools/build_terrain_tileset.gd
-## Replace the colours with real terrain art later; the TileSet layout can stay.
+##
+## The art comes from assets/sprites/terrain/ (see tools/build_terrain_art.py);
+## this script only lays out the tiles and their collision.
 ##
 ## The atlas has one row of DIG_STAGES tiles per terrain material: row 0 is
 ## earth, row 1 concrete (only the jackhammer breaks it). Tile 0 of a row is
@@ -14,36 +17,35 @@ extends SceneTree
 ## over it until the digger has actually got that far down.
 ## TerrainDestructible reads the stage count from the atlas itself.
 ##
+## The tiles only show a block's interior. Whether a block looks like a floor
+## or a wall depends on its neighbours, so those edges are drawn over the
+## tiles at run time by TerrainEdgeOverlay.
+##
 ## A second atlas source holds the ladder tile: same size, no collision.
 ## Ladder tools replace terrain cells with it, which opens the cell and marks
 ## it as climbable in one step.
 
 const TILE_SIZE := 32
 const DIG_STAGES := 4
+const MATERIAL_COUNT := 2
 const TERRAIN_COLLISION_LAYER := 2
-## One colour per material, in atlas row order: earth, concrete.
-const MATERIAL_COLOURS: Array[Color] = [Color(0.45, 0.32, 0.18), Color(0.55, 0.56, 0.58)]
-## Slightly darker speckles on concrete, so it reads as a different
-## material and not just a lighter earth.
-const CONCRETE_SPECKLE_COLOUR := Color(0.44, 0.45, 0.47)
-const CONCRETE_SPECKLE_SPACING := 6
 const TERRAIN_SOURCE_ID := 0
 const LADDER_SOURCE_ID := 1
-## Placeholder ladder: two rails and evenly spaced rungs, drawn so it reads
-## as a ladder rather than a recoloured block until real art replaces it.
-const LADDER_COLOUR := Color(0.92, 0.74, 0.32)
-const LADDER_RAIL_INSET := 6
-const LADDER_RAIL_WIDTH := 3
-const LADDER_RUNG_SPACING := 8
-const LADDER_RUNG_HEIGHT := 2
+const TERRAIN_ATLAS_PATH := "res://assets/sprites/terrain/terrain_atlas.png"
+const LADDER_TEXTURE_PATH := "res://assets/sprites/terrain/ladder.png"
 
 
 func _initialize() -> void:
 	assert(TILE_SIZE % DIG_STAGES == 0, "Each dig stage must be a whole number of pixels")
 	var stage_height := TILE_SIZE / DIG_STAGES
 
+	var atlas_texture: Texture2D = load(TERRAIN_ATLAS_PATH)
+	assert(atlas_texture != null, "Run tools/build_terrain_art.py and import first")
+	assert(atlas_texture.get_size() == Vector2(TILE_SIZE * DIG_STAGES, TILE_SIZE * MATERIAL_COUNT),
+		"The terrain atlas must hold DIG_STAGES columns and one row per material")
+
 	var atlas_source := TileSetAtlasSource.new()
-	atlas_source.texture = _build_atlas_texture(stage_height)
+	atlas_source.texture = atlas_texture
 	atlas_source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
 
 	var tile_set := TileSet.new()
@@ -57,7 +59,7 @@ func _initialize() -> void:
 	tile_set.add_source(atlas_source, TERRAIN_SOURCE_ID)
 
 	var half := TILE_SIZE / 2.0
-	for material in MATERIAL_COLOURS.size():
+	for material in MATERIAL_COUNT:
 		for stage in DIG_STAGES:
 			var atlas_coords := Vector2i(stage, material)
 			atlas_source.create_tile(atlas_coords)
@@ -79,39 +81,13 @@ func _initialize() -> void:
 	quit()
 
 
-func _build_atlas_texture(stage_height: int) -> ImageTexture:
-	var image := Image.create(TILE_SIZE * DIG_STAGES, TILE_SIZE * MATERIAL_COLOURS.size(), false, Image.FORMAT_RGBA8)
-	image.fill(Color(0, 0, 0, 0))
-	for material in MATERIAL_COLOURS.size():
-		var row_y := material * TILE_SIZE
-		for stage in DIG_STAGES:
-			var dug := stage * stage_height
-			var solid := Rect2i(stage * TILE_SIZE, row_y + dug, TILE_SIZE, TILE_SIZE - dug)
-			image.fill_rect(solid, MATERIAL_COLOURS[material])
-			if material == 1:
-				_speckle(image, solid)
-	return ImageTexture.create_from_image(image)
-
-
-func _speckle(image: Image, area: Rect2i) -> void:
-	for y in range(area.position.y + 2, area.end.y, CONCRETE_SPECKLE_SPACING):
-		for x in range(area.position.x + 2 + (y / CONCRETE_SPECKLE_SPACING) % 2 * 3, area.end.x, CONCRETE_SPECKLE_SPACING):
-			image.fill_rect(Rect2i(x, y, 2, 2), CONCRETE_SPECKLE_COLOUR)
-
-
 ## No collision polygon on purpose: lemmings pass through ladder cells, and
 ## climbing is decided by asking the terrain whether a cell is a ladder.
 func _build_ladder_source() -> TileSetAtlasSource:
-	var image := Image.create(TILE_SIZE, TILE_SIZE, false, Image.FORMAT_RGBA8)
-	image.fill(Color(0, 0, 0, 0))
-	var right_rail_x := TILE_SIZE - LADDER_RAIL_INSET - LADDER_RAIL_WIDTH
-	image.fill_rect(Rect2i(LADDER_RAIL_INSET, 0, LADDER_RAIL_WIDTH, TILE_SIZE), LADDER_COLOUR)
-	image.fill_rect(Rect2i(right_rail_x, 0, LADDER_RAIL_WIDTH, TILE_SIZE), LADDER_COLOUR)
-	for rung_y in range(LADDER_RUNG_SPACING / 2, TILE_SIZE, LADDER_RUNG_SPACING):
-		image.fill_rect(Rect2i(LADDER_RAIL_INSET, rung_y, right_rail_x + LADDER_RAIL_WIDTH - LADDER_RAIL_INSET, LADDER_RUNG_HEIGHT), LADDER_COLOUR)
-
+	var texture: Texture2D = load(LADDER_TEXTURE_PATH)
+	assert(texture != null, "Run tools/build_terrain_art.py and import first")
 	var source := TileSetAtlasSource.new()
-	source.texture = ImageTexture.create_from_image(image)
+	source.texture = texture
 	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
 	source.create_tile(Vector2i.ZERO)
 	return source

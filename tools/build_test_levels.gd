@@ -247,11 +247,10 @@ func _build_level_09() -> void:
 	_save_level(root, "res://scenes/levels/level_09.tscn")
 
 
-## Blocker: lemmings start in the middle of the floor walking right, towards
-## a gap with nothing under it at the floor's end. The exit is behind them,
-## at the left. A blocker placed between the entrance and the gap turns
-## everyone else back towards the exit. The gap starts eight tiles past the
-## entrance, giving the player a few seconds to react.
+## Block: lemmings start in the middle of the floor walking right, towards
+## a bottomless gap at the right; the exit is at the left. A block put down
+## in front of the first lemming before the gap turns it around, and every
+## lemming after it turns at the same block.
 func _build_level_10() -> void:
 	var root := _new_level_root("Level10")
 	var terrain := _new_terrain()

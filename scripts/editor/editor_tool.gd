@@ -17,8 +17,24 @@ const DISPLAY_NAMES := {
 }
 
 
+## Icon of each tool (see UiStyle.icon).
+const ICON_IDS := {
+	Kind.BLOCK: "editor_earth",
+	Kind.CONCRETE: "editor_concrete",
+	Kind.LADDER: "editor_ladder",
+	Kind.BRICK: "editor_brick",
+	Kind.ERASER: "editor_eraser",
+	Kind.ENTRANCE: "editor_entrance",
+	Kind.EXIT: "editor_exit",
+}
+
+
 static func get_display_name(kind: Kind) -> String:
 	return DISPLAY_NAMES[kind]
+
+
+static func get_icon_id(kind: Kind) -> String:
+	return ICON_IDS[kind]
 
 
 ## Tools that keep painting while the mouse is dragged. Entrance and exit

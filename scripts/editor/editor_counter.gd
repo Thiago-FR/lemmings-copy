@@ -1,7 +1,8 @@
 class_name EditorCounter
 extends HBoxContainer
-## A named number with - and + buttons, clamped to [min_value, max_value].
-## Used by the editor for the lemming count and each tool's count.
+## A named number with - and + buttons, clamped to [min_value, max_value],
+## led by an optional icon. Used by the editor for the lemming count and
+## each tool's count.
 
 signal value_changed(new_value: int)
 
@@ -19,11 +20,19 @@ var _decrease_button: Button
 var _increase_button: Button
 
 
-func _init(display_name: String, initial_value: int, minimum: int, maximum: int) -> void:
+func _init(display_name: String, initial_value: int, minimum: int, maximum: int, icon: Texture2D = null) -> void:
 	assert(minimum <= maximum, "EditorCounter needs minimum <= maximum")
 	min_value = minimum
 	max_value = maximum
 	add_theme_constant_override("separation", 2)
+
+	if icon != null:
+		var icon_rect := TextureRect.new()
+		icon_rect.texture = icon
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon_rect.tooltip_text = display_name
+		add_child(icon_rect)
 
 	var name_label := Label.new()
 	name_label.text = display_name

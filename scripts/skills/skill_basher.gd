@@ -14,3 +14,4 @@ func _init() -> void:
 	dig_speed = 24.0
 	breaks_concrete = true
 	dig_state = LemmingStateMachine.State.BASHING
+	dig_sound = &"jackhammer_hit"

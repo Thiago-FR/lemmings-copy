@@ -22,6 +22,13 @@ const EXIT_HALF_HEIGHT := 24.0
 ## A fast drag can skip cells between two mouse events; the stroke is filled
 ## in at this spacing (a quarter cell, the brick height).
 const STROKE_STEP := 8.0
+## Size of the drawing, in blocks: much bigger than one screen, scrolled
+## with the camera (arrow keys/WASD, middle mouse drag, window edges).
+const MAP_SIZE_TILES := Vector2i(120, 60)
+## Screen space covered by the toolbar at the top and the counters at the
+## bottom, which the camera can scroll past the drawing's edges.
+const TOOLBAR_TOP_MARGIN := 84.0
+const COUNTERS_BOTTOM_MARGIN := 120.0
 
 var mode: Mode = Mode.EDITING
 var current_tool: EditorTool.Kind = EditorTool.Kind.BLOCK
@@ -43,12 +50,14 @@ var _run_status_text := ""
 
 
 func _ready() -> void:
+	AudioManager.play_music_track(&"menu_theme")
 	# The toolbar and this controller must keep answering clicks while the
 	# test run is paused; the run itself is made pausable in play().
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_brush = EditorBrush.new(terrain)
 	_grid_overlay.area = get_paint_area()
 	_grid_overlay.cell_size = terrain.get_cell_size()
+	_set_up_view()
 
 	toolbar.tool_selected.connect(select_tool)
 	toolbar.play_requested.connect(play)
@@ -59,9 +68,27 @@ func _ready() -> void:
 	_enter_editing_mode()
 
 
-## The area that can be painted: the visible screen.
+## The area that can be painted: the whole drawing, not just the screen.
 func get_paint_area() -> Rect2:
-	return Rect2(Vector2.ZERO, get_viewport_rect().size)
+	return Rect2(Vector2.ZERO, Vector2(MAP_SIZE_TILES) * terrain.get_cell_size())
+
+
+## Backdrop and camera over the drawing. Children of the editor, not of
+## EditLayer, so they stay while a test run replaces EditLayer; the run's
+## LevelManager sees this camera and does not make its own.
+func _set_up_view() -> void:
+	add_child(LevelBackground.new())
+	var backdrop := LevelBackdrop.new()
+	backdrop.area = get_paint_area()
+	add_child(backdrop)
+	var camera := LevelCamera.new()
+	camera.name = "Camera"
+	camera.bounds = get_paint_area()
+	camera.top_margin = TOOLBAR_TOP_MARGIN
+	camera.bottom_margin = COUNTERS_BOTTOM_MARGIN
+	add_child(camera)
+	# Start at the bottom-left corner, where a floor usually goes first.
+	camera.focus_on(Vector2(0.0, get_paint_area().end.y))
 
 
 func select_tool(kind: EditorTool.Kind) -> void:

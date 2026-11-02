@@ -32,12 +32,20 @@ extends TileMapLayer
 ## above, like a platform: a lemming stands and walks on them, while one
 ## walking underneath a staircase passes through the bricks at head height
 ## instead of taking them for a wall.
+##
+## How the terrain looks: the tiles show each block's interior, and a child
+## TerrainEdgeOverlay draws floor, wall and ceiling edges over them from the
+## neighbours, refreshed through _update_cells() whenever any cell changes.
+## That is drawing only; nothing here reads it.
 
 const TERRAIN_SOURCE_ID := 0
 ## Terrain materials, by atlas row.
 enum TerrainMaterial { EARTH, CONCRETE }
 const LADDER_SOURCE_ID := 1
-const BRICK_COLOUR := Color(0.80, 0.55, 0.30)
+const BRICK_TEXTURE := preload("res://assets/sprites/terrain/brick.png")
+## Pixels at each end of the plank texture kept as they are when a brick
+## is narrower or wider than the texture.
+const BRICK_END_CAP := 3
 ## Tile transforms for a cell dug from the side; plain tiles are dug from
 ## the top.
 const DUG_FROM_LEFT := TileSetAtlasSource.TRANSFORM_TRANSPOSE
@@ -48,10 +56,17 @@ const DUG_FROM_RIGHT := TileSetAtlasSource.TRANSFORM_TRANSPOSE | TileSetAtlasSou
 var _bricks: Array[Rect2] = []
 var _brick_nodes: Array[Array] = []
 var _brick_body: StaticBody2D = null
+var _edge_overlay: TerrainEdgeOverlay = null
 
 
 func _ready() -> void:
 	add_to_group("terrain")
+	# The terrain art is drawn at one texel per screen pixel; linear filtering
+	# would blur it whenever the window is scaled. Children (edges, bricks)
+	# inherit this.
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_edge_overlay = TerrainEdgeOverlay.new(self)
+	add_child(_edge_overlay)
 	_brick_body = StaticBody2D.new()
 	_brick_body.name = "Bricks"
 	# Same physics layer as the tiles, so lemmings stand on bricks exactly as
@@ -78,8 +93,14 @@ func place_brick(world_rect: Rect2) -> bool:
 	collision.position = local_rect.get_center()
 	_brick_body.add_child(collision)
 
-	var visual := ColorRect.new()
-	visual.color = BRICK_COLOUR
+	# Drawn as a plank whose two ends keep their shape while only the middle
+	# stretches or shrinks: a short step cut against a wall reads as a short
+	# plank, not as a squashed or chopped one (prints/bug8.png).
+	var visual := NinePatchRect.new()
+	visual.texture = BRICK_TEXTURE
+	visual.patch_margin_left = BRICK_END_CAP
+	visual.patch_margin_right = BRICK_END_CAP
+	visual.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE_FIT
 	visual.position = local_rect.position
 	visual.size = local_rect.size
 	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -92,6 +113,39 @@ func place_brick(world_rect: Rect2) -> bool:
 
 func get_bricks() -> Array[Rect2]:
 	return _bricks.duplicate()
+
+
+## A brick as it fits: whole if its spot is free, otherwise cut from its far
+## side (the side direction points to) down to the room left before
+## whatever is in the way. Empty if not even min_width is free. Used by the
+## diagonal ladder and the bridge so their last piece always reaches the
+## wall or the far side instead of stopping up to a piece short of it.
+func fit_brick(brick: Rect2, direction: int, min_width: float) -> Rect2:
+	if not _is_brick_spot_taken(brick):
+		return brick
+	var width := brick.size.x - 1.0
+	while width >= min_width:
+		var cut := brick
+		cut.size.x = width
+		if direction < 0:
+			cut.position.x = brick.end.x - width
+		if not _is_brick_spot_taken(cut):
+			return cut
+		width -= 1.0
+	return Rect2()
+
+
+func _is_brick_spot_taken(brick: Rect2) -> bool:
+	const OVERLAP_TOLERANCE := 0.5
+	return is_solid_in_rect(brick.grow(-OVERLAP_TOLERANCE)) or is_ladder_at(brick.get_center())
+
+
+## The brick containing world_position, or an empty Rect2 if there is none.
+func brick_at(world_position: Vector2) -> Rect2:
+	for brick in _bricks:
+		if brick.has_point(world_position):
+			return brick
+	return Rect2()
 
 
 func _is_brick_at(world_position: Vector2) -> bool:
@@ -108,7 +162,13 @@ func _bricks_overlap(world_rect: Rect2) -> bool:
 	return false
 
 
-## Removes every brick overlapping world_rect; returns how many.
+## Removes every brick overlapping world_rect; returns how many. Public for
+## the shovel, which digs through a brick (a quarter of a block, one dig
+## stage) in one go.
+func remove_bricks_in(world_rect: Rect2) -> int:
+	return _remove_bricks_in(world_rect)
+
+
 func _remove_bricks_in(world_rect: Rect2) -> int:
 	var removed_count := 0
 	for index in range(_bricks.size() - 1, -1, -1):
@@ -227,6 +287,12 @@ func _dug_side_of(cell: Vector2i) -> int:
 	return 0
 
 
+## World rectangle of what is left of a terrain cell after digging. Public
+## for TerrainEdgeOverlay, which draws edges along it.
+func get_cell_solid_rect(cell: Vector2i) -> Rect2:
+	return _solid_rect_of(cell)
+
+
 ## World rectangle of what is left of a terrain cell after digging.
 func _solid_rect_of(cell: Vector2i) -> Rect2:
 	var size := get_cell_size()
@@ -300,6 +366,17 @@ func destroy_cell_at(world_position: Vector2) -> bool:
 func build_cell_at(world_position: Vector2, material: TerrainMaterial = TerrainMaterial.EARTH) -> void:
 	var cell := local_to_map(to_local(world_position))
 	set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(0, material))
+	if _edge_overlay != null:
+		_edge_overlay.mark_grassy(cell)
+
+
+## TileMapLayer hook: called with every batch of changed cells, however they
+## were changed (these methods, a direct set_cell, or tile_map_data being
+## assigned), so the edges never go stale.
+func _update_cells(_coords: Array[Vector2i], forced_cleanup: bool) -> void:
+	if forced_cleanup or _edge_overlay == null:
+		return
+	_edge_overlay.refresh()
 
 
 ## Erases every cell overlapping world_rect and returns how many were

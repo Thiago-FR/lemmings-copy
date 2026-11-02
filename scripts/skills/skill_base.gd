@@ -72,7 +72,7 @@ func start_while_walking(_lemming: LemmingController) -> void:
 
 ## Whether this skill takes exclusive control of the lemming through
 ## LemmingController.current_skill (the default for "action" skills like
-## Digger/Builder/Basher/Miner/Blocker). Climber and Floater are permanent
+## Digger/Builder/Basher/Miner). Climber and Floater are permanent
 ## traits handled by LemmingController's core movement, and Bomber ticks
 ## alongside whatever else the lemming is doing, so those return false.
 func occupies_skill_slot() -> bool:

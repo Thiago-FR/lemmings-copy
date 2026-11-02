@@ -15,6 +15,14 @@ signal lemming_exited(lemming: LemmingController)
 ## Text shown above the exit.
 @export var label_text: String = "SAÍDA"
 
+## The doorway art (docs/art_pipeline.md, "Entrada e saída"): its bottom
+## centre, pixel (22, 56), sits on the floor, which is 24px below the origin
+## (the middle of the 32x48 collision box).
+const ART_OFFSET := Vector2(-22, -32)
+const ART_ANIMATIONS := {
+	&"idle": ["exit_idle", 4, 6.0, true],
+}
+
 @onready var _label: Label = $Label
 
 
@@ -24,6 +32,10 @@ func _ready() -> void:
 	collision_mask = detected_layers
 	_label.text = label_text
 	body_entered.connect(_on_body_entered)
+	var art := PortalSprite.make(ART_ANIMATIONS, ART_OFFSET)
+	art.z_index = -1
+	add_child(art)
+	art.play(&"idle")
 
 
 func _on_body_entered(body: Node2D) -> void:

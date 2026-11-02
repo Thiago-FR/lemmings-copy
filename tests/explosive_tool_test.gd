@@ -3,8 +3,8 @@ extends "res://tests/tool_scenario_test.gd"
 ## names the tool and the blast it expects.
 ##
 ## Layout: a floor two blocks thick (concrete on top, earth below) between
-## two walls. A lemming walking right is given the explosive; a second one
-## just behind it is made a blocker (Escudo) so it stands still where the
+## two walls. A lemming walking right is given the explosive. A second one
+## paces inside a pit one block wide just behind it, so it stays where the
 ## blast will reach it.
 ##
 ## Checked: the tool is taken and the lemming keeps walking (it puts the
@@ -16,14 +16,13 @@ extends "res://tests/tool_scenario_test.gd"
 const FLOOR_TOP_ROW := 11
 const FLOOR_BOTTOM_ROW := 12
 const PLACER_START_X := 240.0
-## The blocker stands one block behind the placer, inside the blast.
-const BLOCKER_OFFSET_X := -32.0
+## The pit the victim paces in: the column just behind the placer's.
+const PIT_COLUMN := 6
 
 var _placer: LemmingController = null
-var _blocker: LemmingController = null
+var _victim: LemmingController = null
 var _tool_given := false
 var _tool_accepted := false
-var _blocker_given := false
 var _charge_placed_at := -1.0
 var _expected_blast: Array[Vector2i] = []
 var _exploded := false
@@ -47,25 +46,23 @@ func _get_scenarios() -> Array:
 func _build_scenario() -> void:
 	_tool_given = false
 	_tool_accepted = false
-	_blocker_given = false
 	_charge_placed_at = -1.0
 	_expected_blast = []
 	_exploded = false
 	_solid_before = {}
 	paint(0, 24, FLOOR_BOTTOM_ROW, FLOOR_BOTTOM_ROW)
 	for column in range(0, 25):
-		terrain.build_cell_at(terrain.to_global(terrain.map_to_local(Vector2i(column, FLOOR_TOP_ROW))), TerrainDestructible.TerrainMaterial.CONCRETE)
+		if column != PIT_COLUMN:
+			terrain.build_cell_at(terrain.to_global(terrain.map_to_local(Vector2i(column, FLOOR_TOP_ROW))), TerrainDestructible.TerrainMaterial.CONCRETE)
 	paint(-1, -1, -10, FLOOR_BOTTOM_ROW)
 	paint(25, 25, -10, FLOOR_BOTTOM_ROW)
 	_placer = spawn_lemming(scenario.start_x, FLOOR_TOP_ROW, 1, "placer")
-	_blocker = spawn_lemming(scenario.start_x + BLOCKER_OFFSET_X, FLOOR_TOP_ROW, 1, "blocker")
+	_victim = spawn_lemming((PIT_COLUMN + 0.5) * TILE, FLOOR_BOTTOM_ROW, 1, "victim")
 
 
 func _scenario_frame(_delta: float) -> void:
-	if not _tool_given and _placer.state_machine.current_state == LemmingStateMachine.State.WALKING \
-			and _blocker.state_machine.current_state == LemmingStateMachine.State.WALKING:
+	if not _tool_given and _placer.state_machine.current_state == LemmingStateMachine.State.WALKING:
 		_tool_given = true
-		_blocker_given = _blocker.assign_skill(SkillBlocker.new())
 		_tool_accepted = _placer.assign_skill(_make_tool())
 		var charge := _find_charge()
 		if charge != null:
@@ -97,8 +94,6 @@ func _evaluate_scenario() -> void:
 	if not _tool_accepted:
 		fail("the explosive was refused")
 		return
-	if not _blocker_given:
-		fail("the blocker was refused")
 	if _charge_placed_at < 0.0:
 		fail("no charge was put down")
 		return
@@ -127,8 +122,8 @@ func _evaluate_scenario() -> void:
 	if not expected.any(func(cell: Vector2i) -> bool: return cell.y == FLOOR_TOP_ROW):
 		fail("the blast did not reach the concrete floor")
 
-	if deaths.get("blocker", "") != "EXPLOSION":
-		fail("the lemming standing in the blast did not die in it (%s)" % deaths.get("blocker", "still alive"))
+	if deaths.get("victim", "") != "EXPLOSION":
+		fail("the lemming in the blast did not die in it (%s)" % deaths.get("victim", "still alive"))
 	if deaths.has("placer"):
 		fail("the lemming that put the charge down died (%s)" % deaths["placer"])
 	print("  blast cells: %s" % [blast])

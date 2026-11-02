@@ -9,7 +9,7 @@ script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 anchor_right = 1.0
-offset_right = -272.0
+offset_right = -332.0
 offset_bottom = 72.0
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
@@ -49,7 +49,7 @@ process_mode = 3
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -260.0
+offset_left = -320.0
 offset_top = 8.0
 offset_right = -8.0
 offset_bottom = 39.0
@@ -67,6 +67,11 @@ text = "Pausar"
 layout_mode = 2
 focus_mode = 0
 text = "Reiniciar"
+
+[node name="SettingsButton" type="Button" parent="GameControls"]
+layout_mode = 2
+focus_mode = 0
+text = "Config"
 
 [node name="MenuButton" type="Button" parent="GameControls"]
 layout_mode = 2

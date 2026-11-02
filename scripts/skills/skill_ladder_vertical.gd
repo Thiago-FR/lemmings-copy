@@ -83,6 +83,7 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 ## goes in the cell above, and the lemming climbs up into it.
 func _place_next_segment(lemming: LemmingController) -> void:
 	lemming.terrain.place_ladder_at(_cell_centre(lemming, _base_centre, 0, _segments_placed))
+	AudioManager.play_sound(&"place_ladder")
 	if _segments_placed > 0:
 		_climb_remaining = lemming.terrain.get_cell_size().y
 	_segments_placed += 1

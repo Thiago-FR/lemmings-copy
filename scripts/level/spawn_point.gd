@@ -19,6 +19,15 @@ signal all_lemmings_spawned
 ## Text shown above the entrance.
 @export var label_text: String = "ENTRADA"
 
+## The hatch art (docs/art_pipeline.md, "Entrada e saída"): pixel (24, 32),
+## the middle of the hatch's bottom edge, sits on the origin, where the
+## lemmings appear and drop out.
+const ART_OFFSET := Vector2(-24, -32)
+const ART_ANIMATIONS := {
+	&"open": ["entrance_open", 5, 10.0, false],
+	&"idle": ["entrance_idle", 4, 6.0, true],
+}
+
 @onready var _spawn_timer: Timer = $SpawnTimer
 @onready var _label: Label = $Label
 
@@ -30,6 +39,16 @@ func _ready() -> void:
 	add_to_group("spawn_points")
 	_label.text = label_text
 	_spawn_timer.timeout.connect(_spawn_lemming)
+	_add_art()
+
+
+## The hatch opens once, then idles open. Behind the lemmings dropping out.
+func _add_art() -> void:
+	var art := PortalSprite.make(ART_ANIMATIONS, ART_OFFSET)
+	art.z_index = -1
+	add_child(art)
+	art.animation_finished.connect(func() -> void: art.play(&"idle"))
+	art.play(&"open")
 
 
 func start(spawn_interval: float, total_lemmings: int) -> void:

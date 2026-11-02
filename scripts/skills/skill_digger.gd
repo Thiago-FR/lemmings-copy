@@ -61,9 +61,31 @@ func _dig_next_stage(lemming: LemmingController) -> bool:
 	var body := lemming.get_body_rect()
 	var feet := lemming.get_feet_position()
 	var slice := Rect2(body.position.x, feet.y, body.size.x, 1.0)
+	# Standing on a brick (a diagonal ladder or bridge piece): it goes in one
+	# go, being one stage thick. The shovel used to find no earth there, stop
+	# at once and waste the charge. The lemming sinks onto whatever was right
+	# under the brick and digs on; with nothing there, the next dig finds
+	# open space and it drops.
+	if lemming.terrain.remove_bricks_in(slice) > 0:
+		AudioManager.play_sound(&"dig_earth")
+		_descent_remaining = _drop_to_ground_below(lemming)
+		return true
 	var material := lemming.terrain.material_at(feet)
 	if lemming.terrain.dig_stage_in_rect(slice) == 0:
 		return false
 	DebrisBurst.spawn(lemming.get_parent(), Vector2(body.get_center().x, body.end.y), Vector2(DEBRIS_THROW.x * lemming.direction, DEBRIS_THROW.y), material)
+	AudioManager.play_sound(&"dig_earth")
 	_descent_remaining = lemming.terrain.solid_top_y_at(feet) - body.end.y
 	return true
+
+
+## Distance down to solid ground just under the feet, looking no further
+## than a brick's thickness and a bit; zero if there is none that close.
+func _drop_to_ground_below(lemming: LemmingController) -> float:
+	const PROBE_INSET := 0.5
+	var body := lemming.get_body_rect()
+	var reach := int(lemming.terrain.get_dig_stage_height() * 2.0)
+	for depth in range(reach):
+		if lemming.terrain.is_solid_at(Vector2(body.get_center().x, body.end.y + depth + PROBE_INSET)):
+			return float(depth)
+	return 0.0

@@ -17,6 +17,11 @@ enum DeathCause { FALL, VOID, EXPLOSION, OTHER }
 signal clicked(lemming: LemmingController)
 signal died(cause: DeathCause)
 signal exited
+## Emitted with the lemming's own copy of a tool just before it takes effect,
+## so whoever owns this lemming can tune that copy for this lemming alone
+## (a character who digs faster, builds longer bridges...). The tool's
+## template and every other lemming's copy are left untouched.
+signal skill_about_to_apply(skill: SkillBase)
 
 ## Tint a dying lemming fades towards: red, so a death reads as a death and
 ## not as the lemming simply walking off-screen.
@@ -49,7 +54,6 @@ const DEATH_ANIMATIONS := {
 @onready var state_machine: LemmingStateMachine = LemmingStateMachine.new()
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var _collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var _blocker_zone: Area2D = $BlockerZone
 
 ## Terrain this lemming walks on and that its skills carve. Set it before
 ## adding the lemming to the tree to use a specific terrain; left empty, the
@@ -62,6 +66,11 @@ var current_skill: SkillBase = null
 ## Pixels per second this lemming climbs a ladder. Read by the ladder tool
 ## while it builds too, so building and climbing move at the same pace.
 var ladder_climb_speed: float = Constants.LADDER_CLIMB_SPEED
+
+## The highest fall this lemming survives. Per lemming, like
+## ladder_climb_speed, so a sturdier character can be made without touching
+## the shared constant.
+var max_safe_fall_height: float = Constants.MAX_SAFE_FALL_HEIGHT
 
 # Persistent traits (Climber/Floater): unlike other skills, these don't
 # occupy current_skill or a single active state; they permanently change how
@@ -91,14 +100,12 @@ func _ready() -> void:
 	add_to_group("lemmings")
 	collision_layer = Constants.LEMMING_COLLISION_LAYER
 	collision_mask = Constants.TERRAIN_COLLISION_LAYER
-	_blocker_zone.collision_mask = Constants.LEMMING_COLLISION_LAYER
 	_fall_start_y = position.y
 	_sprite_rest_y = animated_sprite.position.y
 	if terrain == null:
 		terrain = get_tree().get_first_node_in_group("terrain")
 	assert(terrain != null, "LemmingController needs a TerrainDestructible: assign one or add it to the 'terrain' group")
 	input_event.connect(_on_input_event)
-	_blocker_zone.body_entered.connect(_on_blocker_zone_body_entered)
 	_assert_body_fits_carved_openings()
 
 
@@ -123,17 +130,22 @@ func _on_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> voi
 
 ## Applies a skill if the lemming can take it right now. Returns whether it
 ## was applied, so the caller only spends a skill charge when it was.
+##
+## A lemming holds one tool at a time: while it carries a tool it has not
+## used yet, or is busy using one, it takes no other. (Mixing them made a
+## lemming carrying a bridge lay it in mid-air after a shovel dug through
+## the floor under it.) The permanent traits (parachute, claws) are not
+## held tools and do not count.
 func assign_skill(skill: SkillBase) -> bool:
 	if not state_machine.is_alive() or not skill.can_apply_to(self):
 		return false
+	if pending_wall_tool != null or current_skill != null:
+		return false
+	skill_about_to_apply.emit(skill)
 	if skill.occupies_skill_slot():
 		current_skill = skill
 	skill.apply_to(self)
 	return true
-
-
-func set_blocker_zone_active(active: bool) -> void:
-	_blocker_zone.monitoring = active
 
 
 ## Half-width/half-height of the actual collision shape, read live instead
@@ -187,18 +199,11 @@ func get_forward_position(extra_offset: float = 0.0) -> Vector2:
 	return _collision_shape.global_position + Vector2((half.x + Constants.GROUND_PROBE_EPSILON + extra_offset) * direction, 0)
 
 
-func _on_blocker_zone_body_entered(body: Node2D) -> void:
-	if body == self or not (body is LemmingController):
-		return
-	if body.state_machine.current_state == LemmingStateMachine.State.WALKING:
-		body.turn_around()
-
-
 func _physics_process(delta: float) -> void:
 	if not state_machine.is_alive():
 		return
 
-	# Action skills (Digger, Builder, Basher, Miner, Blocker, ...) move the
+	# Action skills (Digger, Builder, Basher, Miner, ...) move the
 	# lemming by writing global_position directly rather than through
 	# velocity. move_and_slide() — even called with zero velocity — still
 	# depenetrates the body from whatever it's newly overlapping, which
@@ -398,6 +403,22 @@ func _forward_step_height() -> float:
 	if not terrain.is_solid_at(Vector2(forward_x, feet_y - PROBE_INSET)):
 		return 0.0
 
+	# Something is ahead, but there may be a gap between the ground the
+	# lemming stands on and it. A gap the body could fall into is a hole, not
+	# part of a step: taken as a step, the lemming crossed a hole a block wide
+	# onto a platform (prints/bug4.png). It keeps walking instead, and falls
+	# in. Only a small crack is stepped over (prints/bug5.png); diagonal
+	# ladders no longer leave gaps at walls (they cut their last step), so a
+	# crack this small is all that is left to cross.
+	var gap := _gap_before_obstacle()
+	if gap >= get_half_extents().x * 2.0 - 1.0:
+		return 0.0
+	# Between a crack and a hole: too wide to step over (the user does not
+	# want lemmings crossing gaps, prints/bug7.png), too narrow for the body
+	# to fall in. It is a wall: the lemming turns back.
+	if gap >= Constants.MAX_STEP_OVER_GAP:
+		return -1.0
+
 	# Measured a pixel at a time: the diagonal ladder's steps are a quarter
 	# of a tile, and the old quarter-tile probe rounded every obstacle up to
 	# the next probe, lifting the lemming 16px onto an 8px step and dropping
@@ -408,6 +429,21 @@ func _forward_step_height() -> float:
 		if not terrain.is_solid_at(Vector2(forward_x, feet_y - rise - PROBE_INSET)):
 			return float(rise)
 	return -1.0
+
+
+## How wide the empty stretch is between the front of the body and the end
+## of the ground under it, in pixels, measured back from the front edge.
+## Zero when there is ground right under the front.
+func _gap_before_obstacle() -> float:
+	const PROBE_INSET := 0.5
+	var body := get_body_rect()
+	var front_edge := body.end.x if direction > 0 else body.position.x
+	var feet_y := body.end.y + PROBE_INSET
+	var widest := int(body.size.x)
+	for back in range(widest):
+		if terrain.is_solid_at(Vector2(front_edge - direction * (back + PROBE_INSET), feet_y)):
+			return float(back)
+	return float(widest)
 
 
 func _process_skill(delta: float) -> void:
@@ -576,7 +612,6 @@ func die(cause: DeathCause = DeathCause.OTHER) -> void:
 func _play_death(cause: DeathCause) -> void:
 	set_physics_process(false)
 	input_pickable = false
-	_blocker_zone.monitoring = false
 	_collision_shape.set_deferred("disabled", true)
 
 	var animation_name: StringName = DEATH_ANIMATIONS.get(cause, &"")
@@ -599,7 +634,7 @@ func exit() -> void:
 
 func _land() -> void:
 	var fall_distance := position.y - _fall_start_y
-	if fall_distance > Constants.MAX_SAFE_FALL_HEIGHT:
+	if fall_distance > max_safe_fall_height:
 		die(DeathCause.FALL)
 		return
 	state_machine.change_state(LemmingStateMachine.State.WALKING)
@@ -608,6 +643,12 @@ func _land() -> void:
 func _start_falling() -> void:
 	_fall_start_y = position.y
 	if has_floater_skill:
-		state_machine.change_state(LemmingStateMachine.State.FLOATING)
+		open_parachute()
 	else:
 		state_machine.change_state(LemmingStateMachine.State.FALLING)
+
+
+## Starts floating down under the parachute.
+func open_parachute() -> void:
+	state_machine.change_state(LemmingStateMachine.State.FLOATING)
+	AudioManager.play_sound(&"parachute")

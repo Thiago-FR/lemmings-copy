@@ -6,17 +6,20 @@ extends HBoxContainer
 ## the scene), otherwise the Continue button could never be pressed.
 ##
 ## Keyboard shortcuts do the same: P pauses, R restarts, Esc goes back to
-## the menu. Not Space: it already presses whichever button has focus.
+## the menu. Config opens the settings screen (volumes; M, handled by
+## AudioManager, mutes). Not Space: it already presses whichever button has focus.
 
 @onready var _pause_button: Button = $PauseButton
 @onready var _restart_button: Button = $RestartButton
 @onready var _menu_button: Button = $MenuButton
+@onready var _settings_button: Button = $SettingsButton
 
 
 func _ready() -> void:
 	_pause_button.pressed.connect(GameManager.toggle_pause)
 	_restart_button.pressed.connect(GameManager.restart_level)
 	_menu_button.pressed.connect(GameManager.go_to_main_menu)
+	_settings_button.pressed.connect(_open_settings)
 	GameManager.game_paused.connect(_refresh_pause_button)
 	GameManager.game_resumed.connect(_refresh_pause_button)
 	_refresh_pause_button()
@@ -44,6 +47,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_:
 			return
 	get_viewport().set_input_as_handled()
+
+
+## Opens over the level and pauses it; closing resumes unless the game was
+## already paused.
+func _open_settings() -> void:
+	get_tree().root.add_child(SettingsMenu.new())
 
 
 func _refresh_pause_button() -> void:

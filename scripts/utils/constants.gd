@@ -47,6 +47,9 @@ const LADDER_GRAB_DISTANCE: float = 4.0
 ## before it carries on walking normally: enough for firm footing, and to be
 ## clear of LADDER_GRAB_DISTANCE.
 const LEDGE_STEP_FOOTING: float = 6.0
+## Widest gap, in pixels, a lemming steps over to climb onto what is past
+## it. Wider gaps it cannot fall into count as a wall.
+const MAX_STEP_OVER_GAP: float = 12.0
 const FLOAT_FALL_SPEED: float = 30.0
 # Raised from 60 along with the tile size: a vertical gap has to be at least
 # two tiles for a 30px-tall body to pass through it (see MAX_BODY_HEIGHT),

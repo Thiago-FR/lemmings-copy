@@ -20,7 +20,7 @@ func apply_to(lemming: LemmingController) -> void:
 	# parachute already falling kept falling and died on landing, even though
 	# the tool was accepted and its charge spent. It opens right away instead.
 	if lemming.state_machine.current_state == LemmingStateMachine.State.FALLING:
-		lemming.state_machine.change_state(LemmingStateMachine.State.FLOATING)
+		lemming.open_parachute()
 
 
 func occupies_skill_slot() -> bool:

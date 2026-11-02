@@ -65,6 +65,7 @@ func _explode() -> void:
 		blast_rects.append(terrain.cell_rect_at(centre))
 		terrain.destroy_cell_at(centre)
 	_kill_lemmings_in(blast_rects)
+	AudioManager.play_sound(&"explosion")
 	var blast_radius := (blast_radius_tiles + 0.5) * terrain.get_cell_size().x
 	ExplosionEffect.spawn(get_parent(), global_position + Vector2.UP * terrain.get_cell_size().y / 2.0, blast_radius)
 	queue_free()

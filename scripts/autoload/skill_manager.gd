@@ -13,7 +13,7 @@ signal skill_count_changed(skill_id: String, remaining_count: int)
 signal skill_assigned(lemming: LemmingController, skill_id: String)
 
 var _default_skill_types: Array[GDScript] = [
-	SkillBlocker,
+	SkillBlock,
 	SkillDigger,
 	SkillBuilder,
 	SkillBasher,
@@ -78,11 +78,23 @@ func select_skill(skill_id: String) -> void:
 	if get_remaining_count(skill_id) <= 0:
 		return
 	selected_skill_id = skill_id
+	AudioManager.play_sound(&"select_tool")
 	skill_selected.emit(skill_id)
 
 
 func get_remaining_count(skill_id: String) -> int:
 	return int(_remaining_counts.get(skill_id, 0))
+
+
+## Changes how many charges of a tool are left in the running level, for
+## things that hand out or take away charges mid-level (a pickup, a game
+## mode's own inventory) rather than only at the start through LevelData.
+func set_remaining_count(skill_id: String, remaining_count: int) -> void:
+	assert(remaining_count >= 0, "A tool cannot have negative charges")
+	if get_remaining_count(skill_id) == remaining_count and _remaining_counts.has(skill_id):
+		return
+	_remaining_counts[skill_id] = remaining_count
+	skill_count_changed.emit(skill_id, remaining_count)
 
 
 func try_assign_to(lemming: LemmingController) -> bool:
@@ -95,6 +107,7 @@ func try_assign_to(lemming: LemmingController) -> bool:
 
 	_remaining_counts[selected_skill_id] -= 1
 	skill_count_changed.emit(selected_skill_id, _remaining_counts[selected_skill_id])
+	AudioManager.play_sound(&"assign_tool")
 	skill_assigned.emit(lemming, selected_skill_id)
 	return true
 

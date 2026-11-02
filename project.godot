@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+DisplayScaler="*res://scripts/autoload/display_scaler.gd"
 GameManager="*res://scripts/autoload/game_manager.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 LevelLoader="*res://scripts/autoload/level_loader.gd"
@@ -25,9 +26,11 @@ _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
 
-window/size/viewport_width=800
-window/size/viewport_height=450
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/mode=3
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [editor_plugins]
 
@@ -39,5 +42,6 @@ enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
 
 [rendering]
 
+environment/defaults/default_clear_color=Color(0.11, 0.11, 0.13, 1)
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"

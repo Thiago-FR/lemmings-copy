@@ -31,6 +31,8 @@ const DEBRIS_THROW := Vector2(-0.6, -0.8)
 
 ## The state the lemming is in while digging (picks its animation).
 var dig_state: LemmingStateMachine.State = LemmingStateMachine.State.MINING
+## Sound played for every slice dug (see AudioManager.play_sound).
+var dig_sound: StringName = &"pickaxe_hit"
 
 var _advance_remaining: float = 0.0
 
@@ -81,6 +83,7 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 		if not lemming.terrain.dig_side_stage_at(ahead, lemming.direction, breaks_concrete):
 			return false
 		DebrisBurst.spawn(lemming.get_parent(), ahead, Vector2(DEBRIS_THROW.x * lemming.direction, DEBRIS_THROW.y), material)
+		AudioManager.play_sound(dig_sound)
 		_advance_remaining = lemming.terrain.get_dig_stage_height()
 
 	var step := minf(dig_speed * delta, _advance_remaining)

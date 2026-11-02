@@ -221,7 +221,12 @@ func _evaluate() -> void:
 		return
 
 	if scenario.expect == "blocked":
-		var expected_bricks := int(scenario.distance / (TILE * _tool.step_width_fraction_of_tile))
+		# Whole steps, plus one cut to the room left against the wall.
+		var step_width := TILE * _tool.step_width_fraction_of_tile
+		var distance: float = scenario.distance
+		var whole_steps := int(distance / step_width)
+		var room_left := distance - whole_steps * step_width
+		var expected_bricks := whole_steps + (1 if room_left >= SkillBuilder.MIN_STEP_WIDTH else 0)
 		if bricks.size() != expected_bricks:
 			_fail(scenario_name, "laid %d bricks, expected %d before reaching the wall" % [bricks.size(), expected_bricks])
 			return
@@ -255,7 +260,8 @@ func _describe(label: String) -> String:
 
 
 ## Every brick is one step up and one step along from the previous one, all
-## step width by step height, and none overlaps terrain.
+## step width by step height, and none overlaps terrain. Only the last may be
+## narrower: cut to the room left against a wall, ending flush with it.
 func _check_staircase_shape(scenario_name: String, bricks: Array[Rect2]) -> bool:
 	if bricks.is_empty():
 		_fail(scenario_name, "no bricks were laid")
@@ -263,8 +269,9 @@ func _check_staircase_shape(scenario_name: String, bricks: Array[Rect2]) -> bool
 	var step := Vector2(TILE * _tool.step_width_fraction_of_tile, TILE * _tool.step_height_fraction_of_tile)
 	for index in bricks.size():
 		var brick := bricks[index]
-		if not brick.size.is_equal_approx(step):
-			_fail(scenario_name, "brick %d is %s, expected %s" % [index, brick.size, step])
+		var is_cut_last := index == bricks.size() - 1 and brick.size.x < step.x 			and is_equal_approx(brick.size.y, step.y) 			and _terrain.is_solid_at(Vector2(brick.end.x + 0.5, brick.get_center().y))
+		if not brick.size.is_equal_approx(step) and not is_cut_last:
+			_fail(scenario_name, "brick %d is %s, expected %s (or a last step cut flush against a wall)" % [index, brick.size, step])
 			return false
 		if _terrain.get_solid_cells_in_rect(brick.grow(-0.5)).size() > 0:
 			_fail(scenario_name, "brick %d at %s overlaps terrain" % [index, brick])

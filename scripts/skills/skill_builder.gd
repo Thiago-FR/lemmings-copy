@@ -3,8 +3,14 @@ extends SkillBase
 ## Diagonal ladder tool. The lemming builds a staircase of small bricks in
 ## the direction it is facing, starting the moment it is given the tool: it
 ## lays a brick just ahead of its feet, walks up onto it, lays the next one,
-## and so on, up to max_pieces. It stops early if the next brick would go into
-## terrain or if there is no headroom to step up, and then carries on walking.
+## and so on, up to max_pieces. It stops early if there is no headroom to
+## step up, or at a wall, and then carries on walking.
+##
+## At a wall the last step is cut to the room left, so the staircase always
+## ends touching the wall. It used to stop when the next full step did not
+## fit, leaving a gap of up to a step's width at its foot: lemmings crossed
+## it or turned at it, and a second ladder could not fill it
+## (prints/bug5.png, bug7.png).
 ##
 ## Each step is a thin brick: a quarter of a tile tall and a full tile wide
 ## by default (step_height_fraction_of_tile, step_width_fraction_of_tile),
@@ -15,6 +21,13 @@ extends SkillBase
 ## Bricks are not on the tile grid (see TerrainDestructible.place_brick), so
 ## the staircase starts exactly at the lemming's feet wherever it stands.
 ## Other lemmings walk up it like any low step.
+##
+## When the first brick has no room (the lemming is part-way up a staircase,
+## the next step already there, or faces a wall), the lemming keeps the tool
+## (LemmingController.pending_wall_tool) and starts as soon as there is room:
+## given to a lemming walking up a finished staircase, it carries on from the
+## top step and extends it. It used to start on the spot anyway, find the
+## spot taken and stop at once, spending the charge for nothing.
 
 ## Steps laid before the builder stops.
 @export var max_pieces: int = 12
@@ -32,6 +45,9 @@ extends SkillBase
 ## A hair of space kept between the body and the next brick's spot, so the
 ## body never overlaps the brick it is about to lay.
 const BRICK_CLEARANCE := 0.5
+## Narrowest step cut to fit against a wall. Below this the staircase is
+## already touching the wall for every purpose.
+const MIN_STEP_WIDTH := 2.0
 
 var _step_width: float = 0.0
 var _step_height: float = 0.0
@@ -40,6 +56,9 @@ var _step_height: float = 0.0
 var _origin_x: float = 0.0
 var _floor_y: float = 0.0
 var _steps_built: int = 0
+## Set once a step had to be cut to fit against a wall: the staircase ends
+## with it.
+var _reached_wall := false
 var _time_since_last_brick: float = 0.0
 var _move_remaining: Vector2 = Vector2.ZERO
 
@@ -49,21 +68,65 @@ func _init() -> void:
 	display_name = "Escada diagonal"
 
 
+## Refused only by a lemming already carrying a tool, like the other
+## carried tools.
 func can_apply_to(lemming: LemmingController) -> bool:
-	return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING
+	return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING 		and lemming.pending_wall_tool == null
+
+
+## Takes control itself when it starts (now or later), so the lemming walks
+## normally while carrying it.
+func occupies_skill_slot() -> bool:
+	return false
 
 
 func apply_to(lemming: LemmingController) -> void:
+	if can_start_while_walking(lemming):
+		lemming.current_skill = self
+		start_while_walking(lemming)
+	else:
+		lemming.pending_wall_tool = self
+
+
+## Whether the first brick would fit right now and the lemming could step
+## onto it.
+func can_start_while_walking(lemming: LemmingController) -> bool:
+	_measure(lemming)
+	_set_origin(lemming)
+	var first := _fitted_brick(lemming, _brick_rect(lemming.direction, 0))
+	if not first.has_area():
+		return false
+	return not lemming.is_body_blocked_at(_offset_onto_brick(lemming, first))
+
+
+func start_while_walking(lemming: LemmingController) -> void:
 	lemming.velocity = Vector2.ZERO
+	_measure(lemming)
+	_set_origin(lemming)
+	lemming.state_machine.change_state(LemmingStateMachine.State.BUILDING)
+
+
+## Where the first brick goes. On open ground, right at the leading edge, so
+## the lemming steps onto it straight away wherever it stands. Standing on a
+## brick (the top step of a staircase), at that brick's far end, one step
+## up: the new staircase carries straight on from the old one. Starting at
+## the leading edge there stacked the first brick on top of the last step,
+## half-way along it (prints/bug6.png).
+func _set_origin(lemming: LemmingController) -> void:
+	var body := lemming.get_body_rect()
+	_floor_y = roundf(body.end.y)
+	_origin_x = roundf(_front_edge(body, lemming.direction))
+	var under_front := Vector2(_origin_x - lemming.direction * BRICK_CLEARANCE * 2.0, body.end.y + BRICK_CLEARANCE)
+	var brick := lemming.terrain.brick_at(under_front)
+	if brick.has_area():
+		_floor_y = brick.position.y
+		_origin_x = brick.end.x if lemming.direction > 0 else brick.position.x
+
+
+func _measure(lemming: LemmingController) -> void:
 	var tile := lemming.terrain.get_cell_size()
 	_step_width = tile.x * step_width_fraction_of_tile
 	_step_height = tile.y * step_height_fraction_of_tile
-	var body := lemming.get_body_rect()
-	_floor_y = roundf(body.end.y)
-	# The first brick starts right at the leading edge, so the lemming steps
-	# onto it straight away wherever it was standing.
-	_origin_x = roundf(_front_edge(body, lemming.direction))
-	lemming.state_machine.change_state(LemmingStateMachine.State.BUILDING)
 
 
 func physics_process(lemming: LemmingController, delta: float) -> bool:
@@ -72,7 +135,7 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 	if _move_remaining != Vector2.ZERO:
 		_step_up(lemming, delta)
 		return true
-	if _steps_built >= max_pieces:
+	if _steps_built >= max_pieces or _reached_wall:
 		return false
 
 	_time_since_last_brick += delta
@@ -83,18 +146,30 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 	return _lay_next_brick(lemming)
 
 
-## Lays brick number _steps_built and sets up the walk onto it. Returns false
-## when the staircase has to end here: the brick's spot is taken (a wall), or
-## the lemming would not fit standing on it (a ceiling).
+## Lays brick number _steps_built (cut short against a wall if need be) and
+## sets up the walk onto it. Returns false when the staircase has to end
+## here: no room for even a cut step (a wall right there), or the lemming
+## would not fit standing on it (a ceiling).
 func _lay_next_brick(lemming: LemmingController) -> bool:
-	var offset := _offset_onto_brick(lemming, _steps_built)
+	var brick := _fitted_brick(lemming, _brick_rect(lemming.direction, _steps_built))
+	if not brick.has_area():
+		return false
+	var offset := _offset_onto_brick(lemming, brick)
 	if lemming.is_body_blocked_at(offset):
 		return false
-	if not lemming.terrain.place_brick(_brick_rect(lemming.direction, _steps_built)):
+	if not lemming.terrain.place_brick(brick):
 		return false
+	AudioManager.play_sound(&"place_brick")
 	_steps_built += 1
+	_reached_wall = brick.size.x < _step_width
 	_move_remaining = offset
 	return true
+
+
+## The brick as it fits (see TerrainDestructible.fit_brick): cut against the
+## wall the staircase has reached.
+func _fitted_brick(lemming: LemmingController, brick: Rect2) -> Rect2:
+	return lemming.terrain.fit_brick(brick, lemming.direction, MIN_STEP_WIDTH)
 
 
 func _step_up(lemming: LemmingController, delta: float) -> void:
@@ -113,13 +188,14 @@ func _brick_rect(direction: int, index: int) -> Rect2:
 	return Rect2(Vector2(_origin_x - _step_width * (index + 1), top), size)
 
 
-## How far the lemming moves to stand on brick index: feet on its top, and
-## the leading edge stopped just short of where the next brick goes.
-func _offset_onto_brick(lemming: LemmingController, index: int) -> Vector2:
+## How far the lemming moves to stand on a brick: feet on its top, and the
+## leading edge stopped just short of its far end (where the next brick
+## goes, or the wall a cut step reaches).
+func _offset_onto_brick(lemming: LemmingController, brick: Rect2) -> Vector2:
 	var body := lemming.get_body_rect()
-	var target_bottom := _floor_y - _step_height * (index + 1)
-	var target_front := _origin_x + lemming.direction * (_step_width * (index + 1) - BRICK_CLEARANCE)
-	return Vector2(target_front - _front_edge(body, lemming.direction), target_bottom - body.end.y)
+	var far_end := brick.end.x if lemming.direction > 0 else brick.position.x
+	var target_front := far_end - lemming.direction * BRICK_CLEARANCE
+	return Vector2(target_front - _front_edge(body, lemming.direction), brick.position.y - body.end.y)
 
 
 func _front_edge(body: Rect2, direction: int) -> float:

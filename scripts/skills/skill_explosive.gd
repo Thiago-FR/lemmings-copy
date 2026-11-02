@@ -40,3 +40,4 @@ func apply_to(lemming: LemmingController) -> void:
 	charge.look = charge_look
 	lemming.get_parent().add_child(charge)
 	charge.global_position = Vector2(body.get_center().x, body.end.y)
+	AudioManager.play_sound(&"fuse")
