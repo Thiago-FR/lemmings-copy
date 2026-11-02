@@ -21,6 +21,14 @@ for %%T in ("%~dp0tests\test_*.tscn") do (
     if errorlevel 1 set "FAILED=1"
 )
 
+rem These need a real window and pointer (they move the mouse): no --headless.
+for %%T in ("%~dp0tests\window_test_*.tscn") do (
+    echo.
+    echo === %%~nT ^(janela: nao mexa no mouse^) ===
+    "%GODOT%" --path "%PROJECT%" "res://tests/%%~nxT"
+    if errorlevel 1 set "FAILED=1"
+)
+
 echo.
 if "!FAILED!"=="1" (echo RESULTADO: algum teste FALHOU) else (echo RESULTADO: todos os testes passaram)
 pause

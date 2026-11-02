@@ -84,6 +84,17 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 
 ## Armadilhas que custaram tempo (não repetir)
 
+- **Nunca trocar o tipo de cursor com o botão do mouse apertado.** Mudar
+  `mouse_default_cursor_shape` (ou `Input.set_default_cursor_shape`) entre
+  apertar e soltar faz o Godot mandar um movimento de mouse "sem botão", e o
+  botão cancela o clique: **nenhum botão do menu funcionava com o mouse de
+  verdade** (não dava para começar uma run). Os testes sem janela passavam,
+  porque o Godot só faz isso quando o ponteiro do sistema está mesmo sobre o
+  botão, e sem janela não há ponteiro. Para a mão fechar, troca-se só a
+  **imagem** do cursor da mão (`Input.set_custom_mouse_cursor`). O teste
+  `tests/window_test_real_clicks.tscn` (com janela; põe o ponteiro sobre cada
+  botão) pega isso: menu, Roguelike, Jogar e Pausar.
+
 - **Teste que não compila fica rodando para sempre.** Com erro de sintaxe
   num script de teste o Godot não sai sozinho. E `| head` na saída do Godot
   também trava (o processo fica bloqueado escrevendo). Rodar os testes com
@@ -130,7 +141,8 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 | | |
 |---|---|
 | Jogar | clique duplo em `play.bat` |
-| Rodar os testes | clique duplo em `run_tests.bat` |
+| Rodar os testes | clique duplo em `run_tests.bat` (no fim abre uma janela e mexe o mouse por uns segundos: não mexa nele enquanto isso) |
+| Teste de cliques de verdade | `godot --path . res://tests/window_test_real_clicks.tscn` (**sem** `--headless`; os `window_test_*` precisam de janela) |
 | Um teste só | `godot --headless res://tests/test_skill_digger.tscn` |
 | Teste da morte por queda | `godot --headless res://tests/test_fall_death.tscn` |
 | Teste da escada vertical | `godot --headless res://tests/test_tool_ladder_vertical.tscn` |
@@ -602,8 +614,10 @@ morte (nem pelo Encerrar fase).
   não terminar com pelo menos 25% do tempo sobrando
   (`MIN_TIME_SPARE_SHARE`), então a fase nunca fica impossível.
 - **Mão do cursor redesenhada** (luva com sombra, dedão e punho dourado) e
-  **mão fechada** (`cursor_grab`, `CURSOR_DRAG`): fecha ao apertar o botão
-  sobre algo clicável e abre ao soltar; fica fechada ao arrastar a tela.
+  **mão fechada** (`cursor_grab`): fecha ao apertar o botão sobre algo
+  clicável e abre ao soltar; fica fechada ao arrastar a tela (`CURSOR_DRAG`).
+  A primeira versão trocava o tipo de cursor no clique e cancelava todo
+  clique real em botão; corrigido trocando só a imagem (ver "Armadilhas").
 - **Arrastar a tela com o botão esquerdo** nas fases (`LevelCamera.left_drag`;
   só vira arrasto depois de 8 px, então clicar num boneco continua sendo
   clique; desligado no editor, onde o esquerdo pinta).

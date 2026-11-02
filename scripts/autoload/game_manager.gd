@@ -52,31 +52,24 @@ func _set_up_cursors() -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 
-## The hand closes while the button is held on something clickable and
-## opens again on release: a button's own pointer, or the lemming hand.
-var _closed_button: Control = null
-var _closed_over_lemming := false
+## The hand closes while the button is held and opens again on release.
+## Only the hand's picture is swapped: changing a cursor shape while the
+## button is down makes Godot send a mouse motion without the button held,
+## which cancels the click (no menu button worked with a real mouse).
+var _hand_closed := false
 
 
 func _input(event: InputEvent) -> void:
 	var button := event as InputEventMouseButton
 	if button == null or button.button_index != MOUSE_BUTTON_LEFT:
 		return
-	if button.pressed:
-		var hovered := get_viewport().gui_get_hovered_control()
-		if hovered is BaseButton and not (hovered as BaseButton).disabled:
-			_closed_button = hovered
-			hovered.mouse_default_cursor_shape = Control.CURSOR_DRAG
-		elif Input.get_current_cursor_shape() == Input.CURSOR_POINTING_HAND:
-			_closed_over_lemming = true
-			Input.set_default_cursor_shape(Input.CURSOR_DRAG)
+	if button.pressed == _hand_closed:
 		return
-	if _closed_button != null and is_instance_valid(_closed_button):
-		_closed_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_closed_button = null
-	if _closed_over_lemming:
-		_closed_over_lemming = false
-		Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
+	_hand_closed = button.pressed
+	if _hand_closed:
+		Input.set_custom_mouse_cursor(load(CURSOR_GRAB_PATH), Input.CURSOR_POINTING_HAND, CURSOR_GRAB_HOTSPOT)
+	else:
+		Input.set_custom_mouse_cursor(load(CURSOR_HAND_PATH), Input.CURSOR_POINTING_HAND, CURSOR_HAND_HOTSPOT)
 
 
 func _on_node_added(node: Node) -> void:
