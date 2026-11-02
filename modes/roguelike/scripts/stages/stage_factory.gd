@@ -11,6 +11,8 @@ const PLACES_SURFACE: Array[String] = ["Colinas", "Trilhas", "Ravinas", "Encosta
 const PLACES_CAVE: Array[String] = ["Galerias", "Túneis", "Grutas", "Câmaras", "Poços", "Veios", "Covas"]
 const QUALIFIERS: Array[String] = ["da Raiz", "do Eco", "de Pedra", "do Musgo", "Esquecidas", "do Carvão", "da Névoa", "do Vento", "Tortas", "do Fundo"]
 const TIME_PICKUP_SECONDS := 60
+## Coins lying in a stage (the user's idea: coins dropped around the map).
+const COIN_PICKUP_AMOUNT := 2
 ## Charges a bonus spot gives when it turns out to be a tool.
 const BONUS_TOOL_CHARGES := 1
 const BONUS_TOOLS: Array[String] = ["digger", "ladder_vertical", "bridge", "miner", "basher"]
@@ -80,15 +82,18 @@ static func _tool(tool_id: String, amount: int) -> RoguelikePickupSpec:
 static func _bonus(rng: RandomNumberGenerator, kinds: Array[String]) -> RoguelikePickupSpec:
 	var roll := rng.randf()
 	var spec := RoguelikePickupSpec.new()
-	if roll < 0.2:
+	if roll < 0.15:
 		spec.kind = RoguelikePickupSpec.Kind.REVIVE
 		spec.amount = 1
-	elif roll < 0.35:
+	elif roll < 0.27:
 		spec.kind = RoguelikePickupSpec.Kind.CHARGE_BAG
 		spec.amount = 1
-	elif roll < 0.5:
+	elif roll < 0.4:
 		spec.kind = RoguelikePickupSpec.Kind.TIME
 		spec.amount = TIME_PICKUP_SECONDS
+	elif roll < 0.65:
+		spec.kind = RoguelikePickupSpec.Kind.COINS
+		spec.amount = COIN_PICKUP_AMOUNT
 	else:
 		var choices: Array[String] = []
 		choices.assign(BONUS_TOOLS if kinds.size() < MAX_TOOL_KINDS else kinds)

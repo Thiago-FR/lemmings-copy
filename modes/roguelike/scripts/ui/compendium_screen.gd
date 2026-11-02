@@ -39,6 +39,7 @@ const STAGE_ITEMS: Array = [
 	["item_rescue", "Pena da fênix", "hud_rescue", "No fim da fase, traz de volta um boneco perdido."],
 	["item_time", "Ampulheta", "hud_clock", "Mais tempo na fase."],
 	["item_bag", "Bolsa", "editor_counts", "+1 carga em cada ferramenta da barra."],
+	["item_coins", "Moedas", "hud_coin", "Moedas para a loja (mais com a Ganância)."],
 ]
 
 ## Returns whether an entry id (see _entry ids below) has been discovered;

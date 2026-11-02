@@ -7,73 +7,50 @@
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1_script")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-anchor_right = 1.0
-offset_right = -332.0
-offset_bottom = 72.0
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+[node name="Bar" type="PanelContainer" parent="."]
+texture_filter = 1
+offset_left = 8.0
+offset_top = 8.0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="Row" type="HBoxContainer" parent="Bar"]
 layout_mode = 2
-theme_override_constants/separation = 4
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="InfoButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(26, 26)
+[node name="InfoButton" type="Button" parent="Bar/Row"]
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 focus_mode = 0
 mouse_default_cursor_shape = 16
 text = "i"
 script = ExtResource("3_info")
 
-[node name="LemmingsLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-text = "Na fase: 0   Salvos: 0   Perdidos: 0   Total: 0"
-
-[node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-text = "00:00"
-
-[node name="RequiredLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-text = "Meta: 0%"
-
-[node name="GameControls" type="HBoxContainer" parent="."]
+[node name="ControlsBar" type="PanelContainer" parent="."]
 process_mode = 3
+texture_filter = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -320.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = 39.0
 grow_horizontal = 0
-alignment = 2
-theme_override_constants/separation = 6
+
+[node name="GameControls" type="HBoxContainer" parent="ControlsBar"]
+process_mode = 3
+layout_mode = 2
+theme_override_constants/separation = 4
 script = ExtResource("2_controls")
 
-[node name="PauseButton" type="Button" parent="GameControls"]
+[node name="PauseButton" type="Button" parent="ControlsBar/GameControls"]
 layout_mode = 2
 focus_mode = 0
-text = "Pausar"
 
-[node name="RestartButton" type="Button" parent="GameControls"]
+[node name="RestartButton" type="Button" parent="ControlsBar/GameControls"]
 layout_mode = 2
 focus_mode = 0
-text = "Reiniciar"
 
-[node name="SettingsButton" type="Button" parent="GameControls"]
+[node name="SettingsButton" type="Button" parent="ControlsBar/GameControls"]
 layout_mode = 2
 focus_mode = 0
-text = "Config"
 
-[node name="MenuButton" type="Button" parent="GameControls"]
+[node name="MenuButton" type="Button" parent="ControlsBar/GameControls"]
 layout_mode = 2
 focus_mode = 0
-text = "Menu"

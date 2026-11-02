@@ -79,7 +79,7 @@ func _ready() -> void:
 	_check(_find_button(run, "Jogar de novo") != null and _find_button(run, "Menu") != null, "the run-end screen offers Jogar de novo and Menu")
 
 	run.state.add_relic(RoguelikeRelics.SHARP_BLADES)
-	run.relics.apply_templates(run.state.relics)
+	run.relics.apply_templates(run.state.relic_levels)
 	remove_child(run)
 	run.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PROFILE_PATH))

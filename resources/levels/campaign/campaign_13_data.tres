@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_sivm0"]
+
+[resource]
+script = ExtResource("1_sivm0")
+level_name = "Passagem de Obsidiana"
+spawn_rate = 3.0
+total_lemmings = 15
+required_percentage = 0.8
+time_limit_seconds = 150
+available_skills = Array[String](["bridge", "dynamite", "basher", "miner"])
+skill_counts = {
+"basher": 1,
+"bridge": 1,
+"dynamite": 1,
+"miner": 1
+}
+scene_path = "res://scenes/levels/campaign/campaign_13.tscn"
+environment_kind = 5

@@ -65,8 +65,8 @@ func _check_pause_and_continue() -> void:
 		_fail("Pause did not pause the game")
 	if _lemming_positions() != before:
 		_fail("lemmings moved while paused")
-	if _button("PauseButton").text != "Continuar":
-		_fail("the pause button reads '%s' while paused, expected 'Continuar'" % _button("PauseButton").text)
+	if not _button("PauseButton").tooltip_text.begins_with("Continuar"):
+		_fail("the pause button says '%s' while paused, expected 'Continuar'" % _button("PauseButton").tooltip_text)
 
 	_press("PauseButton")
 	await _frames(PAUSED_FRAMES)

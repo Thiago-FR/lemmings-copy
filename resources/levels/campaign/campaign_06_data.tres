@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_qract"]
+
+[resource]
+script = ExtResource("1_qract")
+level_name = "Oásis Escondido"
+instructions = "O Bloco faz os bonecos voltarem. A Picareta cava reto na terra."
+spawn_rate = 2.5
+total_lemmings = 12
+required_percentage = 0.75
+time_limit_seconds = 150
+available_skills = Array[String](["block", "miner"])
+skill_counts = {
+"block": 2,
+"miner": 2
+}
+scene_path = "res://scenes/levels/campaign/campaign_06.tscn"
+environment_kind = 2

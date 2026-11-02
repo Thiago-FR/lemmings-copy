@@ -39,7 +39,7 @@ func _ready() -> void:
 	assert(state != null and not state.troop.is_empty(), "A stage session needs a run state with a troop")
 	definition = state.get_stage_definition()
 	if relics != null:
-		relics.apply_templates(state.relics)
+		relics.apply_templates(state.relic_levels)
 
 	GameManager.current_level_data = _make_level_data()
 	level_manager = builder.build(definition)
@@ -59,6 +59,7 @@ func _ready() -> void:
 	if show_ui:
 		level_manager.add_child(RoguelikeRunHud.new(state, definition, self))
 		level_manager.add_child(RoguelikeToolBar.new(state.inventory))
+		level_manager.add_child(RoguelikeRelicBar.new(state))
 
 	SkillManager.skill_assigned.connect(_on_skill_assigned)
 	SkillManager.skill_selected.connect(_on_skill_selected)
@@ -95,7 +96,7 @@ func _make_level_data() -> LevelData:
 	level_data.required_percentage = 0.0
 	# Chosen with the terrain: open sky on the shallow stages, a cave deeper.
 	level_data.environment_kind = definition.get_environment_kind()
-	level_data.time_limit_seconds = definition.time_limit_seconds
+	level_data.time_limit_seconds = definition.time_limit_seconds + RoguelikeRelics.SECONDS_PER_LEVEL * state.get_relic_level(RoguelikeRelics.HOURGLASS)
 	level_data.available_skills = SkillManager.get_skill_ids()
 	level_data.skill_counts = state.inventory.to_counts()
 	return level_data
@@ -112,8 +113,9 @@ func _on_lemming_spawned(lemming: LemmingController) -> void:
 	_spawned_count += 1
 	_characters[lemming] = character
 	RoguelikeCharacters.apply_to(lemming, character)
-	if _spawned_count == 1 and state.relics.has(RoguelikeRelics.SPARE_PARACHUTE):
+	if _spawned_count <= RoguelikeRelics.PARACHUTES_BY_LEVEL[state.get_relic_level(RoguelikeRelics.SPARE_PARACHUTE)]:
 		lemming.has_floater_skill = true
+	lemming.walk_speed *= 1.0 + RoguelikeRelics.WALK_SPEED_PER_LEVEL * state.get_relic_level(RoguelikeRelics.QUICK_STEP)
 	lemming.clicked.connect(_on_lemming_clicked)
 	lemming.died.connect(func(cause: LemmingController.DeathCause) -> void: _on_lemming_died(lemming, cause))
 
@@ -197,7 +199,7 @@ func _on_pickup_collected(pickup: RoguelikePickup, lemming: LemmingController) -
 	var text := spec.describe()
 	match spec.kind:
 		RoguelikePickupSpec.Kind.TOOL:
-			var amount := spec.amount
+			var amount := spec.amount + state.get_relic_level(RoguelikeRelics.COLLECTOR)
 			var character_trait := RoguelikeCharacters.get_trait(lemming)
 			if character_trait != null:
 				amount += character_trait.get_pickup_bonus()
@@ -211,6 +213,10 @@ func _on_pickup_collected(pickup: RoguelikePickup, lemming: LemmingController) -
 			level_manager.time_remaining += spec.amount
 		RoguelikePickupSpec.Kind.CHARGE_BAG:
 			state.inventory.add_one_to_each()
+		RoguelikePickupSpec.Kind.COINS:
+			var coins := spec.amount + state.get_relic_level(RoguelikeRelics.GREED)
+			state.coins += coins
+			text = "+%d moedas" % coins
 	AudioManager.play_sound(&"select_tool")
 	RoguelikeFloatingText.spawn(level_manager, pickup.global_position, text)
 

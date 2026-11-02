@@ -18,6 +18,9 @@ signal all_lemmings_spawned
 @export var spawn_container: NodePath
 ## Text shown above the entrance.
 @export var label_text: String = "ENTRADA"
+## Recoloured art for a setting (see LevelEnvironment.terrain_theme); empty
+## is the default look. Read when the node enters the scene.
+@export var art_theme: StringName = &""
 
 ## The hatch art (docs/art_pipeline.md, "Entrada e saída"): pixel (24, 32),
 ## the middle of the hatch's bottom edge, sits on the origin, where the
@@ -44,7 +47,7 @@ func _ready() -> void:
 
 ## The hatch opens once, then idles open. Behind the lemmings dropping out.
 func _add_art() -> void:
-	var art := PortalSprite.make(ART_ANIMATIONS, ART_OFFSET)
+	var art := PortalSprite.make(ART_ANIMATIONS, ART_OFFSET, art_theme)
 	art.z_index = -1
 	add_child(art)
 	art.animation_finished.connect(func() -> void: art.play(&"idle"))

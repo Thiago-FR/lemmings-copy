@@ -16,6 +16,9 @@ signal lemming_exited(lemming: LemmingController)
 @export_flags_2d_physics var detected_layers: int = Constants.LEMMING_COLLISION_LAYER
 ## Text shown above the exit.
 @export var label_text: String = "SAÍDA"
+## Recoloured art for a setting (see LevelEnvironment.terrain_theme); empty
+## is the default look. Read when the node enters the scene.
+@export var art_theme: StringName = &""
 
 ## The doorway art (docs/art_pipeline.md, "Entrada e saída"): its bottom
 ## centre, pixel (22, 56), sits on the floor, which is 24px below the origin
@@ -43,7 +46,7 @@ func _ready() -> void:
 	_label.text = label_text
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
-	var art := PortalSprite.make(ART_ANIMATIONS, ART_OFFSET)
+	var art := PortalSprite.make(ART_ANIMATIONS, ART_OFFSET, art_theme)
 	art.z_index = -1
 	add_child(art)
 	art.play(&"idle")

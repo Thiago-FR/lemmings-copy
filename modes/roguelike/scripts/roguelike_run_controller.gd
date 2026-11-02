@@ -86,7 +86,7 @@ func _on_stage_finished(saved: Array[StringName], lost: Array[StringName]) -> vo
 	GameManager.resume_game()
 	SkillManager.selected_skill_id = ""
 	var revived := state.finish_stage(saved, lost)
-	var summary := "Salvos: %d   Perdidos: %d   +%d moedas" % [saved.size(), lost.size(), saved.size() * RoguelikeRunState.COINS_PER_SAVED]
+	var summary := "Salvos: %d   Perdidos: %d   +%d moedas" % [saved.size(), lost.size(), saved.size() * state.coins_per_saved()]
 	for character in revived:
 		summary += "\nA pena da fênix trouxe de volta: %s" % RoguelikeCharacters.get_display_name(character)
 	if state.is_over():
@@ -120,7 +120,7 @@ func _show_shop() -> void:
 	var screen := RoguelikeShopScreen.new(state, RoguelikeCardPool.draw_offer(state, _rng, RoguelikeShopScreen.OFFER_SIZE))
 	screen.closed.connect(_start_stage)
 	if GameManager.developer_mode:
-		screen.add_buttons([["Dev", _show_dev_screen.bind(_show_shop)]])
+		screen.add_icon_buttons([["dev", "Modo desenvolvedor", _show_dev_screen.bind(_show_shop), "Dev"]])
 	_show_screen(screen)
 
 

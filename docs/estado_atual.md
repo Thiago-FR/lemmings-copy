@@ -30,6 +30,8 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 | Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
 | Animação de paraquedas | ✅ `float`, no estado FLOATING |
 | Som e música | ✅ gerados em código (`tools/build_audio.py`), botão Som / tecla M |
+| Campanha "Fases" | ✅ 15 fases com curva de dificuldade, tela de seleção, progresso salvo, robô de teste em cada uma (ver "Campanha (Fases)") |
+| Cenários novos | ✅ deserto, caverna de cristal, campo de neve, vulcão: fundo, blocos, entrada e saída de cada um |
 
 ## A causa raiz (o que travava tudo)
 
@@ -144,6 +146,10 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 | Regerar as fases | `godot --headless --script res://tools/build_test_levels.gd` (regera todas; descarte com `git checkout` as que não mudaram de propósito, porque o Godot reescreve os ids internos) |
 | Regerar a animação de escavar | `python tools/build_dig_frames.py` |
 | Regerar a animação de morte | `python tools/build_death_frames.py` |
+| Regerar as fases da campanha | `godot --headless --path . --script res://tools/build_campaign_levels.gd [-- <pasta>]` (com a pasta, salva também o mapa de cada fase em texto) |
+| Jogar uma fase da campanha sozinho | `godot --headless --path . res://tests/test_campaign_07.tscn` (01 a 15) |
+| Capturas da campanha | `godot --path . --windowed res://tools/capture_campaign.tscn -- <pasta> [números das fases]` (sem `--headless`) |
+| Regerar os cenários (blocos, entrada, saída) | `python tools/build_terrain_themes.py [amostra.png]`, depois `godot --headless --path . --import` |
 
 O Godot está em `C:\Users\Thiago\Desktop\CriarJogos\Godot_v4.6-stable_win64.exe`
 e não está no PATH; os `.bat` já apontam para ele.
@@ -258,9 +264,12 @@ terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
 - **Ambiente** (`LevelEnvironment`): define o fundo e a cor da moldura de
   uma vez, para não misturar (o usuário: "não vai ter caverna com fundo de
   céu azul"). Hoje há SURFACE (céu ao entardecer, morros) e CAVE (sem céu,
-  rocha escura, estalactites). Cada fase escolhe em
+  rocha escura, estalactites), e agora DESERT, CRYSTAL_CAVE, SNOWFIELD e
+  VOLCANO. Cada fase escolhe em
   `LevelData.environment_kind`; o gerador procedural deve escolher o ambiente
-  junto com os tiles. Quando existirem tiles por ambiente, entram aqui.
+  junto com os tiles. Desde a campanha há mais quatro (deserto, caverna de
+  cristal, neve, vulcão), cada um com os próprios blocos, entrada e saída
+  (ver "Cenários novos").
 - Para ver o resultado de verdade: `tools/capture_screens.tscn` salva
   capturas de uma fase e do editor (abre uma janela; ver o cabeçalho do
   script).
@@ -575,6 +584,37 @@ conta como salvo (`ExitPoint` emite `lemming_exited` quando ele termina).
 Nesse trajeto nada mais acontece com ele: sem clique, sem ferramenta, sem
 morte (nem pelo Encerrar fase).
 
+### Cartas com nível (2 de novembro de 2026)
+
+Regras aprovadas pelo usuário.
+
+- **Dois tipos de carta.** Imediatas (+cargas, ferramenta nova, recruta,
+  pena da fênix) servem uma vez. **Permanentes** (as relíquias) têm nível
+  **I a III** (`RoguelikeRelics.MAX_LEVEL`): pegar a mesma de novo sobe o
+  nível; no III ela não é mais oferecida; na loja custa 12 + 6 por nível.
+- **As permanentes** (efeito por nível em `relics.gd`):
+  Lâminas afiadas (cavam +25%/nível), Ponte longa (+3 peças/nível), Escada
+  comprida (+2 peças/nível na vertical), Pavio curto (-0,5 s/nível),
+  Bolso extra (+1 espaço/nível; a barra vai até 7), Paraquedas reserva
+  (1º / 2 primeiros / todos), **Coletor** (cada item de ferramenta dá
+  +1/nível), **Ganância** (+1 moeda/nível por salvo e em cada moeda do mapa),
+  **Passo acelerado** (andam +15%/nível) e **Ampulheta** (+20 s/nível em
+  toda fase). As 4 últimas são novas, com ilustração em
+  `tools/build_card_art.py`.
+- **Moedas no mapa**: item novo `COINS` (2 moedas, +Ganância) entre os
+  bônus da fase.
+- **Barra lateral** (`RoguelikeRelicBar`): na esquerda da fase, uma ficha
+  por carta permanente com o nível em romano; a dica diz o efeito.
+- **Gancho no núcleo**: `LemmingController.walk_speed` (por boneco; antes
+  era a constante `WALK_SPEED`), usado pelo Passo acelerado.
+- **Mago sem o +1 por item** (decisão: os itens valem 1; quem dá mais por
+  item agora é o Coletor). A identidade dele fica sendo o Teleporte, que
+  ainda vem (descrição diz "em breve").
+- Texto das cartas encurtado ("Nova, 2 cargas." em vez de "Nova na barra",
+  que o usuário achou confuso); loja com moeda + preço.
+- Testes: `test_run_state` (níveis, oferta sem carta no topo, preço),
+  `test_relic_effects` (efeitos numa fase de verdade e a barra lateral).
+
 ### Cara das telas: tema do jogo, menu, configurações (2 de novembro de 2026)
 
 Pedido do usuário: "dar cara a todas as UX de menus e botões" e usar pouco
@@ -595,6 +635,10 @@ texto (só quando necessário).
   ícones no canto.
 - **Configurações**: seções com ícone (Tela, Áudio, Desenvolvedor) e linha,
   Voltar em verde.
+- **Barra das fases normais** (`HudController`, print `art6`): ícone +
+  número para na fase, salvos, perdidos, total, relógio e meta (ícone de
+  alvo `hud_goal`), com dica; Pausar/Continuar, Reiniciar, Configurações e
+  Menu como ícones do editor (`GameControlsController`).
 - **Escolha de personagem**: Jogar em verde e Comprar só com moeda + preço,
   do mesmo tamanho; Menu e Dev como ícones (ícone novo `dev`).
 - **Modo dev**: campo Quantidade + Adicionar/Remover para bonecos, cargas de
@@ -614,7 +658,7 @@ texto (só quando necessário).
   primeiro um lugar para cada pilha, depois as cargas extras onde couber;
   sem chão, empilha). Cada item lembra de que pilha veio (`spot_index`),
   que é o que a solução gravada usa. Item bônus de ferramenta: 1.
-  **O Mago ainda dá +1 em cada item que pega** (a decidir).
+  O Mago deixou de dar +1 por item (ver "Cartas com nível").
 - **Saída**: um boneco andando num bloco ao lado da saída, na altura da
   porta, entrava lá de cima. Agora só entra com os pés no chão da saída
   (`ExitPoint._stands_on_exit_floor`); antes disso cai na frente dela.
@@ -827,6 +871,88 @@ Ao chegar no topo, o boneco **dá um passo andando** (~9px, na velocidade de
 andar) até pisar no chão ao lado e segue andando. Antes ele era movido um
 bloco inteiro num quadro, o que parecia sumir da escada e aparecer no bloco
 seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
+
+## Campanha (Fases)
+
+Botão **"Fases"** no menu principal (depois do Tutorial). Faz parte do
+núcleo, não é um modo em `modes/`.
+
+- **15 fases feitas à mão**, 3 por cenário: Prado (1-3), Deserto (4-6),
+  Caverna de cristal (7-9), Campo de neve (10-12), Vulcão (13-15). As
+  primeiras ensinam uma ou duas ferramentas; da 10 em diante combinam; as
+  últimas são quebra-cabeças com uma carga de cada ferramenta.
+
+| # | Nome | Ferramentas | O quebra-cabeça |
+|---|---|---|---|
+| 1 | Terra Fofa | Pá 3 | campo fechado por um morro; a saída está num vão embaixo: cavar |
+| 2 | Ribeirão Seco | Ponte 3 | dois leitos sem fundo para cruzar |
+| 3 | Muralha do Moinho | Escada vertical 3 | dois paredões de 6 blocos, um sobre o outro; quem volta pela beira do primeiro cai |
+| 4 | Escadaria das Dunas | Escada diagonal 4 | dois terraços de 3 blocos; a escada tem que começar de 9 a 12 blocos antes da parede |
+| 5 | Garras ao Vento | Garras 8, Paraquedas 8 | um planalto de 10 blocos e um cânion depois: cada boneco precisa dos dois |
+| 6 | Oásis Escondido | Bloco 2, Picareta 2 | eles saem andando para um abismo: bloquear, depois furar o morro do outro lado |
+| 7 | Veios de Cristal | Picareta 2, Britadeira 1 | três paredes: pedra, cristal (só a Britadeira), pedra |
+| 8 | Eco Profundo | Dinamite 3 | três galerias com chão de cristal de 1 bloco; a segunda carga longe do primeiro buraco |
+| 9 | Coração de Cristal | Dinamite 2, TNT 2 | chão de 2 blocos (a Dinamite só faz uma cratera que prende); TNT junto à parede do fim |
+| 10 | Travessia Gelada | Pá 1, Ponte 1, Escada diagonal 2 | cavar a plataforma, cruzar a fenda, subir o terraço |
+| 11 | Torre de Gelo | Bloco 1, Escada vertical 1, Britadeira 1 | abismo à frente, torre atrás, parede de gelo em cima da torre |
+| 12 | Fenda Glacial | Ponte 1, Picareta 1, Escada vertical 1 | fenda, monte de neve, penhasco — uma de cada |
+| 13 | Passagem de Obsidiana | Ponte 1, Dinamite 1, Britadeira 1, Picareta 1 | desfiladeiro, chão de obsidiana, parede de obsidiana; a Picareta não serve |
+| 14 | Caldeirão | Garras 1, Paraquedas 1, Ponte 1, Pá 1 | um pioneiro sai da cratera, desce de paraquedas e faz a ponte; só depois cavar para soltar o resto |
+| 15 | Coroa de Fogo | Garras, Paraquedas, Ponte, Britadeira, Escada diagonal, TNT (1 de cada) | o pioneiro prepara todo o caminho; o TNT no fim abre o chão duplo da cratera |
+
+- **Tamanho:** todas com 80 x 45 blocos (o padrão "no mínimo 80 x 45"),
+  câmera rolando.
+- **Como são feitas:** `tools/build_campaign_levels.gd` desenha cada fase
+  numa grade (começa toda de terra; céu, salas, abismos e concreto são
+  pintados por cima) e salva `scenes/levels/campaign/campaign_NN.tscn` e
+  `resources/levels/campaign/campaign_NN_data.tres`. O cabeçalho do script
+  lista as regras de geometria que todas seguem (queda de 2 blocos é
+  segura, chão para cavar/explodir é 1 bloco sobre um vão de 1, etc.).
+  Depois do desenho, uma decoração automática põe pedras (concreto) e uma
+  faixa de rocha no fundo, e nas cavernas ocos fechados com cristais —
+  **só em blocos a 3 ou mais de qualquer espaço aberto e nunca numa parede
+  entre dois espaços abertos** (onde passa túnel ou poço), para não mudar
+  nenhuma solução. A primeira versão pôs uma pedra no meio do monte da fase
+  12 e a Picareta parou nela; o teste pegou.
+- **Teste de cada fase:** `tests/test_campaign_NN.gd` (base
+  `tests/campaign_playthrough_test.gd`, que estende
+  `level_playthrough_test.gd`) joga a fase com uma solução escrita
+  (`give_once` / `give_each` com condições de posição) e só passa se ganhar,
+  isto é, salvar a meta no tempo. Os testes rodam **4x mais rápido**:
+  `Engine.time_scale = 4` com a física a 240 ticks/s, então cada passo
+  ainda é 1/60 s, a mesma simulação (conferido: as fases 8, 13 e 15 dão os
+  mesmos tempos e resultados em 1x). Os 15 passam; o tempo limite de cada
+  fase é ~1,5 a 2x o que o robô gasta.
+- **Progresso:** `Campaign` (`scripts/level/campaign.gd`) em
+  `user://campaign.cfg`, seção `cleared`, a melhor porcentagem de cada fase
+  ganha. A primeira está sempre aberta; ganhar abre a seguinte. Os testes
+  usam outro arquivo (`Campaign.save_path`).
+- **Tela de seleção** (`CampaignSelectScreen`, `scenes/ui/campaign_select.tscn`):
+  15 botões em 5 colunas, uma por cenário, com uma faixa nas cores do
+  cenário em cima; estrela nas ganhas, verde na próxima, cadeado nas
+  fechadas; nome no tooltip; o fundo vira o cenário da fase sob o mouse.
+- **Fim de fase:** o `LevelResultController` agora mostra o resultado num
+  painel, com a meta; numa fase da campanha registra a vitória, oferece
+  **Próxima** e o botão Menu vira **Fases** (volta à seleção).
+- Teste do fluxo: `tests/test_campaign` (dados das 15 fases, progresso,
+  tela de seleção, tela de fim de fase, botão no menu).
+- Ainda não medido com gente jogando: a dificuldade foi pensada, e o robô
+  prova só que cada fase tem solução.
+
+### Cenários novos (`LevelEnvironment`)
+
+- Tipos novos (`LevelEnvironment.Kind`, acrescentados no fim, o número das
+  fases antigas não muda): `DESERT`, `CRYSTAL_CAVE`, `SNOWFIELD`, `VOLCANO`.
+- O fundo (`LevelBackground`) agora escolhe a silhueta por `skyline`
+  (morros, dunas, picos com neve/lava no topo, estalactites) e pode ter sol,
+  pontos que piscam (cristais), coisas que caem ou sobem (neve, brasas) e
+  cristais saindo do chão.
+- `terrain_theme` liga o cenário a uma pasta de arte: o `LevelManager`
+  passa o tema para o terreno (`TerrainDestructible.art_theme`, troca a
+  textura do atlas numa cópia do TileSet e as tiras de borda), a entrada e a
+  saída (`art_theme` em `SpawnPoint`/`ExitPoint`, via `PortalSprite`) e a
+  moldura de rocha. Tiles e colisão iguais: só a textura muda. Ver
+  `art_pipeline.md`, "Cenários".
 
 ## Botões da fase e menu
 

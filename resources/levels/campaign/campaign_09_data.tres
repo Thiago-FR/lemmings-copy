@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_gbtnt"]
+
+[resource]
+script = ExtResource("1_gbtnt")
+level_name = "Coração de Cristal"
+instructions = "O TNT abre um buraco maior que a Dinamite."
+spawn_rate = 2.5
+total_lemmings = 12
+required_percentage = 0.6
+time_limit_seconds = 150
+available_skills = Array[String](["dynamite", "tnt"])
+skill_counts = {
+"dynamite": 2,
+"tnt": 2
+}
+scene_path = "res://scenes/levels/campaign/campaign_09.tscn"
+environment_kind = 3

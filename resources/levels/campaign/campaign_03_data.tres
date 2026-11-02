@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_xcf6t"]
+
+[resource]
+script = ExtResource("1_xcf6t")
+level_name = "Muralha do Moinho"
+instructions = "A Escada vertical sobe numa parede."
+spawn_rate = 2.5
+total_lemmings = 10
+required_percentage = 0.7
+time_limit_seconds = 180
+available_skills = Array[String](["ladder_vertical"])
+skill_counts = {
+"ladder_vertical": 3
+}
+scene_path = "res://scenes/levels/campaign/campaign_03.tscn"

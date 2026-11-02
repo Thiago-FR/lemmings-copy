@@ -15,7 +15,17 @@ extends HBoxContainer
 @onready var _settings_button: Button = $SettingsButton
 
 
+## Icon, tooltip of each button: the same icons as the editor's.
+const BUTTON_ICONS := {
+	"RestartButton": ["editor_restart", "Reiniciar (R)"],
+	"SettingsButton": ["settings", "Configurações"],
+	"MenuButton": ["editor_menu", "Menu (Esc)"],
+}
+
+
 func _ready() -> void:
+	for button: Button in [_pause_button, _restart_button, _settings_button, _menu_button]:
+		_style_as_icon(button)
 	_pause_button.pressed.connect(GameManager.toggle_pause)
 	_restart_button.pressed.connect(GameManager.restart_level)
 	_menu_button.pressed.connect(GameManager.go_to_main_menu)
@@ -55,8 +65,20 @@ func _open_settings() -> void:
 	get_tree().root.add_child(SettingsMenu.new())
 
 
+func _style_as_icon(button: Button) -> void:
+	button.custom_minimum_size = UiStyle.SLOT_SIZE
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.apply_slot_style(button)
+	if BUTTON_ICONS.has(button.name):
+		button.icon = UiStyle.icon(BUTTON_ICONS[button.name][0])
+		button.tooltip_text = BUTTON_ICONS[button.name][1]
+
+
+## Play while paused, pause otherwise; the tooltip says which.
 func _refresh_pause_button() -> void:
-	_pause_button.text = "Continuar" if GameManager.is_paused else "Pausar"
+	var paused := GameManager.is_paused
+	_pause_button.icon = UiStyle.icon("editor_play" if paused else "editor_pause")
+	_pause_button.tooltip_text = "Continuar (P)" if paused else "Pausar (P)"
 
 
 func _on_level_ended(_percentage_saved: float) -> void:

@@ -140,6 +140,7 @@ func _test_cards() -> void:
 	_check(state.troop.has(&"scout"), "a recruit card adds a lemming")
 	RoguelikeCard.make(RoguelikeCard.Kind.RELIC, "extra_pocket").apply(state)
 	_check(state.relics.has(&"extra_pocket") and state.inventory.max_slots == 5, "the extra pocket relic adds a slot")
+	_test_relic_levels()
 	RoguelikeCard.make(RoguelikeCard.Kind.REVIVE).apply(state)
 	_check(state.revive_tokens == 1, "a rescue card with nobody lost keeps a rescue for later")
 	state.fallen.append(&"miner")
@@ -148,6 +149,28 @@ func _test_cards() -> void:
 	for kind in RoguelikeCard.Kind.values():
 		var card := RoguelikeCard.make(kind, "digger" if kind <= RoguelikeCard.Kind.NEW_TOOL else ("miner" if kind == RoguelikeCard.Kind.RECRUIT else "short_fuse"), 2)
 		_check(card.get_title() != "" and card.get_description() != "", "card kind %s has a title and a description" % RoguelikeCard.Kind.keys()[kind])
+
+
+## Taking a relic again raises its level, up to the top one, where it is no
+## longer offered; its card says the level it goes to, and costs more.
+func _test_relic_levels() -> void:
+	var state := RoguelikeRunState.new_run()
+	for expected in [1, 2, 3, 3]:
+		state.add_relic(RoguelikeRelics.GREED)
+		_check(state.get_relic_level(RoguelikeRelics.GREED) == expected, "Greed taken again is at level %d (%d)" % [expected, state.get_relic_level(RoguelikeRelics.GREED)])
+	_check(state.relics.count(RoguelikeRelics.GREED) == 1, "a relic is listed once, whatever its level")
+	_check(state.coins_per_saved() == RoguelikeRunState.COINS_PER_SAVED + 3, "Greed III adds 3 coins per saved lemming")
+	var rng := RandomNumberGenerator.new()
+	for attempt in 50:
+		for card in RoguelikeCardPool.draw_offer(state, rng, 5):
+			if card.kind == RoguelikeCard.Kind.RELIC and card.subject == String(RoguelikeRelics.GREED):
+				_check(false, "a relic at the top level is still offered")
+				return
+	state.add_relic(RoguelikeRelics.EXTRA_POCKET)
+	state.add_relic(RoguelikeRelics.EXTRA_POCKET)
+	_check(state.inventory.max_slots == RoguelikeToolInventory.DEFAULT_MAX_SLOTS + 2, "Extra pocket II adds two slots (%d)" % state.inventory.max_slots)
+	var next := RoguelikeCard.make(RoguelikeCard.Kind.RELIC, RoguelikeRelics.EXTRA_POCKET, 3)
+	_check(next.get_title().ends_with("III") and next.get_price() > RoguelikeCard.make(RoguelikeCard.Kind.RELIC, RoguelikeRelics.EXTRA_POCKET, 1).get_price(), "a level III card says so and costs more")
 
 
 func _test_card_offer() -> void:
@@ -171,11 +194,12 @@ func _test_relic_templates() -> void:
 	relics.save_templates()
 	var before_dig := (SkillManager.create_skill("digger") as SkillDigger).dig_speed
 	var before_fuse := (SkillManager.create_skill("tnt") as SkillExplosive).fuse_seconds
-	relics.apply_templates([RoguelikeRelics.SHARP_BLADES, RoguelikeRelics.SHORT_FUSE] as Array[StringName])
-	relics.apply_templates([RoguelikeRelics.SHARP_BLADES, RoguelikeRelics.SHORT_FUSE] as Array[StringName])
+	var levels := {RoguelikeRelics.SHARP_BLADES: 2, RoguelikeRelics.SHORT_FUSE: 3}
+	relics.apply_templates(levels)
+	relics.apply_templates(levels)
 	var upgraded_dig := (SkillManager.create_skill("digger") as SkillDigger).dig_speed
-	_check(is_equal_approx(upgraded_dig, before_dig * RoguelikeRelics.DIG_SPEED_FACTOR), "sharp blades speed up the shovel once, however often applied")
-	_check(is_equal_approx((SkillManager.create_skill("tnt") as SkillExplosive).fuse_seconds, RoguelikeRelics.SHORT_FUSE_SECONDS), "short fuse shortens the TNT fuse")
+	_check(is_equal_approx(upgraded_dig, before_dig * (1.0 + 2 * RoguelikeRelics.DIG_SPEED_PER_LEVEL)), "sharp blades II speed the shovel up by 50%, once however often applied")
+	_check(is_equal_approx((SkillManager.create_skill("tnt") as SkillExplosive).fuse_seconds, before_fuse - 3 * RoguelikeRelics.FUSE_SECONDS_CUT_PER_LEVEL), "short fuse III cuts the TNT fuse by 1.5 s")
 	relics.restore_templates()
 	_check(is_equal_approx((SkillManager.create_skill("digger") as SkillDigger).dig_speed, before_dig), "restoring puts the shovel back")
 	_check(is_equal_approx((SkillManager.create_skill("tnt") as SkillExplosive).fuse_seconds, before_fuse), "restoring puts the fuse back")

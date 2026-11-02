@@ -23,7 +23,6 @@ extends Node2D
 ##
 ## Strip geometry must match tools/build_terrain_art.py, which draws them.
 
-const ART_DIRECTORY := "res://assets/sprites/terrain/"
 ## Rows of a floor strip above the surface (grass blades poke up).
 const FLOOR_OVERHANG := 3
 ## Rows of a ceiling strip below the surface (roots hang down).
@@ -64,7 +63,7 @@ func _load_pieces() -> void:
 	for material_name in MATERIAL_NAMES:
 		var pieces := {}
 		for piece_name in PIECE_NAMES:
-			var path := ART_DIRECTORY + "%s_%s.png" % [material_name, piece_name]
+			var path := _terrain.get_art_directory() + "%s_%s.png" % [material_name, piece_name]
 			if ResourceLoader.exists(path):
 				pieces[piece_name] = load(path)
 		assert(pieces.has("floor") and pieces.has("wall_left") and pieces.has("wall_right") and pieces.has("ceiling"),

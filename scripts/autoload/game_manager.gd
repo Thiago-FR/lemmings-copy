@@ -65,8 +65,19 @@ func restart_level() -> void:
 
 
 func go_to_main_menu() -> void:
+	go_to_scene(MAIN_MENU_SCENE_PATH)
+
+
+## Leaves the level for another screen (the campaign's level select).
+func go_to_scene(scene_path: String) -> void:
 	_unpause_for_scene_change()
-	get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
+	get_tree().change_scene_to_file(scene_path)
+
+
+## Leaves the level for another level (the campaign's next one).
+func load_level(level_data: LevelData) -> void:
+	_unpause_for_scene_change()
+	LevelLoader.load_level(level_data)
 
 
 ## Clears both the tree's pause and is_paused: the result screen pauses the

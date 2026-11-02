@@ -1088,6 +1088,19 @@ def display():
     return outline(image)
 
 
+def hud_goal():
+    """A target, red and cream rings with a gold centre: the share of the
+    lemmings a level asks to save."""
+    image = new()
+    for radius, colour in ((13, RED), (10.5, CREAM), (8, RED), (5.5, CREAM), (3, YELLOW)):
+        disc(image, 15.5, 15.5, radius, colour)
+    for y in range(32):
+        for x in range(32):
+            if image.getpixel((x, y)) == RED and x + y > 36:
+                put(image, x, y, RED_DARK)
+    return outline(image)
+
+
 THEME_PIECES = {
     **{name: (lambda state=name: theme_button(state)) for name in BUTTON_STATES},
     "check_on": lambda: theme_check(True),
@@ -1203,6 +1216,7 @@ EDITOR_ICONS = {
     "settings": settings,
     "dev": dev,
     "display": display,
+    "hud_goal": hud_goal,
 }
 
 

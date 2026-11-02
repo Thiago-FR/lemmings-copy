@@ -18,8 +18,17 @@ func _init(state: RoguelikeRunState, offers: Array[RoguelikeCard]) -> void:
 	super()
 	_state = state
 	add_title("Loja")
-	_coins_label = add_text("")
-	_coins_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var coins_row := HBoxContainer.new()
+	coins_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_child(coins_row)
+	var coin := TextureRect.new()
+	coin.texture = UiStyle.icon("hud_coin")
+	coin.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	coin.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	coins_row.add_child(coin)
+	_coins_label = Label.new()
+	_coins_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	coins_row.add_child(_coins_label)
 	for card in offers:
 		content.add_child(_make_offer(card))
 	add_buttons([["Seguir para a fase", closed.emit, true]])
@@ -45,16 +54,17 @@ func _make_offer(card: RoguelikeCard) -> HBoxContainer:
 	text.custom_minimum_size.x = 300
 	row.add_child(text)
 
-	var buy := Button.new()
+	var buy := UiStyle.make_text_button(str(card.get_price()))
 	buy.name = "Buy"
-	buy.text = "%d moedas" % card.get_price()
-	buy.custom_minimum_size = Vector2(120, 36)
-	buy.focus_mode = Control.FOCUS_NONE
+	buy.icon = UiStyle.icon("hud_coin")
+	buy.tooltip_text = "Comprar"
 	buy.set_meta("price", card.get_price())
 	buy.pressed.connect(func() -> void:
 		if _state.spend_coins(card.get_price()):
 			card.apply(_state)
-			buy.text = "Comprado"
+			buy.text = ""
+			buy.icon = UiStyle.icon("hud_saved")
+			buy.tooltip_text = "Comprado"
 			buy.disabled = true
 			buy.set_meta("sold", true)
 			_refresh())
@@ -64,7 +74,7 @@ func _make_offer(card: RoguelikeCard) -> HBoxContainer:
 
 ## Offers the coins cannot pay for are greyed out.
 func _refresh() -> void:
-	_coins_label.text = "Moedas: %d" % _state.coins
+	_coins_label.text = str(_state.coins)
 	for button in find_children("Buy", "Button", true, false):
 		if not button.get_meta("sold", false):
 			button.disabled = int(button.get_meta("price")) > _state.coins

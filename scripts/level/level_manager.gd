@@ -51,6 +51,19 @@ func _enter_tree() -> void:
 	assert(level_data != null, "LevelManager requires GameManager.current_level_data to be set before the level scene loads")
 	time_remaining = float(level_data.time_limit_seconds)
 	SkillManager.initialize_for_level(level_data)
+	_apply_art_theme(LevelEnvironment.by_kind(level_data.environment_kind).terrain_theme)
+
+
+## The setting's blocks, entrance and exit, for the ones the scene left on
+## the default look. Done here, before the children's _ready(), which is
+## when each of them reads its theme.
+func _apply_art_theme(theme: StringName) -> void:
+	if theme == &"":
+		return
+	for child in get_children():
+		if child is TerrainDestructible or child is SpawnPoint or child is ExitPoint:
+			if child.art_theme == &"":
+				child.art_theme = theme
 
 
 func _ready() -> void:

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_q15pl"]
+
+[resource]
+script = ExtResource("1_q15pl")
+level_name = "Terra Fofa"
+instructions = "A Pá cava para baixo."
+spawn_rate = 2.0
+total_lemmings = 10
+required_percentage = 0.7
+time_limit_seconds = 180
+available_skills = Array[String](["digger"])
+skill_counts = {
+"digger": 3
+}
+scene_path = "res://scenes/levels/campaign/campaign_01.tscn"

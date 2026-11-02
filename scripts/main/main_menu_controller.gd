@@ -57,6 +57,8 @@ func _ready() -> void:
 	_add_title()
 	var modes := _add_panel()
 	_add_mode_button(modes, "Tutorial", "editor_play", false, LevelLoader.load_level.bind(load(TUTORIAL_LEVEL_PATH)))
+	var campaign := _add_mode_button(modes, "Fases", "campaign", false, get_tree().change_scene_to_file.bind(Campaign.SELECT_SCENE_PATH))
+	campaign.name = "CampaignButton"
 	for mode in MODES:
 		if ResourceLoader.exists(mode[1]):
 			_add_mode_button(modes, mode[0], mode[2], mode[3], get_tree().change_scene_to_file.bind(mode[1]))

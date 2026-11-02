@@ -1,6 +1,6 @@
 extends Node
 ## A live stage, checked piece by piece: items picked up by walking into
-## them reach the bar and SkillManager (with the Wizard's bonus), a tool
+## them reach the bar and SkillManager (one charge each), a tool
 ## handed out spends a charge from the bar, and each character's ability
 ## works on its own lemming (Miner digs faster, Engineer builds longer,
 ## Scout survives higher falls, Inventor reuses its last tool for free).
@@ -106,14 +106,14 @@ func _test_wizard_pickup_and_spending() -> void:
 	var state := _start_session([RoguelikeCharacters.WIZARD] as Array[StringName])
 	var picked := await _wait_for(func() -> bool: return state.inventory.has_tool("digger"))
 	_check(picked, "walking into the shovel item puts the shovel in the bar")
-	_check(state.inventory.get_charges("digger") == 2, "the Wizard's pick-up gives one extra charge (got %d)" % state.inventory.get_charges("digger"))
-	_check(SkillManager.get_remaining_count("digger") == 2, "SkillManager follows the bar")
+	_check(state.inventory.get_charges("digger") == 1, "an item gives one charge (got %d)" % state.inventory.get_charges("digger"))
+	_check(SkillManager.get_remaining_count("digger") == 1, "SkillManager follows the bar")
 	var pickups_left := get_tree().get_nodes_in_group("roguelike_pickups").filter(func(node: Node) -> bool: return not node.is_queued_for_deletion()).size()
 	_check(pickups_left == 2, "the item is gone once collected (%d left)" % pickups_left)
 	var lemming := _first_lemming()
 	await _wait_for(func() -> bool: return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING)
 	_check(_give("digger", lemming), "the shovel can be handed out")
-	_check(state.inventory.get_charges("digger") == 1 and SkillManager.get_remaining_count("digger") == 1, "handing it out spends a charge from the bar")
+	_check(state.inventory.get_charges("digger") == 0 and SkillManager.get_remaining_count("digger") == 0, "handing it out spends a charge from the bar")
 
 
 func _test_miner_digs_faster() -> void:

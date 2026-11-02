@@ -13,6 +13,8 @@ enum Kind {
 	TIME,
 	## One extra charge of every tool already in the bar.
 	CHARGE_BAG,
+	## `amount` coins for the shop (more with the Greed relic).
+	COINS,
 }
 
 @export var kind: Kind = Kind.TOOL
@@ -34,4 +36,6 @@ func describe() -> String:
 			return "Ampulheta (+%ds)" % amount
 		Kind.CHARGE_BAG:
 			return "Bolsa (+1 em cada ferramenta)"
+		Kind.COINS:
+			return "+%d moedas" % amount
 	return ""

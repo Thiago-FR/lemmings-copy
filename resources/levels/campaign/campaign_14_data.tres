@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_dgr84"]
+
+[resource]
+script = ExtResource("1_dgr84")
+level_name = "Caldeirão"
+spawn_rate = 2.5
+total_lemmings = 15
+required_percentage = 0.9
+time_limit_seconds = 160
+available_skills = Array[String](["climber", "floater", "bridge", "digger"])
+skill_counts = {
+"bridge": 1,
+"climber": 1,
+"digger": 1,
+"floater": 1
+}
+scene_path = "res://scenes/levels/campaign/campaign_14.tscn"
+environment_kind = 5

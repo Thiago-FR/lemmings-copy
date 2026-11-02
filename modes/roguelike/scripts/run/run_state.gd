@@ -27,7 +27,10 @@ var troop: Array[StringName] = []
 ## Lost lemmings, most recent last; rescues bring them back from the end.
 var fallen: Array[StringName] = []
 var unlocked_characters: Array[StringName] = []
+## Relics owned, in the order they were first taken, and the level of each
+## (RoguelikeRelics: taking one again raises its level).
 var relics: Array[StringName] = []
+var relic_levels: Dictionary = {}
 var revive_tokens := 0
 var inventory := RoguelikeToolInventory.new()
 ## Index of the stage being played or about to be played.
@@ -97,7 +100,7 @@ func finish_stage(saved: Array[StringName], lost: Array[StringName]) -> Array[St
 	troop = saved.duplicate()
 	fallen.append_array(lost)
 	lemmings_saved_total += saved.size()
-	coins += saved.size() * COINS_PER_SAVED
+	coins += saved.size() * coins_per_saved()
 	score += saved.size() * SCORE_PER_SAVED * (stage_index + 1)
 	last_stage_perfect = lost.is_empty() and not saved.is_empty()
 	var revived := use_revive_tokens()
@@ -145,9 +148,28 @@ func recruit(character: StringName) -> void:
 		unlocked_characters.append(character)
 
 
+## Takes a relic, or raises its level if owned (up to MAX_LEVEL).
 func add_relic(relic_id: StringName) -> void:
-	if relics.has(relic_id):
+	var level := get_relic_level(relic_id)
+	if level >= RoguelikeRelics.MAX_LEVEL:
 		return
-	relics.append(relic_id)
+	if level == 0:
+		relics.append(relic_id)
+	relic_levels[relic_id] = level + 1
 	if relic_id == RoguelikeRelics.EXTRA_POCKET:
 		inventory.add_slot()
+
+
+## Takes a relic away (developer screen).
+func remove_relic(relic_id: StringName) -> void:
+	relics.erase(relic_id)
+	relic_levels.erase(relic_id)
+
+
+func get_relic_level(relic_id: StringName) -> int:
+	return int(relic_levels.get(relic_id, 0))
+
+
+## Coins each saved lemming earns: the base, plus the Greed relic's level.
+func coins_per_saved() -> int:
+	return COINS_PER_SAVED + get_relic_level(RoguelikeRelics.GREED)

@@ -827,6 +827,123 @@ def relic_spare_parachute():
     return image
 
 
+def coin(image, cx, cy, radius):
+    """A gold coin seen face on, light on the upper left."""
+    disc(image, cx, cy, radius, BRASS_DARK)
+    disc(image, cx - 0.5, cy - 0.5, radius - 1.2, YELLOW)
+    disc(image, cx - radius * 0.35, cy - radius * 0.35, max(radius * 0.3, 1), YELLOW_LIGHT)
+
+
+def relic_collector():
+    """A horseshoe magnet pulling three tool charges (small glowing pips)
+    towards it: every item picked up gives more."""
+    image = new()
+    # The magnet, opening to the right: red body, metal tips.
+    for y in range(14, 50):
+        for x in range(6, 40):
+            dist = math.hypot(x - 24, y - 32)
+            if 10 <= dist <= 18 and x <= 26:
+                put(image, x, y, RED if dist < 16 else RED_DARK)
+    rect(image, 24, 14, 38, 21, RED)
+    rect(image, 24, 43, 38, 50, RED)
+    hline(image, 24, 38, 14, RED_LIGHT)
+    hline(image, 24, 38, 43, RED_LIGHT)
+    rect(image, 34, 14, 40, 21, METAL)
+    rect(image, 34, 43, 40, 50, METAL)
+    vline(image, 40, 14, 21, METAL_LIGHT)
+    vline(image, 40, 43, 50, METAL_LIGHT)
+    outline(image)
+    pull = new()
+    # Charges flying in, with little motion lines behind them.
+    for cx, cy in ((52, 18), (56, 32), (52, 46)):
+        disc(pull, cx, cy, 4, BLUE_LIGHT)
+        disc(pull, cx - 1, cy - 1, 2, BLUE_SHINE)
+        hline(pull, cx + 6, cx + 9, cy, BLUE)
+    outline(pull)
+    image.alpha_composite(pull)
+    sparkle(image, 46, 8, 2)
+    return image
+
+
+def relic_greed():
+    """An open wooden chest spilling gold coins: more coins."""
+    image = new()
+    # Lid tilted back, then the box.
+    polygon(image, [(10, 18), (52, 14), (54, 26), (12, 30)], WOOD)
+    line(image, (10, 18), (52, 14), WOOD_LIGHT, 1)
+    rect(image, 8, 34, 55, 58, WOOD)
+    hline(image, 8, 55, 34, WOOD_LIGHT)
+    hline(image, 8, 55, 58, WOOD_DARK)
+    for x in (8, 30, 54):
+        rect(image, x, 34, x + 1, 58, BRASS)
+    rect(image, 28, 40, 33, 46, BRASS_LIGHT)
+    put(image, 30, 43, BRASS_DARK)
+    outline(image)
+    coins = new()
+    for cx, cy, radius in ((18, 30, 5), (28, 27, 5.5), (39, 29, 5), (48, 32, 4.5), (23, 34, 4), (34, 33, 4.5), (52, 52, 4), (58, 58, 3.5)):
+        coin(coins, cx, cy, radius)
+    outline(coins)
+    image.alpha_composite(coins)
+    sparkle(image, 14, 8, 2)
+    sparkle(image, 44, 6, 2)
+    return image
+
+
+def relic_quick_step():
+    """A boot with a small wing at the heel and speed lines: lemmings walk
+    faster."""
+    image = new()
+    polygon(image, [(22, 12), (36, 12), (36, 38), (52, 42), (54, 52), (20, 52)], LEATHER)
+    rect(image, 20, 50, 55, 55, LEATHER_DARK)
+    vline(image, 22, 12, 50, rgb("#8a5232"))
+    hline(image, 22, 36, 12, rgb("#8a5232"))
+    for y in (20, 26, 32):
+        hline(image, 26, 34, y, CREAM_DARK)
+    outline(image)
+    wing = new()
+    polygon(wing, [(22, 22), (6, 14), (10, 22), (4, 26), (12, 30), (8, 34), (22, 32)], WHITE)
+    line(wing, (21, 24), (9, 18), CREAM_DARK, 1)
+    line(wing, (21, 28), (8, 27), CREAM_DARK, 1)
+    outline(wing)
+    image.alpha_composite(wing)
+    lines = new()
+    for y, x0 in ((40, 2), (46, 6), (52, 0)):
+        rect(lines, x0, y, x0 + 12, y + 1, YELLOW)
+    outline(lines)
+    image.alpha_composite(lines)
+    return image
+
+
+def relic_hourglass():
+    """A brass hourglass with the sand running: more time in every stage."""
+    image = new()
+    rect(image, 14, 4, 50, 9, BRASS)
+    rect(image, 14, 55, 50, 60, BRASS)
+    hline(image, 14, 50, 4, BRASS_LIGHT)
+    hline(image, 14, 50, 55, BRASS_LIGHT)
+    for x in (17, 46):
+        rect(image, x, 10, x + 1, 54, BRASS_DARK)
+    # The glass: two bulbs meeting at the neck.
+    for y in range(10, 55):
+        half = 4 + abs(y - 32) * 0.55
+        for x in range(int(32 - half), int(32 + half) + 1):
+            put(image, x, y, rgb("#cfe8f0"))
+    # Sand: a little left on top, a heap at the bottom, a thread between.
+    for y in range(24, 31):
+        half = 4 + abs(y - 32) * 0.55 - 1
+        for x in range(int(32 - half), int(32 + half) + 1):
+            put(image, x, y, YELLOW)
+    for y in range(44, 55):
+        half = min((y - 43) * 1.3, 4 + abs(y - 32) * 0.55 - 1)
+        for x in range(int(32 - half), int(32 + half) + 1):
+            put(image, x, y, YELLOW if x < 32 else ORANGE)
+    vline(image, 32, 31, 44, YELLOW)
+    outline(image)
+    sparkle(image, 54, 16, 2)
+    sparkle(image, 9, 44, 2)
+    return image
+
+
 RELICS = {
     "sharp_blades": relic_sharp_blades,
     "long_bridge": relic_long_bridge,
@@ -834,6 +951,10 @@ RELICS = {
     "short_fuse": relic_short_fuse,
     "extra_pocket": relic_extra_pocket,
     "spare_parachute": relic_spare_parachute,
+    "collector": relic_collector,
+    "greed": relic_greed,
+    "quick_step": relic_quick_step,
+    "hourglass": relic_hourglass,
 }
 
 

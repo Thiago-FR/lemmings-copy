@@ -118,6 +118,9 @@ var has_climber_skill: bool = false
 ## wall, so there is no moment for the player to click on it while it
 ## stands there. The charge is spent on the click, as with any tool.
 var pending_wall_tool: SkillBase = null
+## Pixels per second this lemming walks. Per lemming, so whoever owns it can
+## speed it up (a game mode's upgrade) without touching the others.
+var walk_speed: float = Constants.WALK_SPEED
 ## Walking into an exit (enter_exit): saved, just not gone yet.
 var is_entering_exit: bool = false
 var has_floater_skill: bool = false
@@ -434,7 +437,7 @@ func _process_walking() -> void:
 		global_position += Vector2(direction * Constants.STEP_UP_FORWARD_NUDGE, -step_height)
 		_smooth_sprite_after_lift(step_height)
 
-	velocity.x = Constants.WALK_SPEED * direction
+	velocity.x = walk_speed * direction
 
 
 ## Classifies what's directly ahead at foot level by walking the terrain
@@ -601,7 +604,7 @@ func _start_ledge_step(side: int, distance: float) -> void:
 
 ## Walks the step at walking pace, then carries on walking from there.
 func _continue_ledge_step(delta: float) -> void:
-	var step := minf(Constants.WALK_SPEED * delta, _ledge_step_remaining)
+	var step := minf(walk_speed * delta, _ledge_step_remaining)
 	global_position.x += step * _ledge_step_side
 	_ledge_step_remaining -= step
 	if _ledge_step_remaining > 0.0:
@@ -658,7 +661,7 @@ func _smooth_sprite_after_lift(lift: float) -> void:
 		_sprite_lift_tween.kill()
 	animated_sprite.position.y += lift
 	_sprite_lift_tween = create_tween()
-	_sprite_lift_tween.tween_property(animated_sprite, "position:y", _sprite_rest_y, lift / Constants.WALK_SPEED)
+	_sprite_lift_tween.tween_property(animated_sprite, "position:y", _sprite_rest_y, lift / walk_speed)
 
 
 func turn_around() -> void:
@@ -742,7 +745,7 @@ func enter_exit(door_x: float) -> void:
 	var tween := create_tween()
 	if absf(distance) > 0.5:
 		animated_sprite.play(DEFAULT_ANIMATION)
-		tween.tween_property(self, "global_position:x", global_position.x + distance, absf(distance) / Constants.WALK_SPEED)
+		tween.tween_property(self, "global_position:x", global_position.x + distance, absf(distance) / walk_speed)
 	tween.tween_callback(_turn_back_to_camera)
 	var small_scale := animated_sprite.scale * EXIT_SHRINK_FACTOR
 	tween.tween_property(animated_sprite, "scale", small_scale, EXIT_ENTER_SECONDS).set_ease(Tween.EASE_IN)

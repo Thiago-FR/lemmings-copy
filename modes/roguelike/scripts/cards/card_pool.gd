@@ -45,9 +45,11 @@ static func _candidate_families(state: RoguelikeRunState) -> Array:
 		recruits.append(RoguelikeCard.make(RoguelikeCard.Kind.RECRUIT, character))
 
 	var relics: Array[RoguelikeCard] = []
+	# A relic again is its next level; one at the top level is not offered.
 	for relic_id in RoguelikeRelics.DEFINITIONS:
-		if not state.relics.has(relic_id):
-			relics.append(RoguelikeCard.make(RoguelikeCard.Kind.RELIC, relic_id))
+		var level := state.get_relic_level(relic_id)
+		if level < RoguelikeRelics.MAX_LEVEL:
+			relics.append(RoguelikeCard.make(RoguelikeCard.Kind.RELIC, relic_id, level + 1))
 
 	var rescue: Array[RoguelikeCard] = [RoguelikeCard.make(RoguelikeCard.Kind.REVIVE)]
 	return [charges, new_tools, recruits, relics, rescue]

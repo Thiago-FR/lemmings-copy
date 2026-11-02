@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_lemaa"]
+
+[resource]
+script = ExtResource("1_lemaa")
+level_name = "Eco Profundo"
+instructions = "A Dinamite fica no chão e explode depois de 3 segundos."
+spawn_rate = 2.5
+total_lemmings = 12
+required_percentage = 0.7
+time_limit_seconds = 210
+available_skills = Array[String](["dynamite"])
+skill_counts = {
+"dynamite": 3
+}
+scene_path = "res://scenes/levels/campaign/campaign_08.tscn"
+environment_kind = 3

@@ -58,9 +58,22 @@ var _brick_nodes: Array[Array] = []
 var _brick_body: StaticBody2D = null
 var _edge_overlay: TerrainEdgeOverlay = null
 
+## Where the default block art is, and the folder of each art theme.
+const ART_DIRECTORY := "res://assets/sprites/terrain/"
+const THEMES_DIRECTORY := ART_DIRECTORY + "themes/"
+const ATLAS_FILE := "terrain_atlas.png"
+
+## The look of the blocks: a folder under THEMES_DIRECTORY drawn by
+## tools/build_terrain_themes.py (sand, snow, ...), or empty for the default
+## earth and concrete. Same tiles, same collision: only the textures change.
+## Read once, when the terrain enters the scene (LevelManager sets it from
+## the level's LevelEnvironment unless the scene already did).
+@export var art_theme: StringName = &""
+
 
 func _ready() -> void:
 	add_to_group("terrain")
+	_apply_art_theme()
 	# The terrain art is drawn at one texel per screen pixel; linear filtering
 	# would blur it whenever the window is scaled. Children (edges, bricks)
 	# inherit this.
@@ -74,6 +87,33 @@ func _ready() -> void:
 	_brick_body.collision_layer = tile_set.get_physics_layer_collision_layer(0)
 	_brick_body.collision_mask = 0
 	add_child(_brick_body)
+
+
+## The folder the block art is read from (atlas and edge strips).
+func get_art_directory() -> String:
+	return art_directory_for(art_theme)
+
+
+## The folder of an art theme, falling back to the default art when the
+## theme is empty or was never drawn.
+static func art_directory_for(theme: StringName) -> String:
+	if theme != &"":
+		var directory := THEMES_DIRECTORY + String(theme) + "/"
+		if ResourceLoader.exists(directory + ATLAS_FILE):
+			return directory
+	return ART_DIRECTORY
+
+
+## Swaps the block textures for the theme's. The tile set is shared by every
+## level, so this terrain gets its own copy before the atlas changes.
+func _apply_art_theme() -> void:
+	var directory := get_art_directory()
+	if directory == ART_DIRECTORY or tile_set == null:
+		return
+	var themed := tile_set.duplicate(true) as TileSet
+	var source := themed.get_source(TERRAIN_SOURCE_ID) as TileSetAtlasSource
+	source.texture = load(directory + ATLAS_FILE)
+	tile_set = themed
 
 
 ## Lays a solid brick covering world_rect. Refused (returns false) if the

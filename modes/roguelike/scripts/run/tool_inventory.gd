@@ -13,7 +13,7 @@ extends RefCounted
 signal changed
 
 const DEFAULT_MAX_SLOTS := 4
-const MAX_SLOTS_LIMIT := 6
+const MAX_SLOTS_LIMIT := 7
 
 var max_slots: int = DEFAULT_MAX_SLOTS
 

@@ -9,7 +9,7 @@ extends Node
 ##   - with the Quantity field and the Add / Remove switch: lemmings in and
 ##     out (never below one), tool charges in and out, rescues, coins and
 ##     the vault in and out (never below zero);
-##   - a relic button gives the relic, and takes it away when owned;
+##   - a relic button raises the relic a level (Add) or takes it away (Remove);
 ##   - the Compendium opens with an entry for every character;
 ##   - choosing a stage reports that stage;
 ##   - "Prontas" / "Procedurais" switch the run between the hand-made and the
@@ -60,10 +60,13 @@ func _ready() -> void:
 	_press(screen, "Vault")
 	_expect(state.revive_tokens == 0 and state.coins == 0 and profile.vault_coins == 0, "removing 20 left %d rescues, %d coins, %d in the vault (expected zeros)" % [state.revive_tokens, state.coins, profile.vault_coins])
 
+	_press(screen, "AddMode")
 	_press(screen, "Relic_%s" % RoguelikeRelics.LONG_BRIDGE)
-	_expect(state.relics.has(RoguelikeRelics.LONG_BRIDGE), "the relic button did not give the relic")
 	_press(screen, "Relic_%s" % RoguelikeRelics.LONG_BRIDGE)
-	_expect(not state.relics.has(RoguelikeRelics.LONG_BRIDGE), "pressing an owned relic did not take it away")
+	_expect(state.get_relic_level(RoguelikeRelics.LONG_BRIDGE) == 2, "adding the relic twice did not take it to level II")
+	_press(screen, "RemoveMode")
+	_press(screen, "Relic_%s" % RoguelikeRelics.LONG_BRIDGE)
+	_expect(not state.relics.has(RoguelikeRelics.LONG_BRIDGE), "Remove did not take the relic away")
 
 	_press(screen, "Compêndio")
 	var compendium := screen.find_child("Compendium", true, false)

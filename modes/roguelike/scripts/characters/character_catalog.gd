@@ -13,8 +13,8 @@ const TINKERER := &"tinkerer"
 const DEFINITIONS := {
 	WIZARD: {
 		"name": "Mago",
-		"ability": "Sortudo: cada item de ferramenta que ele pega dá +1 carga.",
-		"short": "+1 carga em cada ferramenta que pega.",
+		"ability": "Teleporte (em breve): atravessa uma parede ou um chão de 1 bloco.",
+		"short": "Teleporte (em breve).",
 		"colour": Color(0.62, 0.45, 1.0),
 		"price": 0,
 		"trait": preload("res://modes/roguelike/scripts/characters/traits/wizard_trait.gd"),

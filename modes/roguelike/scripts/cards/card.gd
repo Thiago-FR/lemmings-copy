@@ -8,6 +8,8 @@ enum Kind { CHARGES, NEW_TOOL, RECRUIT, RELIC, REVIVE }
 var kind: Kind = Kind.CHARGES
 ## Tool id (CHARGES, NEW_TOOL), character id (RECRUIT) or relic id (RELIC).
 var subject: String = ""
+## Charges (CHARGES, NEW_TOOL), or the level the relic goes to (RELIC; 1 when
+## not given).
 var amount := 0
 
 
@@ -24,14 +26,19 @@ func get_title() -> String:
 		Kind.CHARGES:
 			return "+%d %s" % [amount, SkillManager.get_display_name(subject)]
 		Kind.NEW_TOOL:
-			return "Nova: %s" % SkillManager.get_display_name(subject)
+			return SkillManager.get_display_name(subject)
 		Kind.RECRUIT:
 			return "Recrutar %s" % RoguelikeCharacters.get_display_name(StringName(subject))
 		Kind.RELIC:
-			return RoguelikeRelics.get_title(StringName(subject))
+			return RoguelikeRelics.get_title_at(StringName(subject), get_relic_level())
 		Kind.REVIVE:
 			return "Pena da fênix"
 	return ""
+
+
+## The level a relic card takes its relic to.
+func get_relic_level() -> int:
+	return maxi(amount, 1)
 
 
 func get_description() -> String:
@@ -39,11 +46,11 @@ func get_description() -> String:
 		Kind.CHARGES:
 			return "Mais %d cargas para uma ferramenta que você já tem." % amount
 		Kind.NEW_TOOL:
-			return "Ferramenta nova na barra, com %d cargas. Barra cheia: sai a usada há mais tempo." % amount
+			return "Ferramenta nova, com %d cargas. Barra cheia: sai a usada há mais tempo." % amount
 		Kind.RECRUIT:
 			return "Um boneco a mais na tropa. %s" % RoguelikeCharacters.get_ability(StringName(subject))
 		Kind.RELIC:
-			return "Melhoria para o resto da run. %s" % RoguelikeRelics.get_description(StringName(subject))
+			return "Para o resto da run (nível %s). %s" % [RoguelikeRelics.roman(get_relic_level()), RoguelikeRelics.get_effect(StringName(subject), get_relic_level())]
 		Kind.REVIVE:
 			return "Traz de volta o último boneco perdido (ou o próximo a cair)."
 	return ""
@@ -54,13 +61,13 @@ func get_description() -> String:
 func get_short_description() -> String:
 	match kind:
 		Kind.CHARGES:
-			return "+%d cargas." % amount
+			return "Cargas."
 		Kind.NEW_TOOL:
-			return "Nova na barra, com %d cargas." % amount
+			return "Nova, %d cargas." % amount
 		Kind.RECRUIT:
 			return RoguelikeCharacters.get_short_ability(StringName(subject))
 		Kind.RELIC:
-			return RoguelikeRelics.get_description(StringName(subject))
+			return RoguelikeRelics.get_effect(StringName(subject), get_relic_level())
 		Kind.REVIVE:
 			return "Traz de volta o último boneco perdido."
 	return ""
@@ -127,7 +134,8 @@ func get_price() -> int:
 		Kind.RECRUIT:
 			return 10
 		Kind.RELIC:
-			return 12
+			# Dearer at each level.
+			return 12 + 6 * (get_relic_level() - 1)
 	return 0
 
 

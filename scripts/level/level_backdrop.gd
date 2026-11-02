@@ -11,7 +11,6 @@ extends Node2D
 const BACKDROP_Z_INDEX := -100
 ## How far past the level the rock reaches: more than any screen.
 const FRAME_REACH := 4096.0
-const TERRAIN_ATLAS_PATH := "res://assets/sprites/terrain/terrain_atlas.png"
 ## The full earth block in the atlas (first tile, first row).
 const ROCK_TILE_REGION := Rect2i(0, 0, 32, 32)
 const SEAM_COLOUR := Color(0.06, 0.05, 0.05, 0.9)
@@ -52,9 +51,11 @@ func _draw() -> void:
 ## The earth block cut out of the atlas into a texture of its own, since
 ## an atlas region cannot be tiled across a rectangle.
 func _make_rock_texture() -> Texture2D:
-	if not ResourceLoader.exists(TERRAIN_ATLAS_PATH):
+	# The setting's own blocks, so the frame matches the level's rock.
+	var atlas_path := TerrainDestructible.art_directory_for(environment.terrain_theme) + TerrainDestructible.ATLAS_FILE
+	if not ResourceLoader.exists(atlas_path):
 		return null
-	var atlas := load(TERRAIN_ATLAS_PATH) as Texture2D
+	var atlas := load(atlas_path) as Texture2D
 	var image := atlas.get_image()
 	if image == null:
 		return null

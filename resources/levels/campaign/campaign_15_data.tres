@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_kj6ng"]
+
+[resource]
+script = ExtResource("1_kj6ng")
+level_name = "Coroa de Fogo"
+spawn_rate = 2.5
+total_lemmings = 20
+required_percentage = 0.75
+time_limit_seconds = 210
+available_skills = Array[String](["climber", "floater", "bridge", "basher", "builder", "tnt"])
+skill_counts = {
+"basher": 1,
+"bridge": 1,
+"builder": 1,
+"climber": 1,
+"floater": 1,
+"tnt": 1
+}
+scene_path = "res://scenes/levels/campaign/campaign_15.tscn"
+environment_kind = 5

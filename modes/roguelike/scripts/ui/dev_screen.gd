@@ -9,7 +9,8 @@ extends RoguelikeOverlayScreen
 ##   - the troop, tool charges, rescues, coins and the vault, by the amount
 ##     in the Quantity field, added or removed (the Add / Remove switch);
 ##   - the stage to go to, and generated or hand-made stages;
-##   - relics: each one, lit once owned (pressing an owned one removes it).
+##   - relics: each one, lit once owned; Add raises its level, Remove takes
+##     it away.
 ## Actions stay on this screen, so several can be stacked before going on.
 
 signal stage_chosen(stage_index: int)
@@ -223,11 +224,12 @@ func _change_tool(tool_id: String) -> void:
 
 ## An owned relic is taken away; any other is given.
 func _toggle_relic(card: RoguelikeCard) -> void:
-	if _state.relics.has(StringName(card.subject)):
-		_state.relics.erase(StringName(card.subject))
-		_refresh()
-		return
-	_apply(card)
+	var relic_id := StringName(card.subject)
+	if _removing:
+		_state.remove_relic(relic_id)
+	else:
+		_state.add_relic(relic_id)
+	_refresh()
 
 
 func _apply(card: RoguelikeCard) -> void:
@@ -280,7 +282,7 @@ func _rebuild_state_panel() -> void:
 	_add_state_line("digger", ", ".join(tools) if not tools.is_empty() else "sem ferramentas")
 	var relics: Array[String] = []
 	for relic_id in _state.relics:
-		relics.append(RoguelikeRelics.get_title(relic_id))
+		relics.append(RoguelikeRelics.get_title_at(relic_id, _state.get_relic_level(relic_id)))
 	_add_state_line("editor_counts", ", ".join(relics) if not relics.is_empty() else "sem relíquias")
 	_add_state_line("hud_rescue", "%d penas da fênix" % _state.revive_tokens)
 	_add_state_line("hud_coin", "%d moedas" % _state.coins + ("   cofre: %d" % _profile.vault_coins if _profile != null else ""))

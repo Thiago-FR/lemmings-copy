@@ -342,6 +342,53 @@ salva uma folha com todos os quadros em 1x e 3x, fundo escuro e claro, ao
 lado de um quadro do mago e de um bloco de terra com grama), depois
 `godot --headless --path . --import`.
 
+## Cenários (blocos, entrada e saída de cada ambiente)
+
+Gerado por `tools/build_terrain_themes.py` (Python + PIL), que importa
+`build_terrain_art.py` e lê os quadros de `build_portal_art.py`: **a mesma
+arte, recolorida**, com os mesmos nomes de arquivo, numa pasta por tema:
+
+| Tema | Ambiente (`LevelEnvironment`) | Blocos | Concreto | Entrada / saída |
+|---|---|---|---|---|
+| `sand` | Deserto | arenito com mato seco em cima, fósseis enterrados | pedra talhada | madeira clara, luz dourada |
+| `crystal` | Caverna de cristal | ardósia azul com tufos de cristal ciano, cristais enterrados | cristal lilás | azul-ardósia, luz ciano |
+| `snow` | Campo de neve | rocha congelada azul com neve em cima | gelo | madeira gelada, luz azul-clara |
+| `basalt` | Vulcão | basalto preto com brasas e crosta de lava em cima | obsidiana | madeira queimada, luz laranja |
+
+- Saem em `assets/sprites/terrain/themes/<tema>/` (`terrain_atlas.png` e
+  as tiras de borda) e `assets/sprites/level/themes/<tema>/`
+  (`entrance_open_*`, `entrance_idle_*`, `exit_idle_*`). Escada e tábua
+  continuam de madeira em todos.
+- **Blocos: cor por cor.** A paleta de `build_terrain_art.py` tem nome
+  (`EARTH_BASE`, `GRASS`, `CONCRETE_SEAM`...) e cada tema dá uma cor nova a
+  cada nome (a grama vira neve, mato seco, cristal ou brasa). `crystal` e
+  `sand` desenham os próprios detalhes enterrados (`earth_details.png`).
+- **Entrada e saída: por faixa de matiz** (a paleta delas está espalhada em
+  dois scripts): madeira (laranja-marrom) ganha o matiz do tema, a luz azul
+  e a verde viram a cor da luz do tema, pedra e ferro (pouca saturação)
+  levam o tom de pedra do tema; contornos e o buraco escuro ficam.
+- Nenhuma rocha de tema é roxa: o mago é roxo.
+- O jogo só troca de pasta (`TerrainDestructible.art_directory_for`,
+  `PortalSprite.make(..., tema)`); tema sem pasta usa a arte padrão.
+- Os **fundos** desses ambientes não têm arquivo: são desenhados em código
+  pelo `LevelBackground` (dunas e sol; picos com neve e flocos caindo; picos
+  com lava, sol vermelho e brasas subindo; estalactites, pontos que piscam e
+  cristais saindo do chão).
+
+Regerar: `python tools/build_terrain_themes.py [amostra.png]` (com o
+caminho, salva uma cena pequena de cada tema lado a lado em 3x), depois
+`godot --headless --path . --import`. Mudou a arte padrão do terreno ou da
+entrada/saída? Rode este script depois, os temas saem dela.
+
+## Ícones da campanha
+
+`tools/build_campaign_art.py` (mesmas regras e funções de
+`build_ui_art.py`) desenha em `assets/sprites/ui/icons/`: `campaign` (mapa
+com trilha e bandeira, botão "Fases" do menu), `lock` (cadeado, fase
+fechada), `star` (estrela, fase ganha) e `next` (seta verde, próxima fase).
+Regerar: `python tools/build_campaign_art.py [amostra.png]`, depois
+`godot --headless --path . --import`.
+
 ## Caminho 2 — ComfyUI local
 
 Para fundo de fase, textura de terreno e ícones do painel de habilidades.
