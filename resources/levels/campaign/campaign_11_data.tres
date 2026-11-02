@@ -4,16 +4,14 @@
 
 [resource]
 script = ExtResource("1_pbx1c")
-level_name = "Torre de Gelo"
-spawn_rate = 2.5
-total_lemmings = 14
-required_percentage = 0.85
-time_limit_seconds = 150
-available_skills = Array[String](["block", "ladder_vertical", "basher"])
+level_name = "Só Pontes"
+spawn_rate = 4.0
+total_lemmings = 15
+required_percentage = 0.8
+time_limit_seconds = 200
+available_skills = Array[String](["bridge"])
 skill_counts = {
-"basher": 1,
-"block": 1,
-"ladder_vertical": 1
+"bridge": 3
 }
 scene_path = "res://scenes/levels/campaign/campaign_11.tscn"
 environment_kind = 4

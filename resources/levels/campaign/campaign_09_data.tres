@@ -4,16 +4,19 @@
 
 [resource]
 script = ExtResource("1_gbtnt")
-level_name = "Coração de Cristal"
-instructions = "O TNT abre um buraco maior que a Dinamite."
+level_name = "Rede de Segurança"
 spawn_rate = 2.5
-total_lemmings = 12
-required_percentage = 0.6
-time_limit_seconds = 150
-available_skills = Array[String](["dynamite", "tnt"])
+total_lemmings = 15
+required_percentage = 0.8
+time_limit_seconds = 210
+available_skills = Array[String](["climber", "floater", "ladder_vertical", "miner", "bridge", "block"])
 skill_counts = {
-"dynamite": 2,
-"tnt": 2
+"block": 1,
+"bridge": 1,
+"climber": 1,
+"floater": 1,
+"ladder_vertical": 1,
+"miner": 1
 }
 scene_path = "res://scenes/levels/campaign/campaign_09.tscn"
 environment_kind = 3

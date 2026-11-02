@@ -1,8 +1,9 @@
 extends "res://tests/campaign_playthrough_test.gd"
-## Plays campaign level 12, "Fenda Glacial", with a scripted solution. Run via:
+## Plays campaign level 12, "Duas Bocas", with a scripted solution. Run via:
 ##   godot --headless res://tests/test_campaign_12.tscn
 ##
-## Bridge, pickaxe, ladder: one of each, in that order.
+## The ladder on the left face first; a bridge for the right group over the
+## crevasse; then a pickaxe through the tower's foot from the right.
 
 
 func _get_level_number() -> int:
@@ -10,8 +11,7 @@ func _get_level_number() -> int:
 
 
 func _play_frame() -> void:
-	give_once("bridge the crevasse", "bridge", walking_in(10, 18, 1, 26))
-	if is_done("bridge the crevasse"):
-		give_once("pickaxe through the drift", "miner", walking_in(27, 32, 1, 26))
-	if is_done("pickaxe through the drift"):
-		give_once("ladder up the cliff", "ladder_vertical", walking_in(40, 48, 1, 26))
+	give_once("ladder on the left face", "ladder_vertical", walking_in(28, 34, 1, 30))
+	give_once("bridge the crevasse", "bridge", walking_in(56, 66, -1, 30))
+	if is_done("ladder on the left face") and elapsed > _done_steps["ladder on the left face"] + 6.0:
+		give_once("tunnel through the foot", "miner", walking_in(45, 49, -1, 30))

@@ -21,6 +21,11 @@ signal all_lemmings_spawned
 ## Recoloured art for a setting (see LevelEnvironment.terrain_theme); empty
 ## is the default look. Read when the node enters the scene.
 @export var art_theme: StringName = &""
+## How many lemmings this entrance releases; 0 means the number start() is
+## given. Lets a level with several entrances split its total between them.
+@export var lemming_count: int = 0
+## Lemmings come out walking left instead of right.
+@export var faces_left: bool = false
 
 ## The hatch art (docs/art_pipeline.md, "Entrada e saída"): pixel (24, 32),
 ## the middle of the hatch's bottom edge, sits on the origin, where the
@@ -57,7 +62,7 @@ func _add_art() -> void:
 func start(spawn_interval: float, total_lemmings: int) -> void:
 	assert(total_lemmings > 0, "SpawnPoint requires a positive total_lemmings")
 	assert(spawn_interval > 0.0, "SpawnPoint requires a positive spawn_interval")
-	_total_lemmings = total_lemmings
+	_total_lemmings = lemming_count if lemming_count > 0 else total_lemmings
 	_spawned_count = 0
 	_spawn_timer.wait_time = spawn_interval
 	_spawn_lemming()
@@ -84,6 +89,8 @@ func _spawn_lemming() -> void:
 	# from where it first appears, so moving it afterwards reads as a fall.
 	lemming.global_position = global_position
 	_get_container().add_child(lemming)
+	if faces_left:
+		lemming.turn_around()
 	_spawned_count += 1
 	lemming_spawned.emit(lemming)
 

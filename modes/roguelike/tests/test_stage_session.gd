@@ -3,7 +3,7 @@ extends Node
 ## them reach the bar and SkillManager (one charge each), a tool
 ## handed out spends a charge from the bar, and each character's ability
 ## works on its own lemming (Miner digs faster, Engineer builds longer,
-## Scout survives higher falls, Inventor reuses its last tool for free).
+## Scout survives higher falls, Inventor's Repeat gives its last tool again for free).
 ## Plays a small hand-drawn maze: the entrance room holds a shovel and a
 ## patch to dig (over a staircase) by its left wall; two more items lie
 ## beyond a wall and down the stairs.
@@ -49,6 +49,8 @@ func _start_session(troop: Array[StringName]) -> RoguelikeRunState:
 		_session.queue_free()
 	var state := RoguelikeRunState.new()
 	state.troop = troop
+	# A run is played with one character: its ability is the slot's.
+	state.character_id = troop[0]
 	state.stage_definitions[0] = _small_maze()
 	_session = RoguelikeStageSession.new()
 	_session.state = state
@@ -138,10 +140,14 @@ func _test_tinkerer_reuses_tool() -> void:
 	_check(state.inventory.get_charges("digger") == 0, "the only shovel charge is spent")
 	var dug := await _wait_for(func() -> bool: return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING)
 	_check(dug, "the Inventor finishes digging")
+	# Its ability, Repeat, from its own slot: armed, then a click.
+	_session.set_ability_armed(true)
 	lemming.clicked.emit(lemming)
-	_check(lemming.state_machine.current_state == LemmingStateMachine.State.DIGGING, "clicking the Inventor with no charges left digs again")
+	_check(lemming.state_machine.current_state == LemmingStateMachine.State.DIGGING, "the Inventor's Repeat with no shovel charges left digs again")
 	_check(state.inventory.get_charges("digger") == 0, "the reuse spends nothing")
+	_check(_session.ability_slot.charges == 0 and not _session.ability_slot.armed, "the Repeat's single charge is spent and the slot disarmed")
 	await _wait_for(func() -> bool: return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING)
+	_session.set_ability_armed(true)
 	lemming.clicked.emit(lemming)
 	_check(lemming.state_machine.current_state != LemmingStateMachine.State.DIGGING, "the reuse works once per stage")
 

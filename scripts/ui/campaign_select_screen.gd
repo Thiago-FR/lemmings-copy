@@ -17,6 +17,8 @@ const LEVEL_BUTTON_SIZE := Vector2(92, 52)
 const LEVEL_FONT_SIZE := 22
 const WORLD_STRIP_HEIGHT := 10
 const CORNER_MARGIN := 12
+const COMPLETE_PULSE_SCALE := 1.06
+const COMPLETE_PULSE_SECONDS := 0.6
 
 var _background: LevelBackground
 var _buttons: Array[Button] = []
@@ -36,6 +38,8 @@ func _ready() -> void:
 	centre.add_child(column)
 	column.add_child(_make_title())
 	column.add_child(_make_level_grid())
+	if Campaign.is_complete():
+		column.add_child(_make_complete_button())
 	_add_back_button()
 
 
@@ -119,6 +123,23 @@ func _make_level_button(index: int, current: int) -> Button:
 		button.tooltip_text = level_data.level_name
 	button.mouse_entered.connect(func() -> void: _background.environment = LevelEnvironment.by_kind(level_data.environment_kind))
 	button.pressed.connect(func() -> void: LevelLoader.load_level(level_data))
+	return button
+
+
+## Once every level is won: the way back to the congratulations and
+## credits, a gold star that keeps pulsing.
+func _make_complete_button() -> Button:
+	var button := UiStyle.make_text_button("Parabéns", true)
+	button.name = "CompleteButton"
+	button.icon = UiStyle.icon("star")
+	button.tooltip_text = "Parabéns e créditos"
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.pressed.connect(func() -> void: get_tree().change_scene_to_file(Campaign.COMPLETE_SCENE_PATH))
+	button.resized.connect(func() -> void: button.pivot_offset = button.size / 2.0)
+	button.ready.connect(func() -> void:
+		var tween := button.create_tween().set_loops()
+		tween.tween_property(button, "scale", Vector2.ONE * COMPLETE_PULSE_SCALE, COMPLETE_PULSE_SECONDS).set_trans(Tween.TRANS_SINE)
+		tween.tween_property(button, "scale", Vector2.ONE, COMPLETE_PULSE_SECONDS).set_trans(Tween.TRANS_SINE))
 	return button
 
 

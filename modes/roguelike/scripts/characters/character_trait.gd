@@ -8,7 +8,9 @@ extends Node2D
 ## (skill_about_to_apply, max_safe_fall_height, has_floater_skill) and
 ## through what RoguelikeStageSession asks the trait.
 ##
-## Each character is a subclass overriding the hooks it needs.
+## Each character is a subclass overriding the hooks it needs. Its special
+## ability, used from its own slot in the tool bar, is a separate
+## RoguelikeAbility (RoguelikeAbilities), named in character_catalog.gd.
 
 ## One SpriteFrames per character, with the same animations as the
 ## lemming's own.
@@ -55,13 +57,3 @@ func _on_skill_about_to_apply(_skill: SkillBase) -> void:
 ## Extra charges this lemming adds to every tool item it collects.
 func get_pickup_bonus() -> int:
 	return 0
-
-
-## Whether clicking this lemming with no usable tool selected does
-## something of its own (see RoguelikeTinkererTrait).
-func can_use_own_ability() -> bool:
-	return false
-
-
-func use_own_ability() -> bool:
-	return false

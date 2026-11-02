@@ -4,16 +4,17 @@
 
 [resource]
 script = ExtResource("1_ej0d2")
-level_name = "Veios de Cristal"
-instructions = "A Britadeira quebra cristal. A Picareta, só pedra comum."
-spawn_rate = 2.0
-total_lemmings = 15
-required_percentage = 0.8
+level_name = "Câmaras de Cristal"
+spawn_rate = 2.5
+total_lemmings = 12
+required_percentage = 0.75
 time_limit_seconds = 210
-available_skills = Array[String](["miner", "basher"])
+available_skills = Array[String](["miner", "digger", "bridge", "dynamite"])
 skill_counts = {
-"basher": 1,
-"miner": 2
+"bridge": 1,
+"digger": 1,
+"dynamite": 1,
+"miner": 1
 }
 scene_path = "res://scenes/levels/campaign/campaign_07.tscn"
 environment_kind = 3

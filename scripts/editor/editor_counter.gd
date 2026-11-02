@@ -26,6 +26,9 @@ func _init(display_name: String, initial_value: int, minimum: int, maximum: int,
 	max_value = maximum
 	add_theme_constant_override("separation", 2)
 
+	# With an icon the name is only the tooltip: the user wants as little
+	# text on screen as possible.
+	tooltip_text = display_name
 	if icon != null:
 		var icon_rect := TextureRect.new()
 		icon_rect.texture = icon
@@ -33,12 +36,12 @@ func _init(display_name: String, initial_value: int, minimum: int, maximum: int,
 		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		icon_rect.tooltip_text = display_name
 		add_child(icon_rect)
-
-	var name_label := Label.new()
-	name_label.text = display_name
-	name_label.custom_minimum_size.x = NAME_WIDTH
-	name_label.clip_text = true
-	add_child(name_label)
+	else:
+		var name_label := Label.new()
+		name_label.text = display_name
+		name_label.custom_minimum_size.x = NAME_WIDTH
+		name_label.clip_text = true
+		add_child(name_label)
 
 	_decrease_button = _make_step_button("-", -1)
 	_value_label = Label.new()

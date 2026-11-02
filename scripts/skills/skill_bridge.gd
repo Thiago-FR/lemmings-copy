@@ -59,6 +59,7 @@ var _piece_height: float = 0.0
 ## surface the lemming walks on, which every piece's top is flush with.
 var _origin_x: float = 0.0
 var _floor_y: float = 0.0
+var _railing: BridgeRailing = null
 var _pieces_laid: int = 0
 ## Set once a piece had to be cut to fit against the far side: the bridge
 ## ends with it.
@@ -147,6 +148,10 @@ func _lay_next_piece(lemming: LemmingController) -> bool:
 	if not lemming.terrain.place_brick(piece):
 		return false
 	AudioManager.play_sound(&"place_brick")
+	# Posts and a rope handrail, so the planks read as a bridge.
+	if _railing == null or not is_instance_valid(_railing):
+		_railing = BridgeRailing.attach(lemming.terrain, _floor_y)
+	_railing.add_piece(piece)
 	_pieces_laid += 1
 	_reached_far_side = piece.size.x < _piece_width
 	_move_remaining = offset

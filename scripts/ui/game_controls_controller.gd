@@ -13,20 +13,25 @@ extends HBoxContainer
 @onready var _restart_button: Button = $RestartButton
 @onready var _menu_button: Button = $MenuButton
 @onready var _settings_button: Button = $SettingsButton
+@onready var _fast_button: Button = $FastButton
 
 
 ## Icon, tooltip of each button: the same icons as the editor's.
 const BUTTON_ICONS := {
 	"RestartButton": ["editor_restart", "Reiniciar (R)"],
+	"FastButton": ["fast_forward", "Acelerar (F)"],
 	"SettingsButton": ["settings", "Configurações"],
 	"MenuButton": ["editor_menu", "Menu (Esc)"],
 }
 
 
 func _ready() -> void:
-	for button: Button in [_pause_button, _restart_button, _settings_button, _menu_button]:
+	for button: Button in [_pause_button, _fast_button, _restart_button, _settings_button, _menu_button]:
 		_style_as_icon(button)
 	_pause_button.pressed.connect(GameManager.toggle_pause)
+	_fast_button.toggle_mode = true
+	_fast_button.toggled.connect(GameManager.set_fast_forward)
+	GameManager.fast_forward_changed.connect(_fast_button.set_pressed_no_signal)
 	_restart_button.pressed.connect(GameManager.restart_level)
 	_menu_button.pressed.connect(GameManager.go_to_main_menu)
 	_settings_button.pressed.connect(_open_settings)
@@ -52,6 +57,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				GameManager.toggle_pause()
 		KEY_R:
 			GameManager.restart_level()
+		KEY_F:
+			GameManager.toggle_fast_forward()
 		KEY_ESCAPE:
 			GameManager.go_to_main_menu()
 		_:
@@ -81,5 +88,13 @@ func _refresh_pause_button() -> void:
 	_pause_button.tooltip_text = "Continuar (P)" if paused else "Pausar (P)"
 
 
+## Back to normal speed when leaving: a menu or the next level must not
+## start fast.
+func _exit_tree() -> void:
+	GameManager.set_fast_forward(false)
+
+
 func _on_level_ended(_percentage_saved: float) -> void:
 	_pause_button.disabled = true
+	GameManager.set_fast_forward(false)
+	_fast_button.disabled = true

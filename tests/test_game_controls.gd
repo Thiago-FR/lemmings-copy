@@ -11,7 +11,10 @@ extends Node
 ##   - Restart reloads the level from the start, unpaused, even when pressed
 ##     while paused;
 ##   - Menu goes back to the main menu, unpaused, even when pressed while
-##     paused.
+##     paused;
+##   - Fast forward runs the level (the clock too) FAST_FORWARD_FACTOR times
+##     faster, with as many more physics ticks, and the menu puts the
+##     normal speed back.
 ##
 ## Scene changes free the current scene, which starts out as this test; it
 ## stops being the current scene first so it survives them.
@@ -39,6 +42,7 @@ func _run() -> void:
 	await _check_pause_and_continue()
 	await _check_restart_while_paused()
 	await _check_menu_while_paused()
+	await _check_fast_forward()
 	_report()
 
 
@@ -100,6 +104,33 @@ func _check_menu_while_paused() -> void:
 	if get_tree().current_scene == null or get_tree().current_scene.scene_file_path != MAIN_MENU_SCENE_PATH:
 		_fail("Menu did not open the main menu")
 	print("menu checked")
+
+
+func _check_fast_forward() -> void:
+	LevelLoader.load_level(load(LEVEL_DATA_PATH))
+	await _frames(WARM_UP_FRAMES)
+	var level_manager: LevelManager = get_tree().get_first_node_in_group("level_manager")
+	var normal_drop := await _clock_drop(level_manager)
+	_button("FastButton").button_pressed = true
+	if not GameManager.is_fast_forward or Engine.time_scale != GameManager.FAST_FORWARD_FACTOR:
+		_fail("Fast forward did not speed the game up (time scale %.1f)" % Engine.time_scale)
+	if Engine.physics_ticks_per_second != GameManager.NORMAL_PHYSICS_TICKS * GameManager.FAST_FORWARD_FACTOR:
+		_fail("fast forward runs %d physics ticks a second, expected %d" % [Engine.physics_ticks_per_second, GameManager.NORMAL_PHYSICS_TICKS * GameManager.FAST_FORWARD_FACTOR])
+	var fast_drop := await _clock_drop(level_manager)
+	if fast_drop < normal_drop * (GameManager.FAST_FORWARD_FACTOR - 0.5):
+		_fail("the clock ran %.2fs in fast forward against %.2fs normally, expected about %dx" % [fast_drop, normal_drop, GameManager.FAST_FORWARD_FACTOR])
+	_press("MenuButton")
+	await _frames(SCENE_CHANGE_FRAMES)
+	if GameManager.is_fast_forward or Engine.time_scale != 1.0 or Engine.physics_ticks_per_second != GameManager.NORMAL_PHYSICS_TICKS:
+		_fail("leaving the level kept the game fast")
+	print("fast forward checked")
+
+
+## How far the level's clock runs in a fixed number of frames.
+func _clock_drop(level_manager: LevelManager) -> float:
+	var before := level_manager.time_remaining
+	await _frames(PAUSED_FRAMES)
+	return before - level_manager.time_remaining
 
 
 func _button(button_name: String) -> Button:

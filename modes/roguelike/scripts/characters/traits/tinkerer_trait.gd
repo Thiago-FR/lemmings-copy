@@ -1,28 +1,12 @@
 class_name RoguelikeTinkererTrait
 extends RoguelikeCharacterTrait
-## Tinkerer ("Inventor"): once per stage, uses the last tool it was given
-## again without spending a charge. The player triggers it by clicking the
-## Inventor with no usable tool selected (RoguelikeStageSession asks
-## can_use_own_ability()).
+## Tinkerer ("Inventor"): remembers the last tool it was given, which its
+## ability, Repeat (RoguelikeRepeatAbility), hands it again for free. The
+## ability used to be "click it with no tool selected, once per stage"; it
+## now has its own slot in the tool bar, like every character's.
 
-var _last_tool_id: String = ""
-var _reuse_spent := false
+var last_tool_id: String = ""
 
 
 func _on_skill_about_to_apply(skill: SkillBase) -> void:
-	_last_tool_id = String(skill.id)
-
-
-func can_use_own_ability() -> bool:
-	return not _reuse_spent and _last_tool_id != ""
-
-
-func use_own_ability() -> bool:
-	if not can_use_own_ability():
-		return false
-	var skill := SkillManager.create_skill(_last_tool_id)
-	if skill == null or not lemming.assign_skill(skill):
-		return false
-	_reuse_spent = true
-	AudioManager.play_sound(&"assign_tool")
-	return true
+	last_tool_id = String(skill.id)

@@ -4,15 +4,17 @@
 
 [resource]
 script = ExtResource("1_lemaa")
-level_name = "Eco Profundo"
-instructions = "A Dinamite fica no chão e explode depois de 3 segundos."
+level_name = "A Espera"
 spawn_rate = 2.5
-total_lemmings = 12
-required_percentage = 0.7
+total_lemmings = 15
+required_percentage = 1.0
 time_limit_seconds = 210
-available_skills = Array[String](["dynamite"])
+available_skills = Array[String](["block", "dynamite", "miner", "digger"])
 skill_counts = {
-"dynamite": 3
+"block": 2,
+"digger": 1,
+"dynamite": 2,
+"miner": 1
 }
 scene_path = "res://scenes/levels/campaign/campaign_08.tscn"
 environment_kind = 3

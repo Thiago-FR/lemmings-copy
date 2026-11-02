@@ -12,6 +12,10 @@ extends Node
 ##     next one open, the rest locked;
 ##   - winning a campaign level records the win and offers the next level;
 ##     losing does not;
+##   - a level with more than one entrance splits its lemmings between them;
+##   - winning the last level offers the congratulations screen, which shows
+##     the credits and leads back to the level select; the level select
+##     offers it only once every level is won;
 ##   - the main menu has the "Fases" button.
 ## Progress is written to a file of its own, never the player's.
 
@@ -36,6 +40,8 @@ func _run() -> void:
 	_check_progress()
 	await _check_select_screen()
 	await _check_result_screen()
+	await _check_last_level_result()
+	await _check_complete_screen()
 	await _check_main_menu()
 	_finish()
 
@@ -67,11 +73,32 @@ func _check_levels() -> void:
 			_fail("level %d has no scene" % (index + 1))
 			continue
 		var root := scene.instantiate()
+		_check_entrances(index, data, root)
 		var terrain := root.get_node("Terrain") as TileMapLayer
 		var used := terrain.get_used_rect()
 		if used.size.x < MIN_COLUMNS or used.size.y < MIN_ROWS:
 			_fail("level %d is %dx%d blocks, smaller than the standard" % [index + 1, used.size.x, used.size.y])
 		root.free()
+
+
+## Every entrance releases its own share (lemming_count) when there are
+## several, and the shares add up to the level's total.
+func _check_entrances(index: int, data: LevelData, root: Node) -> void:
+	var entrances: Array[SpawnPoint] = []
+	for child in root.get_children():
+		if child is SpawnPoint:
+			entrances.append(child)
+	if entrances.is_empty():
+		_fail("level %d has no entrance" % (index + 1))
+	if entrances.size() < 2:
+		return
+	var total := 0
+	for entrance in entrances:
+		total += entrance.lemming_count
+		if entrance.lemming_count <= 0:
+			_fail("level %d has an entrance without its own count" % (index + 1))
+	if total != data.total_lemmings:
+		_fail("level %d's entrances release %d lemmings, not %d" % [index + 1, total, data.total_lemmings])
 
 
 func _check_progress() -> void:
@@ -130,6 +157,52 @@ func _check_result_screen() -> void:
 		get_tree().paused = false
 		level.queue_free()
 		await get_tree().process_frame
+
+
+func _check_last_level_result() -> void:
+	var last := Campaign.LEVEL_COUNT - 1
+	var data := Campaign.load_level_data(last)
+	GameManager.current_level_data = data
+	var level := (load(data.scene_path) as PackedScene).instantiate()
+	add_child(level)
+	await get_tree().process_frame
+	(level as LevelManager).level_completed.emit(1.0)
+	var next := level.find_child("NextButton", true, false) as Button
+	if next == null or not next.visible or next.icon != UiStyle.icon("star"):
+		_fail("winning the last level should offer the congratulations")
+	get_tree().paused = false
+	level.queue_free()
+	await get_tree().process_frame
+
+
+## The level select offers the congratulations only once every level is
+## won; the screen itself shows the credits and leads back to the select.
+func _check_complete_screen() -> void:
+	var screen := (load(Campaign.SELECT_SCENE_PATH) as PackedScene).instantiate()
+	add_child(screen)
+	await get_tree().process_frame
+	if screen.find_child("CompleteButton", true, false) != null:
+		_fail("the congratulations should not be offered before every level is won")
+	screen.queue_free()
+	for index in Campaign.LEVEL_COUNT:
+		Campaign.record_win(index, 1.0)
+	if not Campaign.is_complete():
+		_fail("every level won should complete the campaign")
+	screen = (load(Campaign.SELECT_SCENE_PATH) as PackedScene).instantiate()
+	add_child(screen)
+	await get_tree().process_frame
+	if screen.find_child("CompleteButton", true, false) == null:
+		_fail("once every level is won, the level select should offer the congratulations")
+	screen.queue_free()
+	var complete := (load(Campaign.COMPLETE_SCENE_PATH) as PackedScene).instantiate() as CampaignCompleteScreen
+	add_child(complete)
+	await get_tree().process_frame
+	if complete.find_child("Credits", true, false) == null:
+		_fail("the congratulations screen has no credits")
+	if complete.get_back_button() == null:
+		_fail("the congratulations screen has no way back to the levels")
+	complete.queue_free()
+	await get_tree().process_frame
 
 
 func _check_main_menu() -> void:

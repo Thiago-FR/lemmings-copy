@@ -264,10 +264,13 @@ func _save_level(number: int, spec: Dictionary) -> void:
 				terrain.set_cell(Vector2i(column, row), 0, Vector2i(0, material))
 	_add_owned(root, terrain)
 
-	var spawn: Node2D = _res.spawn_point_scene.instantiate()
-	var spawn_cell: Vector2i = spec.spawn
-	spawn.position = Vector2(spawn_cell.x * TILE + TILE / 2, spawn_cell.y * TILE - SPAWN_ABOVE_FLOOR)
-	_add_owned(root, spawn)
+	for entrance in _spawns_of(spec):
+		var spawn: Node2D = _res.spawn_point_scene.instantiate()
+		var spawn_cell: Vector2i = entrance.cell
+		spawn.position = Vector2(spawn_cell.x * TILE + TILE / 2, spawn_cell.y * TILE - SPAWN_ABOVE_FLOOR)
+		spawn.set("lemming_count", entrance.get("count", 0))
+		spawn.set("faces_left", entrance.get("left", false))
+		_add_owned(root, spawn)
 	var exit_point: Node2D = _res.exit_point_scene.instantiate()
 	var exit_cell: Vector2i = spec.exit
 	exit_point.position = Vector2(exit_cell.x * TILE + TILE / 2, exit_cell.y * TILE - EXIT_ABOVE_FLOOR)
@@ -304,6 +307,14 @@ func _save_level(number: int, spec: Dictionary) -> void:
 	print("%02d %s: scene %d, data %d" % [number, spec.name, err, data_err])
 
 
+## The level's entrances: spec.spawns (cell, count, left) when it has more
+## than one, otherwise the single spec.spawn releasing every lemming.
+func _spawns_of(spec: Dictionary) -> Array:
+	if spec.has("spawns"):
+		return spec.spawns
+	return [{"cell": spec.spawn}]
+
+
 func _add_owned(root: Node, child: Node) -> void:
 	root.add_child(child)
 	child.owner = root
@@ -314,7 +325,9 @@ func _write_ascii(path: String, spec: Dictionary) -> void:
 	if file == null:
 		push_error("Cannot write %s" % path)
 		return
-	var spawn: Vector2i = spec.spawn
+	var spawn_cells: Array[Vector2i] = []
+	for entrance in _spawns_of(spec):
+		spawn_cells.append(entrance.cell)
 	var exit_cell: Vector2i = spec.exit
 	file.store_line("%s  (%s)" % [spec.name, spec.tools])
 	file.store_line("    " + "".join(range(LEVEL_COLUMNS).map(func(c: int) -> String: return str(c % 10))))
@@ -322,7 +335,7 @@ func _write_ascii(path: String, spec: Dictionary) -> void:
 		var line := ""
 		for column in LEVEL_COLUMNS:
 			var mark := ".#="[_map[row][column]]
-			if Vector2i(column, row + 1) == spawn:
+			if spawn_cells.has(Vector2i(column, row + 1)):
 				mark = "S"
 			elif Vector2i(column, row + 1) == exit_cell:
 				mark = "E"
@@ -416,178 +429,244 @@ func _level_05() -> Dictionary:
 	}
 
 
-## 6. Block and pickaxe. The lemmings come out walking towards a chasm; a
-## block turns them back towards a sandstone hill, and the oasis with the
-## exit is through it.
+## 6. Only blocks: a maze of sand tunnels, one block tall, joined by holes
+## (a drop of two blocks, safe) and ending in deep pits. Left alone the
+## lemmings drop into the first tunnel and run to a pit; turning them back
+## there only sends them to the next pit, and that branch needs three
+## turns. With two blocks the way is behind the entrance: turn them back at
+## once, towards the hole they never walk past, and once more near the end.
 func _level_06() -> Dictionary:
-	_sky(25)
-	_abyss(44, 50, 26)
-	_earth(14, 20, 18, 25)        # the hill
-	_earth(51, 78, 20, 25)        # beyond the chasm, unreachable
+	_sky(8)
+	_earth(14, 30, 8, 8)          # dunes
+	_earth(46, 66, 7, 8)
+	_air(3, 50, 13, 15)           # A, the entrance hall
+	_air(5, 5, 16, 16)            # ...its hole behind the entrance
+	_air(27, 27, 16, 16)          # ...and the one ahead
+	_air(2, 11, 17, 17)           # D, under the entrance
+	_air(9, 9, 18, 18)
+	_air(14, 64, 17, 17)          # B
+	_air(17, 17, 18, 18)
+	_air(65, 66, 17, 24)          # B's pit
+	_air(8, 40, 19, 19)           # C
+	_air(36, 36, 20, 20)
+	_air(7, 7, 19, 25)            # C's pit
+	_air(30, 60, 21, 21)          # E
+	_air(33, 33, 22, 22)
+	_air(61, 62, 21, 28)          # E's pit
+	_air(20, 45, 23, 23)          # F, with the exit
+	_air(23, 28, 22, 22)
 	return {
-		"name": "Oásis Escondido", "environment": LevelEnvironment.Kind.DESERT,
-		"spawn": Vector2i(34, 26), "exit": Vector2i(6, 26),
-		"lemmings": 12, "rate": 2.5, "required": 0.75, "time": 150,
-		"tools": {"block": 2, "miner": 2},
-		"hint": "O Bloco faz os bonecos voltarem. A Picareta cava reto na terra.",
+		"name": "Labirinto das Dunas", "environment": LevelEnvironment.Kind.DESERT,
+		"spawn": Vector2i(10, 16), "exit": Vector2i(25, 24),
+		"lemmings": 10, "rate": 3.0, "required": 0.8, "time": 200,
+		"tools": {"block": 2},
 	}
 
 
-## 7. Pickaxe or jackhammer. A cave corridor crossed by three walls: slate,
-## crystal (concrete: only the jackhammer breaks it), slate.
+## 7. Rooms of crystal. Three ways from the room with the entrance to the
+## exit below the far one: along the top (an earth wall, a crystal wall, a
+## crystal floor), along the top then down (earth wall, floor, earth wall)
+## or down at once (floor, a chasm, an earth wall). One pickaxe, one
+## shovel, one bridge, one dynamite: the wall the lemmings walk into first
+## is the wrong start, and the dynamite fits no wall here (each is two
+## blocks thick).
 func _level_07() -> Dictionary:
-	_air(1, 72, 20, 25)
-	_earth(20, 22, 20, 25)
-	_concrete(36, 38, 20, 25)
-	_earth(52, 55, 20, 25)
-	_concrete(1, 78, 26, 26)      # crystal floor
+	_air(2, 22, 12, 17)           # room with the entrance
+	_air(25, 46, 12, 17)          # second room (earth wall between)
+	_air(49, 76, 12, 17)          # third room
+	_concrete(47, 48, 11, 18)     # crystal wall
+	_concrete(49, 76, 18, 18)     # third room's crystal floor
+	_air(2, 22, 19, 19)           # tunnel under the first room
+	_abyss(23, 28, 19)            # the chasm
+	_air(29, 46, 19, 19)          # tunnel under the second room
+	_air(49, 76, 19, 19)          # tunnel under the third room (earth wall between)
+	_air(64, 74, 20, 20)          # the exit's chamber
 	return {
-		"name": "Veios de Cristal", "environment": LevelEnvironment.Kind.CRYSTAL_CAVE,
-		"spawn": Vector2i(6, 26), "exit": Vector2i(66, 26),
-		"lemmings": 15, "rate": 2.0, "required": 0.8, "time": 210,
-		"tools": {"miner": 2, "basher": 1},
-		"hint": "A Britadeira quebra cristal. A Picareta, só pedra comum.",
+		"name": "Câmaras de Cristal", "environment": LevelEnvironment.Kind.CRYSTAL_CAVE,
+		"spawn": Vector2i(6, 18), "exit": Vector2i(70, 21),
+		"lemmings": 12, "rate": 2.5, "required": 0.75, "time": 210,
+		"tools": {"miner": 1, "digger": 1, "bridge": 1, "dynamite": 1},
 	}
 
 
-## 8. Dynamite. Three galleries stacked one above the other, each with a
-## crystal floor one block thick over the next: two charges, set down in the
-## right places, open the way down to the exit.
+## 8. Waiting. The way down is through the crystal floor at the far end of
+## the hall, and only a blast opens it, which kills whoever is near. Every
+## lemming has to be saved: the first goes ahead, a block behind him holds
+## the rest, he sets the charge, and a pickaxe through the block lets them
+## follow. The floor near the entrance is two blocks thick: a charge there
+## only digs a trap.
 func _level_08() -> Dictionary:
-	_air(1, 44, 12, 15)           # upper gallery
-	_concrete(1, 44, 16, 16)
-	_air(1, 60, 17, 17)           # middle gallery, one block tall
-	_concrete(1, 60, 18, 18)
-	_air(1, 74, 19, 19)           # lower gallery
-	_air(62, 74, 15, 19)          # the exit's chamber
+	_air(2, 38, 18, 21)           # the hall
+	_concrete(2, 25, 22, 23)      # its floor, two blocks of crystal...
+	_concrete(26, 38, 22, 22)     # ...and one over the gallery
+	_air(26, 72, 23, 23)          # the gallery
+	_air(62, 70, 21, 22)          # the exit's chamber
 	return {
-		"name": "Eco Profundo", "environment": LevelEnvironment.Kind.CRYSTAL_CAVE,
-		"spawn": Vector2i(6, 16), "exit": Vector2i(70, 20),
-		"lemmings": 12, "rate": 2.5, "required": 0.7, "time": 210,
-		"tools": {"dynamite": 3},
-		"hint": "A Dinamite fica no chão e explode depois de 3 segundos.",
+		"name": "A Espera", "environment": LevelEnvironment.Kind.CRYSTAL_CAVE,
+		"spawn": Vector2i(5, 22), "exit": Vector2i(66, 24),
+		"lemmings": 15, "rate": 2.5, "required": 1.0, "time": 210,
+		"tools": {"block": 2, "dynamite": 2, "miner": 1, "digger": 1},
 	}
 
 
-## 9. TNT. The upper gallery's floor is two blocks of crystal, which
-## dynamite does not get through, and the lower gallery starts right under
-## its end: TNT set down by the end wall opens the way.
+## 9. The safety net. The lemmings land in a hall shut by a rock; past it a
+## ledge ends at a narrow shaft, and the way on is a tunnel low in the
+## shaft's far wall. A ladder grabs whoever falls past it: a pioneer climbs
+## out, floats down the shaft and puts the ladder up to the tunnel, and only
+## then a pickaxe opens the rock for the rest, who jump down the shaft onto
+## it. A bridge over the shaft leads only to a wall too tall to climb.
 func _level_09() -> Dictionary:
-	_air(1, 38, 15, 19)           # upper gallery
-	_concrete(1, 39, 20, 21)      # its floor, two blocks thick
-	_air(40, 74, 20, 21)          # lower gallery
-	_air(37, 39, 21, 21)          # ...reaching under the end of the floor
-	_air(62, 74, 16, 21)          # the exit's chamber
-	_concrete(1, 78, 22, 22)
+	_air(2, 41, 14, 29)           # the hall
+	_earth(21, 22, 26, 29)        # the rock shutting the lemmings in
+	_air(41, 41, 30, 37)          # the shaft
+	_air(42, 62, 35, 35)          # the tunnel in its far wall
+	_air(58, 66, 33, 35)          # the exit's chamber
 	return {
-		"name": "Coração de Cristal", "environment": LevelEnvironment.Kind.CRYSTAL_CAVE,
-		"spawn": Vector2i(6, 20), "exit": Vector2i(70, 22),
-		"lemmings": 12, "rate": 2.5, "required": 0.6, "time": 150,
-		"tools": {"dynamite": 2, "tnt": 2},
-		"hint": "O TNT abre um buraco maior que a Dinamite.",
+		"name": "Rede de Segurança", "environment": LevelEnvironment.Kind.CRYSTAL_CAVE,
+		"spawn": Vector2i(6, 30), "exit": Vector2i(62, 36),
+		"lemmings": 15, "rate": 2.5, "required": 0.8, "time": 210,
+		"tools": {"climber": 1, "floater": 1, "ladder_vertical": 1, "miner": 1, "bridge": 1, "block": 1},
 	}
 
 
-## 10. Shovel, bridge, diagonal ladder. A snowy shelf over a hollow, a
-## crevasse in the valley and a terrace with the exit.
+## 10. Against the clock. The lemmings zigzag down six tunnels inside the
+## mountain to the exit: safe, and far too slow. Every tunnel floor is one
+## block over the next, so a shovel anywhere is a safe drop, but dug where
+## they walk it saves nothing: they land walking the long way. Dug where they
+## turn (a corner), it skips two tunnels.
 func _level_10() -> Dictionary:
-	_sky(17)
-	_earth(25, 30, 10, 17)        # the cliff closing the shelf
-	_air(1, 30, 19, 19)           # the hollow under the shelf
-	_air(31, 78, 18, 19)          # the valley
-	_abyss(39, 44, 20)
-	_earth(57, 78, 17, 19)        # the terrace
+	_sky(6)
+	for tunnel in 6:
+		var floor_row := 12 + tunnel * 2
+		_air(8, 52, floor_row - 1, floor_row - 1)
+		if tunnel < 5:
+			var hole_column := 9 if tunnel % 2 == 0 else 51
+			_air(hole_column, hole_column, floor_row, floor_row)
+	_air(44, 50, 8, 10)           # under the entrance
+	_air(53, 62, 21, 21)          # the last tunnel runs on to the exit
+	_air(55, 61, 19, 20)
 	return {
-		"name": "Travessia Gelada", "environment": LevelEnvironment.Kind.SNOWFIELD,
-		"spawn": Vector2i(8, 18), "exit": Vector2i(70, 17),
-		"lemmings": 12, "rate": 3.0, "required": 0.8, "time": 200,
-		"tools": {"digger": 1, "bridge": 1, "builder": 2},
+		"name": "Contra o Relógio", "environment": LevelEnvironment.Kind.SNOWFIELD,
+		"spawn": Vector2i(46, 12), "exit": Vector2i(58, 22),
+		"lemmings": 20, "rate": 2.0, "required": 0.7, "time": 125,
+		"tools": {"digger": 2, "block": 2, "bridge": 1},
 	}
 
 
-## 11. Block, vertical ladder, jackhammer. The lemmings come out walking
-## towards a chasm; behind them is an ice tower, and on top of it a wall of
-## ice in front of the exit.
+## 11. Only bridges. The lemmings come out walking to a pit under a cliff,
+## and the exit is the other way, past a gap wider than one bridge. A bridge
+## to the cliff turns them back; two in a row cross the gap (the second
+## given to one walking on the first), and whoever builds the first walks
+## off its end.
 func _level_11() -> Dictionary:
-	_sky(29)
-	_abyss(45, 50, 30)
-	_earth(1, 14, 21, 29)         # the tower
-	_concrete(6, 7, 13, 20)       # the ice wall on top
-	_earth(51, 78, 24, 29)
-	return {
-		"name": "Torre de Gelo", "environment": LevelEnvironment.Kind.SNOWFIELD,
-		"spawn": Vector2i(34, 30), "exit": Vector2i(3, 21),
-		"lemmings": 14, "rate": 2.5, "required": 0.85, "time": 150,
-		"tools": {"block": 1, "ladder_vertical": 1, "basher": 1},
-	}
-
-
-## 12. Bridge, pickaxe, vertical ladder, one of each. A crevasse, a snow
-## drift and a cliff, in that order.
-func _level_12() -> Dictionary:
 	_sky(25)
-	_abyss(19, 26, 26)
-	_earth(33, 39, 18, 25)        # the drift
-	_earth(49, 78, 19, 25)        # the cliff
+	_abyss(14, 31, 26)            # the wide gap
+	_abyss(47, 52, 26)            # the pit under the cliff
+	_earth(53, 78, 14, 25)        # the cliff
 	return {
-		"name": "Fenda Glacial", "environment": LevelEnvironment.Kind.SNOWFIELD,
-		"spawn": Vector2i(8, 26), "exit": Vector2i(64, 19),
-		"lemmings": 15, "rate": 3.0, "required": 0.85, "time": 180,
-		"tools": {"bridge": 1, "miner": 1, "ladder_vertical": 1},
+		"name": "Só Pontes", "environment": LevelEnvironment.Kind.SNOWFIELD,
+		"spawn": Vector2i(40, 26), "exit": Vector2i(6, 26),
+		"lemmings": 15, "rate": 4.0, "required": 0.8, "time": 200,
+		"tools": {"bridge": 3},
 	}
 
 
-## 13. Bridge, dynamite, jackhammer, and a pickaxe that does not help. A
-## gorge, an obsidian floor over a lower gallery, an obsidian wall.
+## 12. Two mouths. Lemmings come out on both sides of an ice tower with the
+## exit on top, and there is one ladder. Put up on one face it is the way
+## for both, once a tunnel through the tower's foot brings the other side
+## to it; dug first, the tunnel leaves no face for the ladder.
+func _level_12() -> Dictionary:
+	_sky(29)
+	_earth(36, 43, 24, 29)        # the tower
+	_abyss(50, 54, 30)            # a crevasse on the right
+	return {
+		"name": "Duas Bocas", "environment": LevelEnvironment.Kind.SNOWFIELD,
+		"spawns": [
+			{"cell": Vector2i(8, 30), "count": 10},
+			{"cell": Vector2i(71, 30), "count": 10, "left": true},
+		],
+		"exit": Vector2i(40, 24),
+		"lemmings": 20, "rate": 3.0, "required": 0.8, "time": 200,
+		"tools": {"ladder_vertical": 1, "miner": 1, "bridge": 1, "climber": 2, "block": 1},
+	}
+
+
+## 13. The lava lip. Out of the entrance the lemmings walk to a lava pit
+## under a cliff; the exit is the other way, across a channel, on a shelf
+## two blocks higher whose edge juts out over the channel. A bridge there
+## leads under the lip to a wall, and the lip stops a ladder; a staircase
+## from the near edge rises over the channel onto the lip. So the bridge
+## is for the pit: either turns them back from the cliff, but only one of
+## them then climbs the shelf.
 func _level_13() -> Dictionary:
-	_sky(12)
-	_air(1, 50, 13, 17)           # upper shelf
-	_concrete(28, 50, 18, 18)     # its obsidian floor past the gorge
-	_abyss(21, 27, 13)            # the gorge
-	_air(29, 60, 19, 19)          # lower gallery, one block tall
-	_air(52, 72, 15, 19)          # ...and its high end
-	_concrete(58, 61, 15, 19)     # the obsidian wall
-	_concrete(29, 78, 20, 20)
+	_sky(25)
+	_abyss(47, 52, 26)            # the lava pit
+	_earth(53, 78, 10, 25)        # the cliff
+	_abyss(22, 29, 26)            # the channel
+	_earth(2, 21, 24, 25)         # the shelf
+	_earth(22, 22, 24, 24)        # its lip
 	return {
-		"name": "Passagem de Obsidiana", "environment": LevelEnvironment.Kind.VOLCANO,
-		"spawn": Vector2i(6, 18), "exit": Vector2i(67, 20),
-		"lemmings": 15, "rate": 3.0, "required": 0.8, "time": 150,
-		"tools": {"bridge": 1, "dynamite": 1, "basher": 1, "miner": 1},
+		"name": "Beiço de Lava", "environment": LevelEnvironment.Kind.VOLCANO,
+		"spawn": Vector2i(36, 26), "exit": Vector2i(8, 24),
+		"lemmings": 12, "rate": 3.0, "required": 0.75, "time": 180,
+		"tools": {"bridge": 1, "builder": 1, "ladder_vertical": 2},
 	}
 
 
-## 14. A pioneer. The lemmings fall into a caldera they cannot leave: one
-## climbs out, floats down and bridges the gorge outside; then a shaft dug
-## through the caldera's floor lets the rest out underneath.
+## 14. Veins of obsidian: plenty of shovels and pickaxes, and the puzzle is
+## the rock. A shovel digs until it breaks into a hollow or meets obsidian,
+## a pickaxe until it breaks into a hollow; a shaft deeper than two blocks
+## kills whoever walks into it after the digger. So the way down to the
+## exit is read in the veins: dig onto a vein two blocks down, tunnel
+## sideways to the next hollow, and again. Digging straight into the hollow
+## below the crater drops them too far; the wrong side of a pit leads into
+## lava.
 func _level_14() -> Dictionary:
-	_sky(11)
-	_air(4, 16, 12, 19)           # the caldera
-	_air(19, 78, 12, 21)          # outside
-	_air(4, 18, 21, 21)           # the gallery under the caldera
-	_abyss(31, 37, 22)
+	_sky(8)
+	_earth(63, 78, 3, 8)          # the crater's rim
+	_concrete(22, 38, 11, 11)     # first vein, two blocks under the crater
+	_air(10, 14, 10, 20)          # a lava pocket on the left
+	_air(44, 52, 10, 12)          # first hollow
+	_concrete(44, 52, 15, 15)     # second vein, under it
+	_air(58, 60, 11, 30)          # a lava pocket on the right
+	_air(30, 38, 14, 15)          # second hollow
+	_concrete(30, 34, 18, 18)     # third vein, under part of it
+	_air(35, 45, 17, 17)          # third hollow, one block tall
+	_air(50, 56, 17, 19)          # the exit's chamber
 	return {
-		"name": "Caldeirão", "environment": LevelEnvironment.Kind.VOLCANO,
-		"spawn": Vector2i(8, 20), "exit": Vector2i(50, 22),
-		"lemmings": 15, "rate": 2.5, "required": 0.9, "time": 160,
-		"tools": {"climber": 1, "floater": 1, "bridge": 1, "digger": 1},
+		"name": "Veios de Obsidiana", "environment": LevelEnvironment.Kind.VOLCANO,
+		"spawn": Vector2i(6, 9), "exit": Vector2i(53, 20),
+		"lemmings": 20, "rate": 2.5, "required": 0.7, "time": 300,
+		"tools": {"digger": 8, "miner": 8, "block": 4},
 	}
 
 
-## 15. Everything at once, one of each: a pioneer climbs out of the
-## crater, floats down, bridges a gorge, breaks an obsidian wall and lays a
-## staircase up to the exit; TNT by the crater's wall lets the others out.
+## 15. Crown of fire. Two entrances, both groups dropping into one long
+## tunnel that ends in a lava pit at each end, and the exit is under the
+## obsidian floor in its middle, where everyone keeps crossing: only a
+## charge opens it, and the goal leaves no one to spare. Each group is held
+## on its own side (a block behind its first lemming), the two pioneers left
+## in the middle set the charge, and pickaxes open the pens. Five walls are
+## needed and there are three blocks: bridges over the end pits, to the
+## rock beyond, turn the crowd back too.
 func _level_15() -> Dictionary:
-	_sky(9)
-	_air(3, 16, 10, 19)           # the crater
-	_concrete(3, 17, 20, 21)      # its floor, two blocks of obsidian
-	_air(15, 17, 21, 21)          # the gallery reaches under its end
-	_air(18, 78, 10, 21)          # outside
-	_abyss(29, 35, 22)
-	_concrete(44, 46, 14, 21)     # the obsidian wall
-	_earth(60, 78, 19, 21)        # the terrace with the exit
+	_air(3, 20, 6, 8)             # left entrance hall
+	_air(19, 19, 9, 9)
+	_air(59, 76, 6, 8)            # right entrance hall
+	_air(60, 60, 9, 9)
+	_air(10, 69, 10, 10)          # the long tunnel
+	_air(7, 9, 10, 20)            # lava pit at its left end
+	_air(70, 72, 10, 20)          # ...and at its right end
+	_concrete(34, 45, 11, 11)     # the obsidian floor in the middle
+	_air(30, 50, 12, 12)          # the gallery under it
+	_air(47, 50, 13, 13)          # the exit's niche
 	return {
 		"name": "Coroa de Fogo", "environment": LevelEnvironment.Kind.VOLCANO,
-		"spawn": Vector2i(7, 20), "exit": Vector2i(70, 19),
-		"lemmings": 20, "rate": 2.5, "required": 0.75, "time": 210,
-		"tools": {"climber": 1, "floater": 1, "bridge": 1, "basher": 1, "builder": 1, "tnt": 1},
+		"spawns": [
+			{"cell": Vector2i(6, 9), "count": 10},
+			{"cell": Vector2i(73, 9), "count": 10, "left": true},
+		],
+		"exit": Vector2i(49, 14),
+		"lemmings": 20, "rate": 3.0, "required": 0.95, "time": 300,
+		"tools": {"block": 3, "bridge": 2, "dynamite": 1, "miner": 2, "digger": 1},
 	}

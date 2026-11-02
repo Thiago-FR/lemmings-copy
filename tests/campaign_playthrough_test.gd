@@ -14,6 +14,10 @@ extends "res://tests/level_playthrough_test.gd"
 ##   give_each(tool, condition): every lemming meeting it gets the tool, once
 ##     each.
 ## Conditions are Callables taking the lemming, built from the helpers below.
+##
+## A test of a naive solution (one that looks right and must not work)
+## overrides _expects_win() to return false: it then passes only if the
+## level is lost, which is what keeps a puzzle from being trivial.
 
 const SPEED_UP := 4.0
 const GAME_TICKS_PER_SECOND := 60
@@ -24,6 +28,8 @@ const TEST_SAVE_PATH := "user://test_campaign_playthrough.cfg"
 var _done_steps: Dictionary = {}
 ## tool id -> {lemming instance id: true}
 var _given_to: Dictionary = {}
+## Lemmings already watched for their death (to report where each died).
+var _watched: Dictionary = {}
 
 
 func _ready() -> void:
@@ -42,9 +48,33 @@ func _get_level_number() -> int:
 	return 0
 
 
+## Whether the scripted solution should win the level (false for a naive
+## solution that must fail).
+func _expects_win() -> bool:
+	return true
+
+
 ## Whether a step of give_once has already happened (to order steps).
 func is_done(step: String) -> bool:
 	return _done_steps.has(step)
+
+
+func _physics_process(delta: float) -> void:
+	_watch_deaths()
+	super._physics_process(delta)
+
+
+## Reports every death with its time and place: what a failing solution
+## needs to be fixed.
+func _watch_deaths() -> void:
+	for lemming in get_lemmings():
+		var key := lemming.get_instance_id()
+		if _watched.has(key):
+			continue
+		_watched[key] = true
+		lemming.died.connect(func(cause: LemmingController.DeathCause) -> void:
+			var body := lemming.get_body_rect()
+			print("  t=%.1fs died (%s) at (%.0f, %.0f), column %d" % [elapsed, LemmingController.DeathCause.keys()[cause], body.get_center().x, body.end.y, int(body.get_center().x / TILE)]))
 
 
 func give_once(step: String, tool_id: String, condition: Callable) -> bool:
@@ -108,7 +138,24 @@ func alone_within(distance: float) -> Callable:
 		return true
 
 
+## Some other lemming walking the same way (direction) is already past
+## column: to hand a tool to the second one while the first goes on.
+func someone_ahead_of(column: int, direction: int) -> Callable:
+	return func(lemming: LemmingController) -> bool:
+		for other in get_lemmings():
+			if other == lemming or other.direction != direction:
+				continue
+			var other_column := int(floor(other.get_body_rect().get_center().x / TILE))
+			if (other_column - column) * direction > 0:
+				return true
+		return false
+
+
 func _finish(passed: bool) -> void:
 	print("  level time used: %.0fs of %ds" % [level_data.time_limit_seconds - level_manager.time_remaining, level_data.time_limit_seconds])
 	Engine.time_scale = 1.0
+	if not _expects_win():
+		var lost := _result.begins_with("lost")
+		print("  (a naive solution: it has to lose) %s" % ("lost, as it should" if lost else "it did not lose"))
+		passed = lost
 	super._finish(passed)

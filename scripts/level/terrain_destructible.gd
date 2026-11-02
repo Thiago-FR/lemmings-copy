@@ -155,6 +155,11 @@ func get_bricks() -> Array[Rect2]:
 	return _bricks.duplicate()
 
 
+## Whether a brick laid at exactly this rect is still there.
+func has_brick(world_rect: Rect2) -> bool:
+	return _bricks.has(world_rect)
+
+
 ## A brick as it fits: whole if its spot is free, otherwise cut from its far
 ## side (the side direction points to) down to the room left before
 ## whatever is in the way. Empty if not even min_width is free. Used by the

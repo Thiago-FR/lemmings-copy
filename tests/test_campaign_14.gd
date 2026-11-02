@@ -1,8 +1,10 @@
 extends "res://tests/campaign_playthrough_test.gd"
-## Plays campaign level 14, "Caldeirão", with a scripted solution. Run via:
+## Plays campaign level 14, "Veios de Obsidiana", with a scripted solution. Run via:
 ##   godot --headless res://tests/test_campaign_14.tscn
 ##
-## A pioneer climbs out and floats down, bridges the gorge; then a shaft lets the rest out.
+## Onto the first vein, a tunnel right to the first hollow, onto the second
+## vein, a tunnel left to the second hollow, down into the third, a tunnel
+## right to the exit.
 
 
 func _get_level_number() -> int:
@@ -10,14 +12,14 @@ func _get_level_number() -> int:
 
 
 func _play_frame() -> void:
-	give_once("claws for the pioneer", "climber", walking_in(4, 16, 1, 20))
-	if is_done("claws for the pioneer"):
-		give_once("parachute for the pioneer", "floater", has_claws)
-	if is_done("parachute for the pioneer"):
-		give_once("bridge the gorge", "bridge", walking_in(19, 30, 1, 22))
-	if is_done("bridge the gorge") and elapsed > _done_steps["bridge the gorge"] + 8.0:
-		give_once("shaft for the rest", "digger", walking_in(6, 14, 0, 20))
-
-
-func has_claws(lemming: LemmingController) -> bool:
-	return lemming.has_climber_skill
+	give_once("onto the first vein", "digger", walking_in(26, 34, 1, 9))
+	if is_done("onto the first vein"):
+		give_once("tunnel to the first hollow", "miner", walking_in(22, 38, 1, 11))
+	if is_done("tunnel to the first hollow"):
+		give_once("onto the second vein", "digger", walking_in(46, 50, 0, 13))
+	if is_done("onto the second vein"):
+		give_once("tunnel to the second hollow", "miner", walking_in(44, 52, -1, 15))
+	if is_done("tunnel to the second hollow"):
+		give_once("down into the third hollow", "digger", walking_in(35, 36, 0, 16))
+	if is_done("down into the third hollow"):
+		give_once("tunnel to the exit", "miner", walking_in(36, 45, 1, 18))

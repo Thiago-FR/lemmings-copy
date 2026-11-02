@@ -46,6 +46,12 @@ enum Skyline { HILLS, HANGING, DUNES, PEAKS }
 @export var drift_velocity: Vector2 = Vector2(0, 30)
 ## Crystal shards rising from the bottom of the screen (transparent: none).
 @export var shard_colour: Color = Color(1, 1, 1, 0)
+## Clouds drifting slowly across the sky, behind the silhouettes.
+@export var cloud_count: int = 0
+@export var cloud_colour: Color = Color(1, 1, 1, 0.55)
+## Birds flying across, flapping, in front of the far silhouettes.
+@export var bird_count: int = 0
+@export var bird_colour: Color = Color(0.15, 0.13, 0.16, 0.85)
 
 
 static func by_kind(environment_kind: Kind) -> LevelEnvironment:
@@ -64,8 +70,15 @@ static func by_kind(environment_kind: Kind) -> LevelEnvironment:
 
 
 ## Open air: a dusk sky over distant hills.
+## The meadow: a soft sun, clouds and birds over the hills.
 static func surface() -> LevelEnvironment:
-	return LevelEnvironment.new()
+	var environment := LevelEnvironment.new()
+	environment.sun_radius = 40.0
+	environment.sun_position = Vector2(0.82, 0.18)
+	environment.sun_colour = Color(1.0, 0.96, 0.78, 0.9)
+	environment.cloud_count = 6
+	environment.bird_count = 5
+	return environment
 
 
 ## Underground: no sky; dark rock walls with stalactites in the distance.
@@ -95,6 +108,8 @@ static func desert() -> LevelEnvironment:
 	environment.sun_radius = 70.0
 	environment.sun_position = Vector2(0.72, 0.24)
 	environment.sun_colour = Color(1.0, 0.97, 0.82)
+	environment.bird_count = 2
+	environment.bird_colour = Color(0.32, 0.18, 0.12, 0.8)
 	return environment
 
 
@@ -130,6 +145,9 @@ static func snowfield() -> LevelEnvironment:
 	environment.drift_count = 90
 	environment.drift_colour = Color(1, 1, 1, 0.85)
 	environment.drift_velocity = Vector2(-12, 38)
+	environment.cloud_count = 4
+	environment.cloud_colour = Color(0.95, 0.97, 1.0, 0.45)
+	environment.bird_count = 3
 	return environment
 
 

@@ -1,8 +1,9 @@
 extends "res://tests/campaign_playthrough_test.gd"
-## Plays campaign level 7, "Veios de Cristal", with a scripted solution. Run via:
+## Plays campaign level 7, "Câmaras de Cristal", with a scripted solution. Run via:
 ##   godot --headless res://tests/test_campaign_07.tscn
 ##
-## Pickaxe for the slate walls, the jackhammer for the crystal one.
+## Down at once: a shaft in the first room, a bridge over the chasm below,
+## a pickaxe through the last wall.
 
 
 func _get_level_number() -> int:
@@ -10,8 +11,6 @@ func _get_level_number() -> int:
 
 
 func _play_frame() -> void:
-	give_once("pickaxe, first wall", "miner", walking_in(8, 19, 1, 26))
-	if is_done("pickaxe, first wall"):
-		give_once("jackhammer, crystal wall", "basher", walking_in(23, 35, 1, 26))
-	if is_done("jackhammer, crystal wall"):
-		give_once("pickaxe, last wall", "miner", walking_in(39, 51, 1, 26))
+	give_once("shaft in the first room", "digger", walking_in(10, 16, 0, 18))
+	give_once("bridge the chasm", "bridge", walking_in(8, 21, 1, 20))
+	give_once("pickaxe through the wall", "miner", walking_in(32, 45, 1, 20))

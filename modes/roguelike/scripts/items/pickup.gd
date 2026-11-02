@@ -42,6 +42,8 @@ func _ready() -> void:
 		_icon = UiStyle.icon(spec.tool_id)
 	elif spec.kind == RoguelikePickupSpec.Kind.COINS:
 		_icon = UiStyle.icon("hud_coin")
+	elif spec.kind == RoguelikePickupSpec.Kind.ABILITY_CHARGE:
+		_icon = UiStyle.icon(RoguelikeAbilities.CHARGE_ICON)
 	add_to_group("roguelike_pickups")
 	body_entered.connect(_on_body_entered)
 
@@ -65,7 +67,7 @@ func _draw() -> void:
 	draw_circle(centre, DISC_RADIUS, GLOW_COLOUR)
 	draw_arc(centre, DISC_RADIUS, 0.0, TAU, 24, RIM_COLOUR, 1.5)
 	match spec.kind:
-		RoguelikePickupSpec.Kind.TOOL, RoguelikePickupSpec.Kind.COINS:
+		RoguelikePickupSpec.Kind.TOOL, RoguelikePickupSpec.Kind.COINS, RoguelikePickupSpec.Kind.ABILITY_CHARGE:
 			if _icon != null:
 				draw_texture_rect(_icon, Rect2(centre - Vector2(12, 12), Vector2(24, 24)), false)
 		RoguelikePickupSpec.Kind.REVIVE:

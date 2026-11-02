@@ -46,7 +46,6 @@ var _is_stroking := false
 var _stroke_tool: EditorTool.Kind = EditorTool.Kind.BLOCK
 var _last_stroke_position := Vector2.ZERO
 ## The run's latest status line, shown again when a paused run resumes.
-var _run_status_text := ""
 
 
 func _ready() -> void:
@@ -82,6 +81,8 @@ func _set_up_view() -> void:
 	backdrop.area = get_paint_area()
 	add_child(backdrop)
 	var camera := LevelCamera.new()
+	# The left button paints here.
+	camera.left_drag = false
 	camera.name = "Camera"
 	camera.bounds = get_paint_area()
 	camera.top_margin = TOOLBAR_TOP_MARGIN
@@ -137,7 +138,6 @@ func pause() -> void:
 	GameManager.pause_game()
 	mode = Mode.PAUSED
 	toolbar.update_for_state(false, true)
-	toolbar.set_status("Pausado. Jogar continua, Reiniciar volta ao desenho.")
 
 
 ## Ends the test run and returns to the drawing exactly as it was painted.
@@ -219,7 +219,7 @@ func _place_entrance(world_position: Vector2) -> void:
 	# A lemming released inside rock would be stuck there from its first
 	# frame.
 	if terrain.is_solid_in_rect(cell_rect.grow(-1.0)):
-		toolbar.set_status("A entrada precisa ficar num espaço vazio.")
+		toolbar.flash(&"entrance")
 		return
 	if _entrance == null:
 		_entrance = SPAWN_POINT_SCENE.instantiate()
@@ -237,10 +237,10 @@ func _place_exit(world_position: Vector2) -> void:
 
 func _start_run() -> void:
 	if not has_entrance():
-		toolbar.set_status("Coloque a entrada antes de jogar.")
+		toolbar.flash(&"entrance")
 		return
 	if toolbar.get_lemming_count() <= 0:
-		toolbar.set_status("Escolha pelo menos 1 boneco antes de jogar.")
+		toolbar.flash(&"lemmings")
 		return
 
 	_is_stroking = false
@@ -272,7 +272,6 @@ func _resume() -> void:
 	GameManager.resume_game()
 	mode = Mode.PLAYING
 	toolbar.update_for_state(false, false)
-	toolbar.set_status(_run_status_text)
 
 
 func _end_run() -> void:
@@ -290,24 +289,14 @@ func _enter_editing_mode() -> void:
 		move_child(edit_layer, 0)
 	mode = Mode.EDITING
 	toolbar.update_for_state(true, false)
-	toolbar.set_status("Desenhando: escolha uma ferramenta e clique ou arraste. Botão direito apaga.")
 
 
 func _on_counts_changed(saved_count: int, lost_count: int, spawned_count: int, total_count: int) -> void:
-	var out_count := spawned_count - saved_count - lost_count
-	_show_run_status("Jogando. Na fase: %d   Salvos: %d   Perdidos: %d   Total: %d" % [out_count, saved_count, lost_count, total_count])
+	toolbar.show_run_counts(spawned_count - saved_count - lost_count, saved_count, lost_count, total_count)
 
 
-## Not a result screen: the run just stops counting and the player decides
-## when to restart, so the editor never blocks on a win/lose dialog.
+## Not a result screen: the run just stops counting (its counts stay on
+## screen) and the player decides when to restart, so the editor never
+## blocks on a win/lose dialog.
 func _on_run_finished(_percentage_saved: float) -> void:
-	_show_run_status("Fim do teste. Salvos: %d de %d. Reiniciar volta ao desenho." % [
-		play_session.lemmings_saved_count, play_session.level_data.total_lemmings
-	])
-
-
-func _show_run_status(text: String) -> void:
-	_run_status_text = text
-	# While paused the status line explains how to continue instead.
-	if mode != Mode.PAUSED:
-		toolbar.set_status(text)
+	pass

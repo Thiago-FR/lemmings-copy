@@ -12,6 +12,8 @@ const LEVEL_DATA_PATH := "res://resources/levels/campaign/campaign_%02d_data.tre
 const SAVE_PATH := "user://campaign.cfg"
 ## The level select screen.
 const SELECT_SCENE_PATH := "res://scenes/ui/campaign_select.tscn"
+## The congratulations and credits, after the last level.
+const COMPLETE_SCENE_PATH := "res://scenes/ui/campaign_complete.tscn"
 const SECTION := "cleared"
 ## Levels per setting (meadow, desert, crystal cave, snowfield, volcano):
 ## the level select screen groups them this way.
@@ -73,6 +75,14 @@ static func current_index() -> int:
 		if not is_cleared(index):
 			return index
 	return LEVEL_COUNT - 1
+
+
+## Whether every level has been won.
+static func is_complete() -> bool:
+	for index in LEVEL_COUNT:
+		if not is_cleared(index):
+			return false
+	return true
 
 
 static func reset_progress() -> void:

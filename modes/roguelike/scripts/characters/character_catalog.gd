@@ -1,8 +1,10 @@
 class_name RoguelikeCharacters
 extends RefCounted
-## Every character a run can be played with: name, ability text, colour,
-## unlock price and the trait that implements the ability. Adding a character is one entry here
-## and one RoguelikeCharacterTrait subclass.
+## Every character a run can be played with: name, passive bonus, special
+## ability (RoguelikeAbilities, its own slot in the tool bar), colour, unlock
+## price and the trait that implements the passive. Adding a character is
+## one entry here, one RoguelikeCharacterTrait subclass and, for a new
+## ability, one RoguelikeAbility.
 
 const WIZARD := &"wizard"
 const MINER := &"miner"
@@ -13,40 +15,45 @@ const TINKERER := &"tinkerer"
 const DEFINITIONS := {
 	WIZARD: {
 		"name": "Mago",
-		"ability": "Teleporte (em breve): atravessa uma parede ou um chão de 1 bloco.",
-		"short": "Teleporte (em breve).",
+		"passive": "",
+		"special": RoguelikeAbilities.TELEPORT,
+		"short_passive": "",
 		"colour": Color(0.62, 0.45, 1.0),
 		"price": 0,
 		"trait": preload("res://modes/roguelike/scripts/characters/traits/wizard_trait.gd"),
 	},
 	MINER: {
 		"name": "Mineiro",
-		"ability": "Cava duas vezes mais rápido com Pá, Picareta e Britadeira.",
-		"short": "Cava duas vezes mais rápido.",
+		"passive": "Cava duas vezes mais rápido com Pá, Picareta e Britadeira.",
+		"special": RoguelikeAbilities.BREAK_CONCRETE,
+		"short_passive": "Cava 2x mais rápido.",
 		"colour": Color(0.95, 0.55, 0.2),
 		"price": 25,
 		"trait": preload("res://modes/roguelike/scripts/characters/traits/miner_trait.gd"),
 	},
 	ENGINEER: {
 		"name": "Engenheiro",
-		"ability": "Pontes e escadas dele têm 4 peças a mais.",
-		"short": "+4 peças em pontes e escadas.",
+		"passive": "Pontes e escadas dele têm 4 peças a mais.",
+		"special": RoguelikeAbilities.PLATFORM,
+		"short_passive": "+4 peças em pontes e escadas.",
 		"colour": Color(1.0, 0.85, 0.2),
 		"price": 35,
 		"trait": preload("res://modes/roguelike/scripts/characters/traits/engineer_trait.gd"),
 	},
 	SCOUT: {
 		"name": "Batedor",
-		"ability": "Pernas fortes: aguenta quedas duas vezes mais altas.",
-		"short": "Aguenta quedas duas vezes mais altas.",
+		"passive": "Pernas fortes: aguenta quedas duas vezes mais altas.",
+		"special": RoguelikeAbilities.LEAP,
+		"short_passive": "Aguenta quedas 2x mais altas.",
 		"colour": Color(0.35, 0.85, 0.4),
 		"price": 45,
 		"trait": preload("res://modes/roguelike/scripts/characters/traits/scout_trait.gd"),
 	},
 	TINKERER: {
 		"name": "Inventor",
-		"ability": "Uma vez por fase, clique nele sem ferramenta escolhida para repetir a última que ele usou, sem gastar carga.",
-		"short": "Repete a última ferramenta uma vez por fase.",
+		"passive": "",
+		"special": RoguelikeAbilities.REPEAT,
+		"short_passive": "",
 		"colour": Color(0.3, 0.8, 1.0),
 		"price": 60,
 		"trait": preload("res://modes/roguelike/scripts/characters/traits/tinkerer_trait.gd"),
@@ -67,13 +74,29 @@ static func get_display_name(character_id: StringName) -> String:
 	return DEFINITIONS[character_id].name
 
 
+## What the character does: its passive bonus, if any, then its ability.
 static func get_ability(character_id: StringName) -> String:
-	return DEFINITIONS[character_id].ability
+	var special := get_special(character_id)
+	var text := "%s: %s" % [RoguelikeAbilities.get_display_name(special), RoguelikeAbilities.get_description(special)]
+	var passive: String = DEFINITIONS[character_id].passive
+	return text if passive == "" else "%s %s" % [passive, text]
+
+
+## The id of the character's special ability (RoguelikeAbilities).
+static func get_special(character_id: StringName) -> StringName:
+	return DEFINITIONS[character_id].special
 
 
 ## The ability in a few words, for the small text panel of a card.
 static func get_short_ability(character_id: StringName) -> String:
-	return DEFINITIONS[character_id].short
+	var ability := RoguelikeAbilities.get_display_name(get_special(character_id)) + "."
+	var passive := get_short_passive(character_id)
+	return ability if passive == "" else "%s %s" % [passive, ability]
+
+
+## The passive bonus in a few words, "" for a character without one.
+static func get_short_passive(character_id: StringName) -> String:
+	return DEFINITIONS[character_id].short_passive
 
 
 ## Coins from the vault that unlock the character (RoguelikeProfile.buy).

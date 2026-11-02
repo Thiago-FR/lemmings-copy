@@ -4,16 +4,14 @@
 
 [resource]
 script = ExtResource("1_qract")
-level_name = "Oásis Escondido"
-instructions = "O Bloco faz os bonecos voltarem. A Picareta cava reto na terra."
-spawn_rate = 2.5
-total_lemmings = 12
-required_percentage = 0.75
-time_limit_seconds = 150
-available_skills = Array[String](["block", "miner"])
+level_name = "Labirinto das Dunas"
+spawn_rate = 3.0
+total_lemmings = 10
+required_percentage = 0.8
+time_limit_seconds = 200
+available_skills = Array[String](["block"])
 skill_counts = {
-"block": 2,
-"miner": 2
+"block": 2
 }
 scene_path = "res://scenes/levels/campaign/campaign_06.tscn"
 environment_kind = 2

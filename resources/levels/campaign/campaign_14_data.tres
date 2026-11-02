@@ -4,17 +4,16 @@
 
 [resource]
 script = ExtResource("1_dgr84")
-level_name = "Caldeirão"
+level_name = "Veios de Obsidiana"
 spawn_rate = 2.5
-total_lemmings = 15
-required_percentage = 0.9
-time_limit_seconds = 160
-available_skills = Array[String](["climber", "floater", "bridge", "digger"])
+total_lemmings = 20
+required_percentage = 0.7
+time_limit_seconds = 300
+available_skills = Array[String](["digger", "miner", "block"])
 skill_counts = {
-"bridge": 1,
-"climber": 1,
-"digger": 1,
-"floater": 1
+"block": 4,
+"digger": 8,
+"miner": 8
 }
 scene_path = "res://scenes/levels/campaign/campaign_14.tscn"
 environment_kind = 5

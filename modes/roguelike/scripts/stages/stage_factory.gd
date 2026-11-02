@@ -5,7 +5,7 @@ extends RefCounted
 ## labyrinths (RoguelikeHandmadeStages). Either way the maze comes as the
 ## core's MazeStageData and the roguelike puts its own items on the spots:
 ## the tool spots become tool pickups, the bonus spots a rescue, an
-## hourglass, a bag or spare charges.
+## hourglass, a bag, coins, an ability recharge or spare charges.
 
 const PLACES_SURFACE: Array[String] = ["Colinas", "Trilhas", "Ravinas", "Encostas", "Barrancos", "Veredas"]
 const PLACES_CAVE: Array[String] = ["Galerias", "Túneis", "Grutas", "Câmaras", "Poços", "Veios", "Covas"]
@@ -13,6 +13,9 @@ const QUALIFIERS: Array[String] = ["da Raiz", "do Eco", "de Pedra", "do Musgo", 
 const TIME_PICKUP_SECONDS := 60
 ## Coins lying in a stage (the user's idea: coins dropped around the map).
 const COIN_PICKUP_AMOUNT := 2
+## A recharge of the character's ability (approved plan: few charges per
+## stage, more lying on the map).
+const ABILITY_CHARGE_PICKUP_AMOUNT := 1
 ## Charges a bonus spot gives when it turns out to be a tool.
 const BONUS_TOOL_CHARGES := 1
 const BONUS_TOOLS: Array[String] = ["digger", "ladder_vertical", "bridge", "miner", "basher"]
@@ -91,9 +94,12 @@ static func _bonus(rng: RandomNumberGenerator, kinds: Array[String]) -> Roguelik
 	elif roll < 0.4:
 		spec.kind = RoguelikePickupSpec.Kind.TIME
 		spec.amount = TIME_PICKUP_SECONDS
-	elif roll < 0.65:
+	elif roll < 0.55:
 		spec.kind = RoguelikePickupSpec.Kind.COINS
 		spec.amount = COIN_PICKUP_AMOUNT
+	elif roll < 0.67:
+		spec.kind = RoguelikePickupSpec.Kind.ABILITY_CHARGE
+		spec.amount = ABILITY_CHARGE_PICKUP_AMOUNT
 	else:
 		var choices: Array[String] = []
 		choices.assign(BONUS_TOOLS if kinds.size() < MAX_TOOL_KINDS else kinds)

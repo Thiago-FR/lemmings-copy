@@ -12,7 +12,15 @@ extends Node
 signal stage_finished(saved: Array[StringName], lost: Array[StringName])
 signal sacrifice_armed_changed(armed: bool)
 
+## Icons flying out of a picked-up item: at most this many, this far apart.
+const MAX_POPS := 5
+const POP_SPACING := 14.0
+const EVICTED_TINT := Color(0.55, 0.55, 0.55, 1.0)
+
 const SPAWN_INTERVAL_SECONDS := 1.5
+## A new compendium discovery: the book pops up a little above the spot.
+const DISCOVERY_ICON := "compendium"
+const DISCOVERY_POP_OFFSET := Vector2(0, -28)
 
 var state: RoguelikeRunState = null
 ## Optional: the run's relics, applied to the tool templates before the
@@ -22,6 +30,12 @@ var relics: RoguelikeRelics = null
 var show_ui := true
 ## While true, clicking a lemming sacrifices it (set_sacrifice_armed).
 var sacrifice_armed := false
+## Optional: where discoveries for the compendium are recorded (things
+## picked up, tools and the ability used). Tests leave it out.
+var profile: RoguelikeProfile = null
+## The run character's ability in this stage: its charges, and whether it
+## is armed (set_ability_armed). Made in _ready.
+var ability_slot: RoguelikeAbilitySlot = null
 
 var level_manager: LevelManager = null
 var builder := RoguelikeStageBuilder.new()
@@ -41,6 +55,7 @@ func _ready() -> void:
 	if relics != null:
 		relics.apply_templates(state.relic_levels)
 
+	ability_slot = RoguelikeAbilitySlot.make(RoguelikeCharacters.get_special(state.character_id), _starting_ability_charges())
 	GameManager.current_level_data = _make_level_data()
 	level_manager = builder.build(definition)
 	# Connected before the level enters the tree: LevelManager releases the
@@ -58,7 +73,7 @@ func _ready() -> void:
 	level_manager.level_failed.connect(_on_level_ended)
 	if show_ui:
 		level_manager.add_child(RoguelikeRunHud.new(state, definition, self))
-		level_manager.add_child(RoguelikeToolBar.new(state.inventory))
+		level_manager.add_child(RoguelikeToolBar.new(state.inventory, self))
 		level_manager.add_child(RoguelikeRelicBar.new(state))
 
 	SkillManager.skill_assigned.connect(_on_skill_assigned)
@@ -102,6 +117,24 @@ func _make_level_data() -> LevelData:
 	return level_data
 
 
+## The ability's own charges, plus the relic's.
+func _starting_ability_charges() -> int:
+	var special := RoguelikeCharacters.get_special(state.character_id)
+	return RoguelikeAbilities.get_base_charges(special) + RoguelikeRelics.ABILITY_CHARGES_PER_LEVEL * state.get_relic_level(RoguelikeRelics.ABILITY_CHARGES)
+
+
+## Records discoveries; a new one pops the compendium's book over where it
+## happened (an animation, not a message).
+func _discover(entry_ids: Array[String], where: Vector2) -> void:
+	if profile == null:
+		return
+	var fresh := entry_ids.filter(func(entry_id: String) -> bool: return not profile.is_discovered(entry_id))
+	if fresh.is_empty():
+		return
+	profile.discover_all(entry_ids)
+	RoguelikeIconPop.spawn(level_manager, where + DISCOVERY_POP_OFFSET, DISCOVERY_ICON)
+
+
 func _sync_charges() -> void:
 	var counts := state.inventory.to_counts()
 	for skill_id in SkillManager.get_skill_ids():
@@ -124,7 +157,7 @@ func _on_lemming_died(lemming: LemmingController, cause: LemmingController.Death
 	_on_lemming_resolved(lemming, false)
 	if cause == LemmingController.DeathCause.SACRIFICE:
 		state.coins += RoguelikeRunState.COINS_PER_SACRIFICED
-		RoguelikeFloatingText.spawn(level_manager, lemming.global_position, "+%d moeda" % RoguelikeRunState.COINS_PER_SACRIFICED)
+		_pop_icons(lemming.global_position, "hud_coin", RoguelikeRunState.COINS_PER_SACRIFICED)
 
 
 func _on_lemming_resolved(lemming: LemmingController, was_saved: bool) -> void:
@@ -139,18 +172,13 @@ func _on_lemming_resolved(lemming: LemmingController, was_saved: bool) -> void:
 
 
 ## Runs before SkillManager's own click handler (connected first, see
-## _ready). With a tool selected that has charges the click is
-## SkillManager's; otherwise the lemming may have an ability of its own.
+## _ready). Armed, the sacrifice or the ability takes the click; they let go
+## of the selected tool when armed, so SkillManager then does nothing.
 func _on_lemming_clicked(lemming: LemmingController) -> void:
 	if sacrifice_armed:
 		sacrifice(lemming)
-		return
-	var selected := SkillManager.selected_skill_id
-	if selected != "" and SkillManager.get_remaining_count(selected) > 0:
-		return
-	var character_trait := RoguelikeCharacters.get_trait(lemming)
-	if character_trait != null and character_trait.can_use_own_ability():
-		character_trait.use_own_ability()
+	elif ability_slot.armed and ability_slot.use_on(lemming):
+		_discover([RoguelikeDiscovery.ability(ability_slot.get_ability_id())], lemming.get_body_rect().get_center())
 
 
 ## Sacrifices a lemming still in the stage: for one stuck where it can never
@@ -170,12 +198,25 @@ func set_sacrifice_armed(armed: bool) -> void:
 	sacrifice_armed = armed
 	if armed:
 		SkillManager.selected_skill_id = ""
+		ability_slot.set_armed(false)
 	sacrifice_armed_changed.emit(armed)
+
+
+## Arms or disarms the ability (its slot in the tool bar): while armed,
+## clicking a lemming uses it on that lemming. Like the sacrifice, arming
+## lets go of the selected tool and disarms the sacrifice; selecting a tool
+## disarms it. It cannot be armed with no charge left.
+func set_ability_armed(armed: bool) -> void:
+	if armed:
+		set_sacrifice_armed(false)
+		SkillManager.selected_skill_id = ""
+	ability_slot.set_armed(armed)
 
 
 func _on_skill_selected(skill_id: String) -> void:
 	if skill_id != "":
 		set_sacrifice_armed(false)
+		ability_slot.set_armed(false)
 
 
 ## Ends the stage now: whoever is still in it is sacrificed (see
@@ -190,41 +231,66 @@ func _on_skill_refunded(skill_id: String) -> void:
 	state.inventory.add_charges(skill_id, 1)
 
 
-func _on_skill_assigned(_lemming: LemmingController, skill_id: String) -> void:
+func _on_skill_assigned(lemming: LemmingController, skill_id: String) -> void:
 	state.inventory.spend(skill_id)
+	_discover([RoguelikeDiscovery.tool(skill_id)], lemming.get_body_rect().get_center())
 
 
+## What was picked up flies out of the item as icons, one per charge or coin
+## (up to MAX_POPS): the user wants animation, not text messages.
 func _on_pickup_collected(pickup: RoguelikePickup, lemming: LemmingController) -> void:
 	var spec := pickup.spec
-	var text := spec.describe()
+	var where := pickup.global_position
+	_discover(RoguelikeDiscovery.for_pickup(spec), where)
 	match spec.kind:
 		RoguelikePickupSpec.Kind.TOOL:
 			var amount := spec.amount + state.get_relic_level(RoguelikeRelics.COLLECTOR)
 			var character_trait := RoguelikeCharacters.get_trait(lemming)
 			if character_trait != null:
 				amount += character_trait.get_pickup_bonus()
-			text = "+%d %s" % [amount, SkillManager.get_display_name(spec.tool_id)]
+			_pop_icons(where, spec.tool_id, amount)
 			var evicted := state.inventory.add_charges(spec.tool_id, amount)
+			# A tool pushed out of a full bar drops away, greyed.
 			if evicted != "":
-				text += " (saiu %s)" % SkillManager.get_display_name(evicted)
+				var dropped := RoguelikeIconPop.spawn(level_manager, where + Vector2(0, -POP_SPACING), evicted)
+				if dropped != null:
+					dropped.modulate = EVICTED_TINT
 		RoguelikePickupSpec.Kind.REVIVE:
 			state.revive_tokens += 1
+			_pop_icons(where, "hud_rescue", 1)
 		RoguelikePickupSpec.Kind.TIME:
 			level_manager.time_remaining += spec.amount
+			_pop_icons(where, "hud_clock", 1)
 		RoguelikePickupSpec.Kind.CHARGE_BAG:
 			state.inventory.add_one_to_each()
+			for tool_id in state.inventory.get_tool_ids().slice(0, MAX_POPS):
+				_pop_icons(where + Vector2(0, -POP_SPACING * 0.5), tool_id, 1)
 		RoguelikePickupSpec.Kind.COINS:
 			var coins := spec.amount + state.get_relic_level(RoguelikeRelics.GREED)
 			state.coins += coins
-			text = "+%d moedas" % coins
+			_pop_icons(where, "hud_coin", coins)
+		RoguelikePickupSpec.Kind.ABILITY_CHARGE:
+			# The crystal itself flies up; the slot in the bar pulses.
+			ability_slot.add_charges(spec.amount)
+			AudioManager.play_sound(&"select_tool")
+			RoguelikeIconPop.spawn(level_manager, pickup.global_position, RoguelikeAbilities.CHARGE_ICON)
+			return
 	AudioManager.play_sound(&"select_tool")
-	RoguelikeFloatingText.spawn(level_manager, pickup.global_position, text)
+
+
+## count icons in a row centred on where, each popping up and fading.
+func _pop_icons(where: Vector2, icon_id: String, count: int) -> void:
+	var shown := clampi(count, 1, MAX_POPS)
+	for index in shown:
+		var offset := (float(index) - (shown - 1) / 2.0) * POP_SPACING
+		RoguelikeIconPop.spawn(level_manager, where + Vector2(offset, 0), icon_id)
 
 
 func _on_level_ended(_percentage_saved: float) -> void:
 	if _finished:
 		return
 	_finished = true
+	ability_slot.set_armed(false)
 	# Whoever is still out when the clock runs out does not make it, nor do
 	# the ones never released (the stage was ended early).
 	for lemming in _characters.keys():

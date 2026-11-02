@@ -5,18 +5,17 @@
 [resource]
 script = ExtResource("1_kj6ng")
 level_name = "Coroa de Fogo"
-spawn_rate = 2.5
+spawn_rate = 3.0
 total_lemmings = 20
-required_percentage = 0.75
-time_limit_seconds = 210
-available_skills = Array[String](["climber", "floater", "bridge", "basher", "builder", "tnt"])
+required_percentage = 0.95
+time_limit_seconds = 300
+available_skills = Array[String](["block", "bridge", "dynamite", "miner", "digger"])
 skill_counts = {
-"basher": 1,
-"bridge": 1,
-"builder": 1,
-"climber": 1,
-"floater": 1,
-"tnt": 1
+"block": 3,
+"bridge": 2,
+"digger": 1,
+"dynamite": 1,
+"miner": 2
 }
 scene_path = "res://scenes/levels/campaign/campaign_15.tscn"
 environment_kind = 5

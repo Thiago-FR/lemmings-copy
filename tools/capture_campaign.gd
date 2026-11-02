@@ -4,14 +4,21 @@ extends Node
 ## to fit the level). Needs a real renderer, so it cannot run headless; a
 ## window opens. Run via:
 ##   godot --path . --windowed --resolution 1920x1080 res://tools/capture_campaign.tscn -- <output dir> [level numbers...]
-## Writes menu.png, select.png, campaign_<nn>.png, campaign_<nn>_whole.png and
-## result.png (the first level's result screen after a win). The
+## Writes menu.png, select.png, campaign_<nn>.png, campaign_<nn>_whole.png,
+## result.png and result_lost.png (the first level's result screen after a
+## win and after a loss), select_complete.png (every level won) and
+## complete.png (the congratulations and credits). The
 ## player's own progress is not touched (a sample progress file is used).
 
 const SAMPLE_SAVE_PATH := "user://capture_campaign.cfg"
 const SETTLE_FRAMES := 30
 ## Long enough for the first lemmings to come out of the entrance.
 const LEVEL_SETTLE_FRAMES := 300
+## Long enough for the result screen's badge and count to finish (in
+## seconds: frames go by much faster than 60 a second here).
+const RESULT_SETTLE_SECONDS := 1.5
+## Long enough for the stars and the credits to be in.
+const COMPLETE_SETTLE_SECONDS := 4.5
 
 
 func _ready() -> void:
@@ -57,13 +64,28 @@ func _run() -> void:
 			await _frames(5)
 			_save(output_dir.path_join("campaign_%02d_whole.png" % number))
 		if number == numbers[0]:
-			# The result screen of a win, as LevelManager announces it.
+			# The result screens of a win and a loss, as LevelManager
+			# announces them, once their animation has played.
 			var manager := get_tree().get_first_node_in_group("level_manager")
+			manager.level_failed.emit(0.4)
+			await _seconds(RESULT_SETTLE_SECONDS)
+			_save(output_dir.path_join("result_lost.png"))
+			GameManager.restart_level()
+			await _frames(SETTLE_FRAMES)
+			manager = get_tree().get_first_node_in_group("level_manager")
 			manager.level_completed.emit(0.9)
-			await _frames(5)
+			await _seconds(RESULT_SETTLE_SECONDS)
 			_save(output_dir.path_join("result.png"))
 			GameManager.go_to_scene(Campaign.SELECT_SCENE_PATH)
 			await _frames(5)
+	for index in Campaign.LEVEL_COUNT:
+		Campaign.record_win(index, 1.0)
+	get_tree().change_scene_to_file(Campaign.SELECT_SCENE_PATH)
+	await _frames(SETTLE_FRAMES)
+	_save(output_dir.path_join("select_complete.png"))
+	get_tree().change_scene_to_file(Campaign.COMPLETE_SCENE_PATH)
+	await _seconds(COMPLETE_SETTLE_SECONDS)
+	_save(output_dir.path_join("complete.png"))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAMPLE_SAVE_PATH))
 	get_tree().quit()
 
@@ -72,6 +94,12 @@ func _save(path: String) -> void:
 	var image := get_viewport().get_texture().get_image()
 	image.save_png(path)
 	print("saved %s (%dx%d)" % [path, image.get_width(), image.get_height()])
+
+
+## A real-time wait that also runs while the tree is paused (the result
+## screen pauses it).
+func _seconds(duration: float) -> void:
+	await get_tree().create_timer(duration, true).timeout
 
 
 func _frames(count: int) -> void:

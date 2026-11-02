@@ -21,8 +21,6 @@ const SEPARATION := 14
 const ICON_GAP := 2
 const BUTTON_SEPARATION := 4
 const SACRIFICE_TOOLTIP := "Sacrificar (sem limite): ligue e clique num boneco preso. Cada sacrificado deixa 1 moeda."
-const END_STAGE_TITLE := "Encerrar fase"
-const END_STAGE_QUESTION := "Encerrar a fase agora?\n\nQuem já saiu continua na run. Os bonecos que ainda estão na fase são sacrificados (1 moeda cada) e os que não saíram da entrada são perdidos."
 
 var _state: RoguelikeRunState
 var _definition: RoguelikeStageDefinition
@@ -38,7 +36,6 @@ var _coins_label: Label
 var _pause_button: Button
 var _end_stage_button: Button
 var _sacrifice_button: Button
-var _confirm_dialog: ConfirmationDialog
 var _paused_by_dialog := false
 
 
@@ -54,7 +51,6 @@ func _ready() -> void:
 	assert(_level_manager != null, "RoguelikeRunHud must be a child of the stage's LevelManager")
 	_build_info_bar()
 	_build_controls()
-	_build_confirm_dialog()
 	_level_manager.counts_changed.connect(_on_counts_changed)
 	_level_manager.time_remaining_changed.connect(_on_time_changed)
 	_level_manager.level_completed.connect(_on_level_ended)
@@ -126,6 +122,12 @@ func _build_controls() -> void:
 	controls.add_theme_constant_override("separation", BUTTON_SEPARATION)
 	panel.add_child(controls)
 	_pause_button = _add_button(controls, "editor_pause", "Pausar (P)", GameManager.toggle_pause)
+	var fast := UiStyle.make_icon_button("fast_forward", "Acelerar (F)")
+	fast.name = "FastButton"
+	fast.toggle_mode = true
+	fast.toggled.connect(GameManager.set_fast_forward)
+	GameManager.fast_forward_changed.connect(fast.set_pressed_no_signal)
+	controls.add_child(fast)
 	controls.add_child(VSeparator.new())
 	_sacrifice_button = UiStyle.make_icon_button("sacrifice", SACRIFICE_TOOLTIP)
 	_sacrifice_button.name = "SacrificeButton"
@@ -148,29 +150,27 @@ func _add_button(row: HBoxContainer, icon_id: String, tooltip: String, action: C
 	return button
 
 
-func _build_confirm_dialog() -> void:
-	_confirm_dialog = ConfirmationDialog.new()
-	_confirm_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
-	_confirm_dialog.title = END_STAGE_TITLE
-	_confirm_dialog.dialog_text = END_STAGE_QUESTION
-	_confirm_dialog.dialog_autowrap = true
-	_confirm_dialog.min_size = Vector2i(420, 0)
-	_confirm_dialog.ok_button_text = "Encerrar"
-	_confirm_dialog.cancel_button_text = "Voltar"
-	_confirm_dialog.confirmed.connect(_on_end_stage_confirmed)
-	_confirm_dialog.canceled.connect(_close_confirm_dialog)
-	add_child(_confirm_dialog)
-
-
-## Asks first: a misclick would otherwise throw away every lemming still
-## in the stage. The stage waits, paused, while the question is open.
+## Asks first, in the game's own modal: a misclick would otherwise throw
+## away every lemming still in the stage. What will happen is shown as icons
+## and numbers (who already got out goes on, who is in the stage is
+## sacrificed and leaves a coin, who has not come out is lost). The stage
+## waits, paused, while the question is open.
 func _ask_end_stage() -> void:
-	if _level_manager.is_ending():
+	if _level_manager.is_ending() or get_node_or_null("EndStageModal") != null:
 		return
 	_paused_by_dialog = not GameManager.is_paused
 	if _paused_by_dialog:
 		GameManager.pause_game()
-	_confirm_dialog.popup_centered()
+	var data := _level_manager.level_data
+	var out_count := _level_manager.lemmings_spawned_count - _level_manager.lemmings_saved_count - _level_manager.lemmings_lost_count
+	var modal := ConfirmModal.new("give_up", "Encerrar fase?", "Encerrar")
+	modal.name = "EndStageModal"
+	modal.add_fact("hud_saved", _level_manager.lemmings_saved_count, "Já salvos: seguem na run")
+	modal.add_fact("sacrifice", out_count, "Na fase: são sacrificados (1 moeda cada)")
+	modal.add_fact("hud_lost", data.total_lemmings - _level_manager.lemmings_spawned_count, "Ainda na entrada: perdidos")
+	modal.confirmed.connect(_on_end_stage_confirmed)
+	modal.cancelled.connect(_close_confirm_dialog)
+	add_child(modal)
 
 
 func _close_confirm_dialog() -> void:
@@ -200,6 +200,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	match key.keycode:
 		KEY_P:
 			GameManager.toggle_pause()
+		KEY_F:
+			GameManager.toggle_fast_forward()
 		KEY_ESCAPE:
 			GameManager.go_to_main_menu()
 		_:
@@ -208,6 +210,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _exit_tree() -> void:
+	# The cards and the shop between stages run at normal speed.
+	GameManager.set_fast_forward(false)
 	if GameManager.game_paused.is_connected(_refresh_pause_button):
 		GameManager.game_paused.disconnect(_refresh_pause_button)
 		GameManager.game_resumed.disconnect(_refresh_pause_button)
@@ -220,6 +224,7 @@ func _refresh_pause_button() -> void:
 
 
 func _on_level_ended(_percentage_saved: float) -> void:
+	GameManager.set_fast_forward(false)
 	_end_stage_button.disabled = true
 	_sacrifice_button.disabled = true
 

@@ -11,7 +11,8 @@ extends RefCounted
 ## templates and puts them back when it ends (restore_templates), and the
 ## normal levels never see an upgraded tool. The other relics are read
 ## where they act: the stage session (parachutes, walking speed, extra
-## charges per item, time), the run state (coins, bar slots).
+## charges per item, time, ability charges), the run state (coins, bar
+## slots).
 
 const MAX_LEVEL := 3
 
@@ -25,6 +26,7 @@ const COLLECTOR := &"collector"
 const GREED := &"greed"
 const QUICK_STEP := &"quick_step"
 const HOURGLASS := &"hourglass"
+const ABILITY_CHARGES := &"ability_charges"
 
 ## Effect per level (multiplied by the relic's level).
 const DIG_SPEED_PER_LEVEL := 0.25
@@ -33,6 +35,7 @@ const LADDER_PIECES_PER_LEVEL := 2
 const FUSE_SECONDS_CUT_PER_LEVEL := 0.5
 const WALK_SPEED_PER_LEVEL := 0.15
 const SECONDS_PER_LEVEL := 20
+const ABILITY_CHARGES_PER_LEVEL := 1
 ## Spare parachute: how many of the first lemmings of a stage get one, by
 ## level; at the top level, all of them.
 const PARACHUTES_BY_LEVEL := [0, 1, 2, 999]
@@ -50,6 +53,7 @@ const DEFINITIONS := {
 	GREED: {"title": "Ganância", "icon": "hud_coin", "levels": ["+1 moeda por salvo e em cada moeda do mapa.", "+2 moedas por salvo e em cada moeda do mapa.", "+3 moedas por salvo e em cada moeda do mapa."]},
 	QUICK_STEP: {"title": "Passo acelerado", "icon": "hud_out", "levels": ["Andam 15% mais rápido.", "Andam 30% mais rápido.", "Andam 45% mais rápido."]},
 	HOURGLASS: {"title": "Ampulheta", "icon": "hud_clock", "levels": ["+20 s em toda fase.", "+40 s em toda fase.", "+60 s em toda fase."]},
+	ABILITY_CHARGES: {"title": "Dom ampliado", "icon": "ability_charge", "levels": ["+1 carga da habilidade.", "+2 cargas da habilidade.", "+3 cargas da habilidade."]},
 }
 
 ## Copies of every template as they were before the run touched them.

@@ -1,7 +1,8 @@
 class_name RoguelikeProfile
 extends RefCounted
-## What the roguelike keeps from one run to the next: the coin vault and
-## which characters are unlocked. Coins left at the end of a run go into the
+## What the roguelike keeps from one run to the next: the coin vault,
+## which characters are unlocked and what the player has discovered for the
+## compendium (entry ids from RoguelikeDiscovery). Coins left at the end of a run go into the
 ## vault (deposit); the character screen spends them to unlock characters
 ## (buy). Saved in its own file, apart from the game's settings, so deleting
 ## the mode's save never touches the volumes or the display.
@@ -11,6 +12,7 @@ const SECTION := "profile"
 
 var vault_coins := 0
 var unlocked: Array[StringName] = []
+var discovered: Array[String] = []
 var _path := DEFAULT_PATH
 
 
@@ -22,6 +24,9 @@ static func load_from(path: String = DEFAULT_PATH) -> RoguelikeProfile:
 	var file := ConfigFile.new()
 	if file.load(path) == OK:
 		profile.vault_coins = int(file.get_value(SECTION, "vault_coins", 0))
+		for entry in file.get_value(SECTION, "discovered", []):
+			if not profile.discovered.has(String(entry)):
+				profile.discovered.append(String(entry))
 		for character in file.get_value(SECTION, "unlocked", []):
 			var id := StringName(character)
 			if RoguelikeCharacters.DEFINITIONS.has(id) and not profile.unlocked.has(id):
@@ -38,6 +43,7 @@ func save() -> void:
 	for character in unlocked:
 		names.append(String(character))
 	file.set_value(SECTION, "unlocked", names)
+	file.set_value(SECTION, "discovered", discovered)
 	file.save(_path)
 
 
@@ -65,3 +71,34 @@ func deposit(coins: int) -> void:
 	assert(coins >= 0, "Cannot deposit a negative amount")
 	vault_coins += coins
 	save()
+
+
+## Whether the compendium shows an entry: discovered, or, for a character,
+## unlocked.
+func is_discovered(entry_id: String) -> bool:
+	if discovered.has(entry_id):
+		return true
+	for character in unlocked:
+		if entry_id == RoguelikeDiscovery.character(character):
+			return true
+	return false
+
+
+## Records a discovery, saved at once (they are few, and a run can end by
+## closing the game). Returns whether it was new.
+func discover(entry_id: String) -> bool:
+	if is_discovered(entry_id):
+		return false
+	discovered.append(entry_id)
+	save()
+	return true
+
+
+func discover_all(entry_ids: Array[String]) -> void:
+	var added := false
+	for entry_id in entry_ids:
+		if not is_discovered(entry_id):
+			discovered.append(entry_id)
+			added = true
+	if added:
+		save()

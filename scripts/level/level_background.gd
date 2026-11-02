@@ -23,6 +23,20 @@ const PEAK_CAP_SHARE := 0.28
 const SPARKLE_SIZE := 2.0
 const DRIFT_SIZE := 2.0
 const SHARD_SPACING := 90.0
+## The sun's halo breathes: its rings grow and shrink by this share, this
+## fast (radians per second).
+const SUN_PULSE_SHARE := 0.08
+const SUN_PULSE_SPEED := 1.2
+## Clouds: how fast they drift (pixels per second, before the per-cloud
+## spread) and how big, as a share of the screen width.
+const CLOUD_SPEED := 9.0
+const CLOUD_WIDTH_SHARE := 0.10
+## Birds: speed (pixels per second), flapping (radians per second), wing
+## span (pixels) and the height band they fly in (share of the screen).
+const BIRD_SPEED := 42.0
+const BIRD_FLAP_SPEED := 9.0
+const BIRD_SPAN := 9.0
+const BIRD_BAND := Vector2(0.10, 0.42)
 
 var environment: LevelEnvironment = LevelEnvironment.surface()
 
@@ -53,6 +67,8 @@ func _draw_background() -> void:
 		_draw_sparkles(size)
 	if environment.sun_radius > 0.0:
 		_draw_sun(size)
+	if environment.cloud_count > 0:
+		_draw_clouds(size)
 	match environment.skyline:
 		LevelEnvironment.Skyline.HANGING:
 			_draw_hanging(size, scroll * FAR_PARALLAX, environment.far_layer, 0.30, 1.0)
@@ -66,6 +82,8 @@ func _draw_background() -> void:
 		_:
 			_draw_hills(size, scroll * FAR_PARALLAX, environment.far_layer, 0.58, 1.0)
 			_draw_hills(size, scroll * NEAR_PARALLAX, environment.near_layer, 0.72, 2.1)
+	if environment.bird_count > 0:
+		_draw_birds(size)
 	if environment.shard_colour.a > 0.0:
 		_draw_shards(size, scroll * NEAR_PARALLAX)
 	if environment.drift_count > 0:
@@ -82,10 +100,56 @@ func _draw_gradient(size: Vector2) -> void:
 func _draw_sun(size: Vector2) -> void:
 	var centre := size * environment.sun_position
 	var halo := environment.sun_colour
+	var pulse := 1.0 + SUN_PULSE_SHARE * sin(_time * SUN_PULSE_SPEED)
 	for ring in range(4, 0, -1):
 		halo.a = environment.sun_colour.a * 0.08
-		_canvas.draw_circle(centre, environment.sun_radius * (1.0 + ring * 0.35), halo)
+		_canvas.draw_circle(centre, environment.sun_radius * (1.0 + ring * 0.35 * pulse), halo)
 	_canvas.draw_circle(centre, environment.sun_radius, environment.sun_colour)
+
+
+## Soft clouds drifting left to right at their own pace and coming back
+## round. Each is a few discs over a flat base, painted in one colour (the
+## cloud mixed with the sky behind it) so the discs merge into one shape
+## instead of showing their overlaps.
+func _draw_clouds(size: Vector2) -> void:
+	var width := size.x * CLOUD_WIDTH_SHARE
+	for index in environment.cloud_count:
+		var speed := CLOUD_SPEED * (0.6 + _hash01(index, 41))
+		var scale := 0.6 + 0.7 * _hash01(index, 53)
+		var cloud_width := width * scale
+		var span := size.x + cloud_width * 2.0
+		var x := fposmod(_hash01(index, 43) * span + speed * _time, span) - cloud_width
+		var y := size.y * (0.08 + 0.26 * _hash01(index, 47))
+		var sky := environment.sky_top.lerp(environment.sky_bottom, clampf(y / size.y, 0.0, 1.0))
+		var colour := sky.lerp(Color(environment.cloud_colour, 1.0), environment.cloud_colour.a)
+		# A flat bottom with rounded ends (a rectangle with a disc at each
+		# end), inside the puffs' reach so no square corner pokes out.
+		var base_half_height := cloud_width * 0.08
+		var base_left := x - cloud_width * 0.34
+		var base_right := x + cloud_width * 0.34
+		_canvas.draw_rect(Rect2(base_left, y - base_half_height, base_right - base_left, base_half_height * 2.0), colour)
+		_canvas.draw_circle(Vector2(base_left, y), base_half_height, colour)
+		_canvas.draw_circle(Vector2(base_right, y), base_half_height, colour)
+		for puff in 4:
+			var radius := cloud_width * (0.13 + 0.06 * float(puff % 2))
+			var centre := Vector2(x + (float(puff) - 1.5) * cloud_width * 0.24, y - radius * 0.35)
+			_canvas.draw_circle(centre, radius, colour)
+
+
+## Small birds: two wing strokes flapping, flying across in a loose line and
+## bobbing a little, then coming round again from the other side.
+func _draw_birds(size: Vector2) -> void:
+	var span := size.x + BIRD_SPAN * 8.0
+	for index in environment.bird_count:
+		var speed := BIRD_SPEED * (0.7 + 0.6 * _hash01(index, 61))
+		var x := fposmod(_hash01(index, 67) * span + speed * _time, span) - BIRD_SPAN * 4.0
+		var band := lerpf(BIRD_BAND.x, BIRD_BAND.y, _hash01(index, 71))
+		var y := size.y * band + sin(_time * 1.5 + index * 2.0) * 4.0
+		var flap := sin(_time * BIRD_FLAP_SPEED + index * 1.7)
+		var body := Vector2(x, y)
+		var tip_y := -flap * BIRD_SPAN * 0.6
+		_canvas.draw_polyline(PackedVector2Array([body + Vector2(-BIRD_SPAN, tip_y), body + Vector2(-BIRD_SPAN * 0.4, tip_y * 0.3 - 1.0), body]), environment.bird_colour, 1.5)
+		_canvas.draw_polyline(PackedVector2Array([body, body + Vector2(BIRD_SPAN * 0.4, tip_y * 0.3 - 1.0), body + Vector2(BIRD_SPAN, tip_y)]), environment.bird_colour, 1.5)
 
 
 ## Rolling hills rising from the bottom, their crest around height_fraction

@@ -27,10 +27,13 @@ const TEXT_COLOUR := Color(0.96, 0.91, 0.80)
 const OUTLINE_COLOUR := Color(0.08, 0.05, 0.03)
 
 
-func _init(cards: Array[RoguelikeCard], header: String) -> void:
+## summary: what the stage brought, shown as icons above the cards (null
+## when there is no stage behind them, as from the developer screen).
+func _init(cards: Array[RoguelikeCard], summary: RoguelikeStageSummary = null) -> void:
 	super._init()
 	add_title("Escolha uma recompensa")
-	add_text(header).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if summary != null:
+		content.add_child(summary.build_row())
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 18)

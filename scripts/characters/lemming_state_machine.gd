@@ -19,6 +19,11 @@ enum State {
 	EXPLODING,
 	DEAD,
 	EXITED,
+	## Moved by a skill from outside the core (a game mode's ability, such as
+	## a jump) that drives the lemming's position itself through
+	## current_skill, like the action tools. No tool can be handed over or
+	## take over meanwhile.
+	PERFORMING,
 }
 
 signal state_changed(previous_state: State, new_state: State)

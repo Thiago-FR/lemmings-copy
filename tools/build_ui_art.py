@@ -1101,6 +1101,106 @@ def hud_goal():
     return outline(image)
 
 
+def fast_forward():
+    """Two play triangles in a row: run the level faster."""
+    image = new()
+    for x0 in (4, 16):
+        polygon(image, [(x0, 6), (x0 + 12, 15), (x0 + 12, 16), (x0, 25)], UI_LIGHT)
+        line(image, (x0 + 1, 24), (x0 + 11, 17), UI_SHADE, 1)
+    return outline(image)
+
+
+def cursor_arrow():
+    """The mouse pointer: a cream arrow with a dark outline and a gold edge,
+    its tip at pixel (1, 1) (the cursor hotspot)."""
+    image = new()
+    polygon(image, [(1, 1), (1, 20), (6, 15), (10, 23), (13, 22), (9, 14), (16, 14)], CREAM)
+    line(image, (2, 3), (2, 18), YELLOW_LIGHT, 1)
+    line(image, (9, 15), (12, 21), CREAM_DARK, 1)
+    return outline(image)
+
+
+# Gloves drawn cell by cell: "#" outline, "w" glove, "s" glove shade,
+# "h" highlight, "c" gold cuff, "d" cuff shade, "." clear. 20 columns, so
+# they sit in the 32 px canvas with room for the outline.
+HAND_POINTING = [
+    "......##............",
+    ".....#hw#...........",
+    ".....#hw#...........",
+    ".....#hw#...........",
+    ".....#hws#..........",
+    ".....#hws###........",
+    ".....#hws#ws##......",
+    "..##.#hws#ws#ws##...",
+    ".#hw##hws#ws#ws#s#..",
+    ".#hws#hwwwwswwswws#.",
+    "..#hwshwwwwwwwwwws#.",
+    "..#hwwwwwwwwwwwwws#.",
+    "...#hwwwwwwwwwwwws#.",
+    "...#hwwwwwwwwwwwss#.",
+    "....#wwwwwwwwwwss#..",
+    "....#swwwwwwwwsss#..",
+    ".....#sswwwwwsss#...",
+    ".....#cccccccccd#...",
+    ".....#cccccccccd#...",
+    ".....##########.....",
+]
+
+HAND_GRAB = [
+    "....................",
+    "....................",
+    "....................",
+    "....................",
+    "......##.##.##......",
+    ".....#hw#ws#ws##....",
+    ".....#hws#ws#ws#s#..",
+    "..##.#hws#ws#ws#ws#.",
+    ".#hw##hwswwswwswws#.",
+    ".#hws#hwwwwwwwwwws#.",
+    "..#hwshwwwwwwwwwws#.",
+    "..#hwwwwwwwwwwwwws#.",
+    "...#hwwwwwwwwwwwws#.",
+    "...#hwwwwwwwwwwwss#.",
+    "....#wwwwwwwwwwss#..",
+    "....#swwwwwwwwsss#..",
+    ".....#sswwwwwsss#...",
+    ".....#cccccccccd#...",
+    ".....#cccccccccd#...",
+    ".....##########.....",
+]
+
+GLOVE_COLOURS = {
+    "#": rgb("#1a0f14"),
+    "w": rgb("#fbf6ea"),
+    "s": rgb("#cbbfa6"),
+    "h": rgb("#ffffff"),
+    "c": rgb("#f2c230"),
+    "d": rgb("#b07a10"),
+}
+
+
+def glove(rows, x0=6, y0=2):
+    image = new()
+    for y, row in enumerate(rows):
+        for x, cell in enumerate(row):
+            if cell in GLOVE_COLOURS:
+                put(image, x0 + x, y0 + y, GLOVE_COLOURS[cell])
+    return image
+
+
+def cursor_hand():
+    """The pointing glove over anything that can be clicked (a lemming, a
+    button, an item): index finger up, thumb out, shaded on the right,
+    gold cuff. Its fingertip, pixel (12, 2), is the hotspot."""
+    return glove(HAND_POINTING)
+
+
+def cursor_grab():
+    """The same glove closed into a fist: while clicking, and while
+    dragging the view around. Hotspot at its knuckles' middle (15, 8)."""
+    return glove(HAND_GRAB)
+
+
 THEME_PIECES = {
     **{name: (lambda state=name: theme_button(state)) for name in BUTTON_STATES},
     "check_on": lambda: theme_check(True),
@@ -1217,6 +1317,10 @@ EDITOR_ICONS = {
     "dev": dev,
     "display": display,
     "hud_goal": hud_goal,
+    "fast_forward": fast_forward,
+    "cursor_arrow": cursor_arrow,
+    "cursor_hand": cursor_hand,
+    "cursor_grab": cursor_grab,
 }
 
 

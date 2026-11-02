@@ -30,7 +30,7 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 | Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
 | Animação de paraquedas | ✅ `float`, no estado FLOATING |
 | Som e música | ✅ gerados em código (`tools/build_audio.py`), botão Som / tecla M |
-| Campanha "Fases" | ✅ 15 fases com curva de dificuldade, tela de seleção, progresso salvo, robô de teste em cada uma (ver "Campanha (Fases)") |
+| Campanha "Fases" | ✅ 5 fases que ensinam e 10 quebra-cabeças (labirinto, rotas, espera, relógio, duas entradas...), seleção, progresso, Parabéns e créditos; robô de teste em cada uma e solução ingênua que perde em 7 (ver "Campanha (Fases)") |
 | Cenários novos | ✅ deserto, caverna de cristal, campo de neve, vulcão: fundo, blocos, entrada e saída de cada um |
 
 ## A causa raiz (o que travava tudo)
@@ -448,10 +448,11 @@ Primeira versão, feita por um agente; botão "Roguelike" no menu.
   **Mago**; quem é salvo segue para
   a próxima fase; a cada fase um personagem novo entra (Mineiro, Engenheiro,
   Batedor, Inventor). Sem sobreviventes: "Fim da run".
-- **Personagens:** Mago (+1 carga por ferramenta pega), Mineiro (cava 2x
-  mais rápido), Engenheiro (+4 peças em ponte e escadas), Batedor (aguenta
-  queda de 160px), Inventor (uma vez por fase repete a última ferramenta
-  sem gastar carga). Cada um tem **seus próprios sprites**, desenhados do
+- **Personagens:** Mago (Teleporte), Mineiro (cava 2x mais rápido;
+  Quebra-concreto), Engenheiro (+4 peças em ponte e escadas; Plataforma),
+  Batedor (aguenta queda de 160px; Salto), Inventor (Repetir a última
+  ferramenta sem gastar carga). As habilidades estão em "Roguelike:
+  habilidade de cada personagem". Cada um tem **seus próprios sprites**, desenhados do
   zero em todas as animações (Mineiro baixo e largo de capacete com
   lanterna e barba; Engenheiro de boné, macacão e tábuas nas costas;
   Batedor alto de capuz verde e cachecol vermelho; Inventor pequeno de
@@ -461,7 +462,8 @@ Primeira versão, feita por um agente; botão "Roguelike" no menu.
   com um SpriteFrames por personagem em `resources/sprite_frames/`. A
   tinta e a pedrinha sobre a cabeça saíram.
 - **Itens na fase:** ferramentas (+cargas), Pena da fênix (resgata um
-  perdido), Ampulheta (+60s), Bolsa (+1 carga em cada ferramenta).
+  perdido), Ampulheta (+60s), Bolsa (+1 carga em cada ferramenta), moedas
+  e Recarga (+1 carga da habilidade).
 - **Barra:** começa vazia, ganha um slot por ferramenta nova, **limite de 4**
   (6 com a relíquia Bolso extra). Cheia: sai o slot zerado ou o mais antigo.
 - **Cartas** no fim da fase (1 de 3): cargas, ferramenta nova, recruta,
@@ -584,6 +586,52 @@ conta como salvo (`ExitPoint` emite `lemming_exited` quando ele termina).
 Nesse trajeto nada mais acontece com ele: sem clique, sem ferramenta, sem
 morte (nem pelo Encerrar fase).
 
+### Telas sem texto: modal, cartas, fim de run, editor, fênix (2 de novembro de 2026)
+
+Pedido do usuário: melhorar **todas** as telas e janelas; animação em vez de
+mensagem.
+
+- **`ConfirmModal`** (`scripts/ui/confirm_modal.gd`): o "tem certeza?" do
+  jogo (fundo escuro, painel de madeira que surge, ícone grande, pergunta
+  curta, consequências como ícone + número, Voltar e a ação em verde).
+  Encerrar fase usa ele (já salvos / sacrificados / ainda na entrada).
+  Nenhuma tela usa mais `ConfirmationDialog`.
+- **`RoguelikeStageSummary`**: o que a fase trouxe vira uma fileira de
+  ícones na tela de cartas e no fim de run (salvos, perdidos, moedas, estrela
+  da fase perfeita, retrato de quem voltou pela pena e de quem entrou, que
+  surgem com animação). As frases saíram.
+- **`RoguelikeReviveAnimation`**: a pena da fênix sobe girando, explode em
+  fogo e o retrato do boneco renasce das chamas; toca ao escolher a carta da
+  pena e no fim da fase quando uma pena guardada traz alguém. Clique pula.
+  Teste: `modes/roguelike/tests/test_revive_animation`.
+- **Editor**: sem linha de status. Jogando, os contadores aparecem como
+  ícones; faltou a entrada ou os bonecos, o botão que resolve pisca em
+  vermelho e treme (`EditorToolbar.flash`). Contadores só com ícone (nome
+  na dica).
+
+### Acelerar, cursor, ícones sobre o boneco, ponte e fundo animado (2 de novembro de 2026)
+
+- **Acelerar** (botão com duas setas, tecla F, nas fases normais e no
+  roguelike): `GameManager.set_fast_forward` põe tudo 3x mais rápido
+  (`FAST_FORWARD_FACTOR`), relógio incluído, e sobe os passos de física na
+  mesma proporção (180 por segundo), então cada passo continua 1/60 s e a
+  fase acontece igual, só mais cedo. Volta ao normal ao trocar de cena, ao
+  fim da fase e ao sair do HUD. Teste em `test_game_controls`.
+- **Cursor do jogo** (`cursor_arrow`, `cursor_hand` em
+  `tools/build_ui_art.py`), posto pelo `GameManager`: seta normal e mão
+  sobre todo botão (qualquer tela, via `node_added`) e sobre os bonecos.
+- **Tudo o que o boneco tem aparece em cima dele** (`CarriedToolIndicator`):
+  a ferramenta carregada ou em uso (aro dourado enquanto usa; a Ponte e a
+  Escada diagonal começam quase na hora e antes não apareciam) e, menores,
+  Garras e Paraquedas.
+- **Ponte com cara de ponte** (`BridgeRailing`, criado pela `SkillBridge`):
+  poste em cada ponta e corda de corrimão com pendurais em cada tábua; segue
+  a ponte enquanto é montada e o que sobra dela se tábuas forem destruídas.
+  Núcleo: `TerrainDestructible.has_brick`.
+- **Fundo animado** (`LevelBackground`, `LevelEnvironment`): halo do sol
+  pulsando, nuvens passando (prado, neve) e pássaros batendo asa (prado,
+  deserto, neve). O prado ganhou sol.
+
 ### Cartas com nível (2 de novembro de 2026)
 
 Regras aprovadas pelo usuário.
@@ -608,8 +656,8 @@ Regras aprovadas pelo usuário.
 - **Gancho no núcleo**: `LemmingController.walk_speed` (por boneco; antes
   era a constante `WALK_SPEED`), usado pelo Passo acelerado.
 - **Mago sem o +1 por item** (decisão: os itens valem 1; quem dá mais por
-  item agora é o Coletor). A identidade dele fica sendo o Teleporte, que
-  ainda vem (descrição diz "em breve").
+  item agora é o Coletor). A identidade dele é o Teleporte (feito, ver
+  "Roguelike: habilidade de cada personagem").
 - Texto das cartas encurtado ("Nova, 2 cargas." em vez de "Nova na barra",
   que o usuário achou confuso); loja com moeda + preço.
 - Testes: `test_run_state` (níveis, oferta sem carta no topo, preço),
@@ -647,8 +695,64 @@ texto (só quando necessário).
   Personagens, Ferramentas, Itens da fase, Cartas, Relíquias, cada entrada
   com figura, nome e descrição. Pronto para o jogador: com uma função de
   "descoberto", o que ainda não foi descoberto aparece em sombra preta com
-  "???" (ideia do usuário: ir liberando conforme pega e usa). Ainda falta
-  guardar o que foi descoberto e o botão para o jogador.
+  "???" (ideia do usuário: ir liberando conforme pega e usa). O que foi
+  descoberto e o botão do jogador vieram depois (ver "Roguelike: habilidade
+  de cada personagem e compêndio do jogador").
+
+### Roguelike: habilidade de cada personagem e compêndio do jogador (2 de novembro de 2026)
+
+Itens 3 e 6 do plano aprovado.
+
+- **Habilidade especial** num slot próprio no fim da barra de ferramentas
+  (`RoguelikeToolBar`), separado das ferramentas por uma linha na cor do
+  personagem, com ícone e o número de cargas. Clica no slot (arma; clicar
+  de novo desarma), clica num boneco: ele usa. Armar solta a ferramenta
+  escolhida e desarma o Sacrificar; escolher uma ferramenta ou armar o
+  Sacrificar desarma a habilidade. **Recusada não gasta carga.** Código em
+  `modes/roguelike/scripts/abilities/` (`RoguelikeAbility` e uma subclasse
+  por habilidade, catálogo `RoguelikeAbilities`, cargas em
+  `RoguelikeAbilitySlot`, efeito visual `RoguelikeAbilityEffect`).
+  | Personagem | Habilidade | Cargas/fase | O que faz e quando recusa |
+  |---|---|---|---|
+  | Mago | Teleporte | 2 | atravessa uma parede de 1 bloco (na frente, até 1 bloco de distância, ou a que acabou de tocar atrás dele) ou, sem parede, o chão de 1 bloco embaixo. Recusa se for mais grosso, se o corpo não cabe do outro lado ou se o outro lado é fora da fase (a parede de fora). Brilho violeta nos dois lados |
+  | Mineiro | Quebra-concreto | 2 | quebra 1 bloco de concreto na altura do corpo (na frente, até 1 bloco, ou o que acabou de tocar). Terra não (é da Picareta). Lascas cinza e poeira |
+  | Engenheiro | Plataforma | 2 | 3 tábuas (tijolos da Ponte) na hora, a partir de onde o chão acaba (até 1 bloco à frente); a última é cortada se encostar no outro lado. Recusa sem beirada perto ou com parede antes |
+  | Batedor | Salto | 3 | pula um vão de até 3 blocos para chão na mesma altura, ou sobe um degrau de até 2 blocos (de 30 px para cima; menos que isso ele sobe andando). Arco checado contra o terreno antes de pular (tenta arcos mais baixos sob teto baixo); recusa se bate em algo ou não cabe onde cai. Poeira na saída e na chegada |
+  | Inventor | Repetir | 1 | dá de novo a última ferramenta que ele recebeu, sem gastar carga dela (o que antes era "clicar nele sem ferramenta, uma vez por fase"). Recusa se ele ainda não recebeu nenhuma ou não pode receber aquela agora |
+- Os bônus passivos ficam: Mineiro cava 2x, Engenheiro +4 peças, Batedor
+  queda 2x. O Mago não tem passivo. A descrição de cada personagem agora é
+  "passivo + habilidade" (`RoguelikeCharacters.get_ability`).
+- **Recargas:** item novo na fase `ABILITY_CHARGE` (+1 carga, cristal azul)
+  entre os bônus (`stage_factory._bonus`, ~12%, tirado das moedas) e a
+  relíquia **Dom ampliado** I-III (+1 carga por nível), com ícone e
+  ilustração em `tools/build_ability_art.py` (script próprio, separado do
+  `build_ui_art.py`; também faz o ícone do livro do compêndio).
+- **Gancho no núcleo:** estado novo `LemmingStateMachine.State.PERFORMING`
+  (no fim do enum): o boneco é movido por uma "skill" de fora do núcleo
+  (o arco do Salto, `RoguelikeLeapMotion`) e não recebe ferramenta nem pode
+  ser interrompido no ar. Nada mais no núcleo mudou.
+- **Compêndio do jogador:** botão com ícone de livro na tela de escolha de
+  personagem. O que foi descoberto fica no perfil
+  (`RoguelikeProfile.discovered`, em `user://roguelike_profile.cfg`); o
+  resto aparece em sombra preta com "???". Regras (`RoguelikeDiscovery`):
+  personagem quando liberado (o Mago sempre); ferramenta quando pega,
+  recebida por carta ou usada; item da fase quando pego; tipo de carta,
+  relíquia e a ferramenta de uma carta quando **oferecidos** (o jogador leu
+  a carta; na tela de recompensa ou na loja); habilidade quando usada uma
+  vez. O compêndio do modo dev continua mostrando tudo.
+- **Pouco texto** (pedido do usuário: "aviso não, animação"): o compêndio
+  virou uma fileira de ícones de categoria (Personagens, Habilidades,
+  Ferramentas, Itens da fase, Cartas, Relíquias), cada um com
+  descobertos/total, e uma grade de fichas (figura + nome); o que cada uma
+  faz fica na dica. Descoberta nova na fase: o livro do compêndio salta
+  sobre o lugar (`RoguelikeIconPop`), sem frase. Pegar uma Recarga: o
+  cristal salta e o slot da habilidade pulsa, sem texto flutuante. Na
+  escolha de personagem cada carta mostra o ícone + nome da habilidade e
+  só o passivo curto; a descrição inteira está na dica.
+- Testes: `test_abilities` (15 cenários num terreno montado: cada
+  habilidade funcionando e cada recusa sem gastar carga),
+  `test_ability_session` (slot na barra, armar/desarmar, recarga, registro
+  no perfil), `test_compendium` (perfil, entradas, sombra, botão).
 
 ### Itens valem 1 e saída sem entrar do alto (2 de novembro de 2026)
 
@@ -878,27 +982,38 @@ Botão **"Fases"** no menu principal (depois do Tutorial). Faz parte do
 núcleo, não é um modo em `modes/`.
 
 - **15 fases feitas à mão**, 3 por cenário: Prado (1-3), Deserto (4-6),
-  Caverna de cristal (7-9), Campo de neve (10-12), Vulcão (13-15). As
-  primeiras ensinam uma ou duas ferramentas; da 10 em diante combinam; as
-  últimas são quebra-cabeças com uma carga de cada ferramenta.
+  Caverna de cristal (7-9), Campo de neve (10-12), Vulcão (13-15).
+- **Refeitas em 2 de novembro de 2026** (veredito do usuário: "todas
+  parecem Mario", pontes sempre do tamanho exato, nada de criatividade, as
+  contagens já entregam a solução). A 1 a 5 continuam ensinando; da 6 em
+  diante cada fase é um quebra-cabeça com **uma ideia própria** ("aha"),
+  diferente da anterior: labirinto, rota que cabe nas contagens, espera,
+  rede de segurança, relógio, só pontes, duas entradas, veios de pedra.
+  Ferramentas sobrando, ferramentas que não servem e buracos maiores que
+  uma ponte são de propósito.
 
-| # | Nome | Ferramentas | O quebra-cabeça |
-|---|---|---|---|
-| 1 | Terra Fofa | Pá 3 | campo fechado por um morro; a saída está num vão embaixo: cavar |
-| 2 | Ribeirão Seco | Ponte 3 | dois leitos sem fundo para cruzar |
-| 3 | Muralha do Moinho | Escada vertical 3 | dois paredões de 6 blocos, um sobre o outro; quem volta pela beira do primeiro cai |
-| 4 | Escadaria das Dunas | Escada diagonal 4 | dois terraços de 3 blocos; a escada tem que começar de 9 a 12 blocos antes da parede |
-| 5 | Garras ao Vento | Garras 8, Paraquedas 8 | um planalto de 10 blocos e um cânion depois: cada boneco precisa dos dois |
-| 6 | Oásis Escondido | Bloco 2, Picareta 2 | eles saem andando para um abismo: bloquear, depois furar o morro do outro lado |
-| 7 | Veios de Cristal | Picareta 2, Britadeira 1 | três paredes: pedra, cristal (só a Britadeira), pedra |
-| 8 | Eco Profundo | Dinamite 3 | três galerias com chão de cristal de 1 bloco; a segunda carga longe do primeiro buraco |
-| 9 | Coração de Cristal | Dinamite 2, TNT 2 | chão de 2 blocos (a Dinamite só faz uma cratera que prende); TNT junto à parede do fim |
-| 10 | Travessia Gelada | Pá 1, Ponte 1, Escada diagonal 2 | cavar a plataforma, cruzar a fenda, subir o terraço |
-| 11 | Torre de Gelo | Bloco 1, Escada vertical 1, Britadeira 1 | abismo à frente, torre atrás, parede de gelo em cima da torre |
-| 12 | Fenda Glacial | Ponte 1, Picareta 1, Escada vertical 1 | fenda, monte de neve, penhasco — uma de cada |
-| 13 | Passagem de Obsidiana | Ponte 1, Dinamite 1, Britadeira 1, Picareta 1 | desfiladeiro, chão de obsidiana, parede de obsidiana; a Picareta não serve |
-| 14 | Caldeirão | Garras 1, Paraquedas 1, Ponte 1, Pá 1 | um pioneiro sai da cratera, desce de paraquedas e faz a ponte; só depois cavar para soltar o resto |
-| 15 | Coroa de Fogo | Garras, Paraquedas, Ponte, Britadeira, Escada diagonal, TNT (1 de cada) | o pioneiro prepara todo o caminho; o TNT no fim abre o chão duplo da cratera |
+| # | Nome | Ferramentas | A ideia | Por que não é óbvio |
+|---|---|---|---|---|
+| 1 | Terra Fofa | Pá 3 | campo fechado por um morro; a saída num vão embaixo: cavar | (ensina) |
+| 2 | Ribeirão Seco | Ponte 3 | dois leitos sem fundo | (ensina) |
+| 3 | Muralha do Moinho | Escada vertical 3 | dois paredões de 6 blocos | (ensina) |
+| 4 | Escadaria das Dunas | Escada diagonal 4 | dois terraços de 3 blocos | (ensina) |
+| 5 | Garras ao Vento | Garras 8, Paraquedas 8 | planalto e cânion: cada boneco precisa dos dois | (ensina) |
+| 6 | Labirinto das Dunas | Bloco 2 | labirinto de túneis de 1 bloco ligados por buracos (queda segura) e poços fundos; virar todos de volta **logo na entrada**, para o buraco atrás dela, e mais uma vez no fim | eles caem no primeiro túnel e correm para um poço; virar ali só leva ao próximo poço, e esse ramo pede 3 blocos |
+| 7 | Câmaras de Cristal | Picareta 1, Pá 1, Ponte 1, Dinamite 1 | três salas em cima, um túnel embaixo; três rotas, só a que **desce logo** (Pá, Ponte no abismo, Picareta na última parede) cabe | a parede em que eles batem pede a Picareta, que faz falta depois; as paredes têm 2 blocos e a Dinamite não fura nenhuma; cavar na beira do abismo mata |
+| 8 | A Espera | Bloco 2, Dinamite 2, Picareta 1, Pá 1 | meta de **100%**; o chão de cristal só abre com explosão, que mata quem passa; o primeiro segue, um Bloco atrás dele prende o resto, ele põe a carga, a Picareta fura o Bloco | sem prender, a explosão leva um (o robô ingênuo salva 93%); perto da entrada o chão tem 2 blocos e a carga só faz uma cratera-armadilha |
+| 9 | Rede de Segurança | Garras 1, Paraquedas 1, Escada vertical 1, Picareta 1, Ponte 1, Bloco 1 | **a escada pega quem cai por ela**: um pioneiro sai pela pedra (Garras), desce o poço (Paraquedas) e põe a escada até o túnel baixo na parede; só então a Picareta abre a pedra e os outros pulam no poço | a ponte sobre o poço leva a uma parede alta demais; a escada dada cedo é usada na pedra |
+| 10 | Contra o Relógio | Pá 2, Bloco 2, Ponte 1 | seis túneis em zigue-zague até a saída: seguro e lento demais (125 s); cavar **na curva**, onde eles viram, pula dois túneis | todo chão é fino e qualquer Pá é segura, mas cavada onde eles andam não economiza nada: eles caem andando para o lado longo |
+| 11 | Só Pontes | Ponte 3 | saem andando para um buraco sob um penhasco; a saída é do outro lado de um vão de 18 (mais que uma ponte); a ponte até o penhasco **faz eles voltarem**; duas pontes seguidas no vão, a segunda dada a quem anda na primeira | quem faz a primeira ponte do vão cai da ponta (perde-se 1 ou 2) |
+| 12 | Duas Bocas | Escada vertical 1, Picareta 1, Ponte 1, Garras 2, Bloco 1 | **duas entradas**, uma de cada lado de uma torre com a saída em cima, e uma escada só: a escada numa face, depois um túnel pela base traz o outro grupo até ela | com o túnel primeiro não sobra face para a escada; Garras 2 salvam só dois |
+| 13 | Beiço de Lava | Ponte 1, Escada diagonal 1, Escada vertical 2 | um poço de lava sob um penhasco à frente; a saída atrás, numa plataforma 2 blocos mais alta cuja beira avança sobre o canal; a **escada diagonal sobe por cima do canal** até a beira | a ponte no canal passa por baixo da beira até a parede e a beira impede a escada vertical; a diagonal também vira o grupo no penhasco, e aí a ponte não resolve o canal |
+| 14 | Veios de Obsidiana | Pá 8, Picareta 8, Bloco 4 | ferramentas de sobra; o problema é ler a rocha: Pá até um veio 2 blocos abaixo, Picareta de lado até o oco seguinte, de novo, até a saída | cavar direto no oco embaixo da cratera é queda mortal; o lado errado de cada poço dá em lava; cavar em cima de veio prende |
+| 15 | Coroa de Fogo | Bloco 3, Ponte 2, Dinamite 1, Picareta 2, Pá 1 | final: **duas entradas** caem num túnel longo com lava nas duas pontas e a saída sob o chão de obsidiana do meio, meta 95%; prender cada grupo do seu lado, a carga pelo pioneiro sozinho no meio, Picaretas abrem os dois cercados | são 4 paredes e 3 Blocos: pontes até a rocha depois dos poços também viram o grupo; sem prender, a explosão leva dois (o robô ingênuo salva 90%) |
+
+- **Duas entradas:** `SpawnPoint` ganhou `lemming_count` (quantos essa
+  entrada solta; 0 = o total da fase) e `faces_left` (saem andando para a
+  esquerda). No gerador, `"spawns": [{cell, count, left}]`; a soma tem que
+  dar `lemmings` (o `test_campaign` confere).
 
 - **Tamanho:** todas com 80 x 45 blocos (o padrão "no mínimo 80 x 45"),
   câmera rolando.
@@ -917,12 +1032,21 @@ núcleo, não é um modo em `modes/`.
 - **Teste de cada fase:** `tests/test_campaign_NN.gd` (base
   `tests/campaign_playthrough_test.gd`, que estende
   `level_playthrough_test.gd`) joga a fase com uma solução escrita
-  (`give_once` / `give_each` com condições de posição) e só passa se ganhar,
-  isto é, salvar a meta no tempo. Os testes rodam **4x mais rápido**:
-  `Engine.time_scale = 4` com a física a 240 ticks/s, então cada passo
-  ainda é 1/60 s, a mesma simulação (conferido: as fases 8, 13 e 15 dão os
-  mesmos tempos e resultados em 1x). Os 15 passam; o tempo limite de cada
-  fase é ~1,5 a 2x o que o robô gasta.
+  (`give_once` / `give_each` com condições de posição; `someone_ahead_of`
+  para dar a ferramenta ao segundo enquanto o primeiro segue) e só passa se
+  ganhar, isto é, salvar a meta no tempo. Cada morte sai no log com tempo
+  e lugar. Os testes rodam **4x mais rápido**: `Engine.time_scale = 4` com
+  a física a 240 ticks/s, então cada passo ainda é 1/60 s, a mesma
+  simulação. Os 15 passam.
+- **Solução ingênua que tem que perder:** `tests/test_campaign_NN_naive.gd`
+  (fases 6, 7, 8, 10, 13, 14 e 15) joga o que parece certo e passa só se a
+  fase for **perdida** (`_expects_win()` devolve `false`): virar a cada
+  poço (6), a Picareta na primeira parede (7), a carga sem prender ninguém
+  (8: 93%, meta 100%), cavar onde eles andam (10), diagonal no penhasco e
+  ponte no canal (13), cavar direto no oco (14), a carga sem cercados (15:
+  90%, meta 95%).
+- **Tempo:** a fase 10 é a única apertada de propósito (o robô usa 105 de
+  125 s). Nas outras o robô usa de um terço a metade do tempo.
 - **Progresso:** `Campaign` (`scripts/level/campaign.gd`) em
   `user://campaign.cfg`, seção `cleared`, a melhor porcentagem de cada fase
   ganha. A primeira está sempre aberta; ganhar abre a seguinte. Os testes
@@ -931,11 +1055,27 @@ núcleo, não é um modo em `modes/`.
   15 botões em 5 colunas, uma por cenário, com uma faixa nas cores do
   cenário em cima; estrela nas ganhas, verde na próxima, cadeado nas
   fechadas; nome no tooltip; o fundo vira o cenário da fase sob o mouse.
-- **Fim de fase:** o `LevelResultController` agora mostra o resultado num
-  painel, com a meta; numa fase da campanha registra a vitória, oferece
-  **Próxima** e o botão Menu vira **Fases** (volta à seleção).
-- Teste do fluxo: `tests/test_campaign` (dados das 15 fases, progresso,
-  tela de seleção, tela de fim de fase, botão no menu).
+- **Fim de fase** (`LevelResultController`, todo montado em código; a cena
+  `level_result_screen.tscn` é só o nó): painel de madeira que surge
+  crescendo; na vitória uma estrela entra girando e fica pulsando, na
+  derrota a caveira cai, quica e treme; ícone + número para salvos (conta
+  de 0 até o valor) e meta, com dica; Jogar de novo e Fases/Menu como
+  ícones, **Próxima** em verde. Na campanha registra a vitória; depois da
+  fase 15 o botão verde vira **Parabéns** (estrela).
+- **Parabéns e créditos** (`CampaignCompleteScreen`,
+  `scenes/ui/campaign_complete.tscn`, `Campaign.COMPLETE_SCENE_PATH`):
+  "Parabéns!" entra elástico e balança, fogos de artifício
+  (`CPUParticles2D`), as 15 estrelas acendem uma a uma, magos marcham no
+  chão; depois sobe o painel de créditos (três linhas com ícone: "Um jogo
+  de Thiago", "Feito com Claude", "Arte e som gerados por código"). Fases
+  (verde) e Menu. Aberta pela vitória na fase 15 e, com todas ganhas
+  (`Campaign.is_complete()`), por um botão verde **Parabéns** que pulsa na
+  tela de seleção.
+- Teste do fluxo: `tests/test_campaign` (dados das 15 fases, entradas,
+  progresso, tela de seleção, tela de fim de fase, Parabéns depois da
+  última, botão Parabéns só com tudo ganho, créditos, botão no menu).
+- Capturas: `tools/capture_campaign.tscn` salva também `result_lost.png`,
+  `select_complete.png` e `complete.png`.
 - Ainda não medido com gente jogando: a dificuldade foi pensada, e o robô
   prova só que cada fase tem solução.
 
@@ -1008,6 +1148,29 @@ núcleo, não é um modo em `modes/`.
 
 ## O que falta fazer (pendências conhecidas)
 
+**Aprovado em 2 de novembro de 2026, a implementar (roguelike, depois que o
+agente das habilidades terminar):**
+- **Itens ao cavar** (ideia do usuário, estilo Bomberman):
+  - as ferramentas que a fase exige continuam visíveis e garantidas pelo
+    gerador; o que sai dos blocos é sempre extra;
+  - cavar não se paga sozinho: carga de ferramenta é rara e nunca da
+    ferramenta que cavou;
+  - meio-termo visível/escondido: **veios** com brilho de minério sempre
+    soltam algo; terra comum solta em 4%, concreto (Britadeira) em 12%;
+  - raridade do que sai: moeda 60%, carga de ferramenta da barra 22%,
+    ampulheta 10%, bolsa 6%, pena da fênix 2%; a Ganância aumenta moedas e
+    uma carta nova (Garimpeiro) aumenta a chance;
+  - a tabela de raridade fica no compêndio do modo dev e **é editável pelo
+    modo dev**;
+  - itens bônus soltos só onde dá para chegar e voltar para a rota com as
+    ferramentas da fase (conferido pelo solucionador): o usuário ficava
+    preso indo atrás de item.
+- **Pena da fênix com animação** quando traz alguém de volta (carta ou fim
+  da fase): hoje a carta age em silêncio. **Animação, não mensagem.** A pena
+  vale para qualquer fase: traz o último perdido, mesmo de uma fase
+  anterior.
+
+
 Roguelike e procedural (o usuário vai testar bastante o procedural):
 - **Testar e ajustar o gerador de labirinto**: as fases ficam "em caixas"
   (só tetos e materiais variam); fossos e escadas aparecem pouco nas rotas
@@ -1023,15 +1186,16 @@ Roguelike e procedural (o usuário vai testar bastante o procedural):
 Plano aprovado pelo usuário em 2 de novembro de 2026 (nesta ordem):
 1. ~~HUD com ícones, botões do editor, Encerrar fase e Sacrificar~~: feito.
 2. ~~Escolher o personagem no início da run, cofre, fim de run~~: feito.
-3. **Habilidade especial por personagem**, num slot próprio com poucas
-   cargas por fase, recarga que pode cair no mapa: Mago **Teleporte**
-   (atravessa parede/chão de 1 bloco), Mineiro **Quebra-concreto** (1 bloco),
-   Engenheiro **Plataforma** (tábua de 3 na hora), Batedor **Salto** (vão de
-   3 ou degrau de 2), Inventor **Repetir** (a habilidade atual dele).
-4. **Moedas e recargas espalhadas pelo mapa.**
+3. ~~Habilidade especial por personagem, num slot próprio com poucas
+   cargas por fase, recarga que pode cair no mapa~~: feito (Teleporte,
+   Quebra-concreto, Plataforma, Salto, Repetir; relíquia Dom ampliado).
+   Falta o usuário jogar e dizer se as cargas (2/2/2/3/1) estão boas.
+4. **Moedas e recargas espalhadas pelo mapa.** Moedas e a Recarga da
+   habilidade já caem nos lugares de bônus; falta decidir se deve haver
+   mais (hoje só nos lugares de bônus do gerador).
 5. Carta **"passo acelerado"** (bonecos andam mais rápido).
-6. **Compêndio** no menu: cada ferramenta, item, carta, relíquia e
-   personagem com o que faz.
+6. ~~Compêndio para o jogador~~: feito (botão de livro na escolha de
+   personagem, entradas liberadas ao descobrir).
 7. **Arte**: os 4 personagens novos desenhados do zero (o usuário rejeitou o
    mago recolorido; o Mago não é humanoide, os outros podem ser) e a arte da
    loja.

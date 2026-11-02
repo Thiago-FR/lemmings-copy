@@ -1,8 +1,9 @@
 extends "res://tests/campaign_playthrough_test.gd"
-## Plays campaign level 6, "Oásis Escondido", with a scripted solution. Run via:
+## Plays campaign level 6, "Labirinto das Dunas", with a scripted solution. Run via:
 ##   godot --headless res://tests/test_campaign_06.tscn
 ##
-## A block before the chasm turns everyone back; a pickaxe takes them through the hill.
+## Turn them back at once, towards the hole behind the entrance; turn them
+## once more in the tunnel before the last pit.
 
 
 func _get_level_number() -> int:
@@ -10,6 +11,6 @@ func _get_level_number() -> int:
 
 
 func _play_frame() -> void:
-	give_once("block before the chasm", "block", walking_in(40, 42, 1, 26))
-	if is_done("block before the chasm"):
-		give_once("pickaxe for the hill", "miner", walking_in(22, 33, -1, 26))
+	give_once("turn back at the entrance", "block", walking_in(14, 22, 1, 16))
+	if is_done("turn back at the entrance"):
+		give_once("turn before the last pit", "block", walking_in(42, 56, 1, 22))

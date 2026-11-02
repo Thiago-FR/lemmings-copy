@@ -43,6 +43,10 @@ script = ExtResource("2_controls")
 layout_mode = 2
 focus_mode = 0
 
+[node name="FastButton" type="Button" parent="ControlsBar/GameControls"]
+layout_mode = 2
+focus_mode = 0
+
 [node name="RestartButton" type="Button" parent="ControlsBar/GameControls"]
 layout_mode = 2
 focus_mode = 0

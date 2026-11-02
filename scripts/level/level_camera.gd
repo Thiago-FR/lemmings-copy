@@ -5,8 +5,11 @@ extends Camera2D
 ## the level as fits. A level smaller than the screen sits centred; a bigger
 ## one scrolls:
 ##   - arrow keys or WASD;
-##   - dragging with the middle mouse button, or with one finger on a touch
-##     screen;
+##   - dragging with the left mouse button (where left_drag is on: not in
+##     the editor, whose left button paints) or the middle one, or with one
+##     finger on a touch screen; a left press that does not move past
+##     DRAG_THRESHOLD stays a click, so a lemming can still be given a tool.
+##     While dragging the pointer is the closed hand (CURSOR_DRAG);
 ##   - pushing the mouse against an edge of the window.
 ## It never scrolls past the level's bounds, plus the margins kept for the
 ## bars drawn over the top and bottom of the screen, so the level's edges
@@ -30,7 +33,15 @@ const EDGE_SCROLL_ZONE := 12.0
 ## lemming still selects it.
 const TOUCH_DRAG_THRESHOLD := 12.0
 
+## Whether the left mouse button drags the view (off in the editor).
+var left_drag := true
+
+## A left press only becomes a drag once the mouse has moved this far.
+const DRAG_THRESHOLD := 8.0
+
 var _dragging := false
+var _left_pressed := false
+var _left_start := Vector2.ZERO
 var _touch_start := Vector2.ZERO
 var _touch_dragging := false
 
@@ -70,9 +81,19 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var button := event as InputEventMouseButton
 	if button != null and button.button_index == MOUSE_BUTTON_MIDDLE:
-		_dragging = button.pressed
+		_set_dragging(button.pressed)
+		return
+	if button != null and button.button_index == MOUSE_BUTTON_LEFT and left_drag:
+		_left_pressed = button.pressed
+		_left_start = button.position
+		if not button.pressed and _dragging:
+			_set_dragging(false)
+			# The release ends a drag; it is not a click on what is under it.
+			get_viewport().set_input_as_handled()
 		return
 	var motion := event as InputEventMouseMotion
+	if motion != null and _left_pressed and not _dragging and motion.position.distance_to(_left_start) >= DRAG_THRESHOLD:
+		_set_dragging(true)
 	if motion != null and _dragging:
 		_scroll_by_screen(-motion.relative)
 		return
@@ -87,6 +108,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		_touch_dragging = true
 		_scroll_by_screen(-drag.relative)
+
+
+func _set_dragging(dragging: bool) -> void:
+	if dragging == _dragging:
+		return
+	_dragging = dragging
+	Input.set_default_cursor_shape(Input.CURSOR_DRAG if dragging else Input.CURSOR_ARROW)
+
+
+func _exit_tree() -> void:
+	if _dragging:
+		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
 func _scroll_by_screen(screen_offset: Vector2) -> void:

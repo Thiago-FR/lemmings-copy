@@ -15,10 +15,10 @@ const STAT_FONT_SIZE := 18
 const STATS_SEPARATION := 10
 
 
-## summary: what the last stage reported (saved, lost, rescues), shown under
-## the title. deposited: the coins that went into the vault; vault: the
-## vault's total after it.
-func _init(state: RoguelikeRunState, won: bool, summary: String, deposited: int, vault: int) -> void:
+## summary: what the last stage brought, as icons under the portrait.
+## deposited: the coins that went into the vault; vault: the vault's total
+## after it.
+func _init(state: RoguelikeRunState, won: bool, summary: RoguelikeStageSummary, deposited: int, vault: int) -> void:
 	super()
 	var title := add_title("Vitória!" if won else "Fim da run")
 	title.add_theme_color_override("font_color", TITLE_COLOUR_WON if won else TITLE_COLOUR_LOST)
@@ -34,11 +34,8 @@ func _init(state: RoguelikeRunState, won: bool, summary: String, deposited: int,
 		portrait.self_modulate = LOST_PORTRAIT_TINT
 	content.add_child(portrait)
 
-	var headline := add_text(_headline(state, won))
-	headline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if summary != "":
-		var last := add_text(summary)
-		last.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if summary != null:
+		content.add_child(summary.build_row())
 
 	var stats := GridContainer.new()
 	stats.columns = 2
@@ -54,13 +51,6 @@ func _init(state: RoguelikeRunState, won: bool, summary: String, deposited: int,
 	_add_stat(stats, "hud_coin", "Moedas para o cofre", "+%d (cofre: %d)" % [deposited, vault])
 
 	add_buttons([["Jogar de novo", play_again_requested.emit, true], ["Menu", GameManager.go_to_main_menu]])
-
-
-func _headline(state: RoguelikeRunState, won: bool) -> String:
-	var name := RoguelikeCharacters.get_display_name(state.character_id)
-	if won:
-		return "A tropa de %s passou pelas %d fases." % [name, RoguelikeRunState.STAGE_COUNT]
-	return "A tropa de %s acabou na fase %d." % [name, state.stage_index + 1]
 
 
 func _add_stat(grid: GridContainer, icon_id: String, caption: String, value: String) -> void:

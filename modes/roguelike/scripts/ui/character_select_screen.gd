@@ -4,7 +4,8 @@ extends RoguelikeOverlayScreen
 ## portrait, name and what it does. Unlocked ones have a Play button; locked
 ## ones show only their silhouette (the portrait in black), their price and
 ## a Buy button paid from the coin vault (RoguelikeProfile), so the player
-## always sees what there is to unlock and what it would bring.
+## always sees what there is to unlock and what it would bring. The book
+## icon opens the compendium of what the player has discovered.
 
 signal character_chosen(character_id: StringName)
 signal developer_requested
@@ -33,11 +34,24 @@ func _init(profile: RoguelikeProfile) -> void:
 	_cards.add_theme_constant_override("separation", CARD_SEPARATION)
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_child(_cards)
-	var buttons: Array = [["editor_menu", "Menu", GameManager.go_to_main_menu, "Menu"]]
+	var buttons: Array = [
+		["editor_menu", "Menu", GameManager.go_to_main_menu, "Menu"],
+		["compendium", "Compêndio", open_compendium, "Compendium"],
+	]
 	if GameManager.developer_mode:
 		buttons.append(["dev", "Modo desenvolvedor", developer_requested.emit, "Dev"])
 	add_icon_buttons(buttons)
 	_rebuild()
+
+
+## The player's compendium, over this screen: only what the profile has
+## discovered (the developer screen's shows everything).
+func open_compendium() -> void:
+	var compendium := RoguelikeCompendiumScreen.new(_profile.is_discovered)
+	compendium.name = "CompendiumScreen"
+	compendium.layer = layer + 1
+	compendium.closed.connect(compendium.queue_free)
+	add_child(compendium)
 
 
 func _add_vault_row() -> Label:
@@ -95,18 +109,48 @@ func _make_card(character: StringName) -> PanelContainer:
 	title.add_theme_color_override("font_color", RoguelikeCharacters.get_colour(character).lightened(0.3) if unlocked else LOCKED_TEXT_COLOUR)
 	column.add_child(title)
 
+	column.add_child(_make_ability_badge(character, unlocked))
 	var description := Label.new()
-	description.text = RoguelikeCharacters.get_ability(character)
+	# The passive bonus only (the ability is the badge above); empty for
+	# a character without one, keeping the cards the same height.
+	description.text = RoguelikeCharacters.get_short_passive(character)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.custom_minimum_size.x = CARD_WIDTH - 24.0
 	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	description.tooltip_text = RoguelikeCharacters.get_ability(character)
+	description.mouse_filter = Control.MOUSE_FILTER_STOP
 	if not unlocked:
 		description.add_theme_color_override("font_color", LOCKED_TEXT_COLOUR)
 	column.add_child(description)
 
 	column.add_child(_make_play_button(character) if unlocked else _make_buy_button(character))
 	return card
+
+
+## The character's ability as its slot icon and name, as it shows in the
+## tool bar; what it does is the tooltip (few words on screen).
+func _make_ability_badge(character: StringName, unlocked: bool) -> HBoxContainer:
+	var ability := RoguelikeCharacters.get_special(character)
+	var row := HBoxContainer.new()
+	row.name = "Ability"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.tooltip_text = "%s: %s" % [RoguelikeAbilities.get_display_name(ability), RoguelikeAbilities.get_description(ability)]
+	var icon := TextureRect.new()
+	icon.texture = UiStyle.icon(RoguelikeAbilities.get_icon_id(ability))
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not unlocked:
+		icon.self_modulate = SILHOUETTE_COLOUR
+	row.add_child(icon)
+	var label := Label.new()
+	label.text = RoguelikeAbilities.get_display_name(ability)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", RoguelikeCharacters.get_colour(character).lightened(0.4) if unlocked else LOCKED_TEXT_COLOUR)
+	row.add_child(label)
+	return row
 
 
 func _make_play_button(character: StringName) -> Button:
