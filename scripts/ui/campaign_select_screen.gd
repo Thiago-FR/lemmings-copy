@@ -40,7 +40,7 @@ func _ready() -> void:
 	column.add_child(_make_level_grid())
 	if Campaign.is_complete():
 		column.add_child(_make_complete_button())
-	_add_back_button()
+	_add_corner_buttons()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -143,16 +143,46 @@ func _make_complete_button() -> Button:
 	return button
 
 
-func _add_back_button() -> void:
+## Menu, and in developer mode also: open every level (or lock them again)
+## and erase the progress.
+func _add_corner_buttons() -> void:
+	var corner := HBoxContainer.new()
+	corner.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	corner.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	corner.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	corner.offset_right = -CORNER_MARGIN
+	corner.offset_bottom = -CORNER_MARGIN
+	corner.add_theme_constant_override("separation", 6)
+	add_child(corner)
+	if GameManager.developer_mode:
+		var unlock := UiStyle.make_icon_button("lock", "Trancar as fases de novo" if Campaign.is_all_unlocked() else "Liberar todas as fases")
+		unlock.name = "UnlockAllButton"
+		unlock.modulate = Color(1, 1, 1, 0.5) if Campaign.is_all_unlocked() else Color.WHITE
+		unlock.pressed.connect(func() -> void:
+			Campaign.set_all_unlocked(not Campaign.is_all_unlocked())
+			get_tree().reload_current_scene())
+		corner.add_child(unlock)
+		var reset := UiStyle.make_icon_button("editor_restart", "Zerar o progresso")
+		reset.name = "ResetProgressButton"
+		reset.pressed.connect(_confirm_reset)
+		corner.add_child(reset)
 	var back := UiStyle.make_icon_button("editor_menu", "Menu")
 	back.name = "BackButton"
-	back.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	back.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	back.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	back.offset_right = -CORNER_MARGIN
-	back.offset_bottom = -CORNER_MARGIN
 	back.pressed.connect(_go_back)
-	add_child(back)
+	corner.add_child(back)
+
+
+func _confirm_reset() -> void:
+	var cleared := 0
+	for index in Campaign.LEVEL_COUNT:
+		if Campaign.is_cleared(index):
+			cleared += 1
+	var modal := ConfirmModal.new("editor_restart", "Zerar o progresso?", "Zerar")
+	modal.add_fact("star", -cleared, "Estrelas apagadas")
+	modal.confirmed.connect(func() -> void:
+		Campaign.reset_progress()
+		get_tree().reload_current_scene())
+	add_child(modal)
 
 
 func _go_back() -> void:

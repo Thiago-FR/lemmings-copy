@@ -15,6 +15,10 @@ const SELECT_SCENE_PATH := "res://scenes/ui/campaign_select.tscn"
 ## The congratulations and credits, after the last level.
 const COMPLETE_SCENE_PATH := "res://scenes/ui/campaign_complete.tscn"
 const SECTION := "cleared"
+## Developer mode: every level open without having won the one before
+## (the stars stay true to what was really won).
+const DEVELOPER_SECTION := "developer"
+const ALL_UNLOCKED_KEY := "all_unlocked"
 ## Levels per setting (meadow, desert, crystal cave, snowfield, volcano):
 ## the level select screen groups them this way.
 const LEVELS_PER_WORLD := 3
@@ -22,11 +26,14 @@ const LEVELS_PER_WORLD := 3
 ## Where progress is read and written. Tests point it elsewhere so they never
 ## touch the player's own progress.
 static var save_path := SAVE_PATH
+## Where the levels' LevelData files are (a pattern taking the level
+## number). Tests point it at copies so they never change the real levels.
+static var level_data_pattern := LEVEL_DATA_PATH
 
 
 static func level_path(index: int) -> String:
 	assert(index >= 0 and index < LEVEL_COUNT, "No campaign level %d" % index)
-	return LEVEL_DATA_PATH % (index + 1)
+	return level_data_pattern % (index + 1)
 
 
 static func load_level_data(index: int) -> LevelData:
@@ -48,7 +55,19 @@ static func is_cleared(index: int) -> bool:
 
 
 static func is_unlocked(index: int) -> bool:
-	return index == 0 or is_cleared(index - 1)
+	return index == 0 or is_cleared(index - 1) or is_all_unlocked()
+
+
+static func is_all_unlocked() -> bool:
+	return bool(_load().get_value(DEVELOPER_SECTION, ALL_UNLOCKED_KEY, false))
+
+
+## Developer mode: opens (or closes again) every level, without marking
+## any as won.
+static func set_all_unlocked(enabled: bool) -> void:
+	var config := _load()
+	config.set_value(DEVELOPER_SECTION, ALL_UNLOCKED_KEY, enabled)
+	config.save(save_path)
 
 
 ## Best share of lemmings saved in a won level (0 to 1), 0 if never won.

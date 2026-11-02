@@ -1221,6 +1221,25 @@ def trophy():
     return outline(image)
 
 
+def level_save():
+    """A green arrow pointing down into an open wooden chest: write the
+    drawing into a level."""
+    image = new()
+    # The chest: a wooden box open at the top.
+    rect(image, 5, 18, 26, 28, WOOD)
+    hline(image, 5, 26, 18, WOOD_LIGHT)
+    hline(image, 5, 26, 23, WOOD_DARK)
+    vline(image, 5, 18, 28, WOOD_DARK)
+    vline(image, 26, 18, 28, WOOD_DARK)
+    rect(image, 14, 21, 17, 24, YELLOW)
+    # The arrow, coming in from above.
+    rect(image, 13, 2, 18, 12, GRASS)
+    vline(image, 13, 2, 12, GRASS_LIGHT)
+    polygon(image, [(8, 11), (23, 11), (15.5, 19)], GRASS)
+    line(image, (8, 11), (15, 18), GRASS_LIGHT, 1)
+    return outline(image)
+
+
 THEME_PIECES = {
     **{name: (lambda state=name: theme_button(state)) for name in BUTTON_STATES},
     "check_on": lambda: theme_check(True),
@@ -1342,6 +1361,7 @@ EDITOR_ICONS = {
     "cursor_hand": cursor_hand,
     "cursor_grab": cursor_grab,
     "trophy": trophy,
+    "level_save": level_save,
 }
 
 

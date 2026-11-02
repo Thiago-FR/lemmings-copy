@@ -141,7 +141,9 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 | | |
 |---|---|
 | Jogar | clique duplo em `play.bat` |
-| Rodar os testes | clique duplo em `run_tests.bat` (no fim abre uma janela e mexe o mouse por uns segundos: não mexa nele enquanto isso) |
+| Rodar os testes (rápido) | clique duplo em `run_tests.bat`: tudo menos as partidas inteiras (robô jogando a fase toda); no fim abre uma janela e mexe o mouse por uns segundos, não mexa nele enquanto isso |
+| Rodar todos os testes | `run_tests.bat completo` (inclui as 38 partidas inteiras, uns 25 min): antes de um commit grande ou depois de mexer no gerador ou numa fase |
+| Quando escrever testes | só quando a coisa estiver do jeito que o usuário quer (ferramentas: sim). Enquanto fases e gerador estão sendo refeitos, testar jogando, sem escrever nem ajustar testes deles |
 | Teste de cliques de verdade | `godot --path . res://tests/window_test_real_clicks.tscn` (**sem** `--headless`; os `window_test_*` precisam de janela) |
 | Um teste só | `godot --headless res://tests/test_skill_digger.tscn` |
 | Teste da morte por queda | `godot --headless res://tests/test_fall_death.tscn` |
@@ -1018,6 +1020,12 @@ seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
 Botão **"Fases"** no menu principal (depois do Tutorial). Faz parte do
 núcleo, não é um modo em `modes/`.
 
+- **Modo dev, na tela de Fases:** cadeado (liberar todas as fases sem marcar
+  estrela; clicar de novo tranca) e seta circular (zerar o progresso, com
+  confirmação). Em 2 de novembro de 2026 as 15 apareciam vencidas porque um
+  robô de teste antigo gravou no progresso de verdade; hoje os testes usam
+  arquivos próprios (`Campaign.save_path`, `Campaign.level_data_pattern`).
+
 - **15 fases feitas à mão**, 3 por cenário: Prado (1-3), Deserto (4-6),
   Caverna de cristal (7-9), Campo de neve (10-12), Vulcão (13-15).
 - **Refeitas em 2 de novembro de 2026** (veredito do usuário: "todas
@@ -1162,8 +1170,27 @@ núcleo, não é um modo em `modes/`.
   desenho original, exatamente como foi pintado. Jogar depois de Pausar
   continua de onde parou.
 - Precisa de uma entrada para jogar; a saída é opcional. Sem paredes
-  automáticas nas bordas. Sem salvar/carregar (por enquanto).
-- Teste: `test_level_editor` (não usa mouse de verdade).
+  automáticas nas bordas.
+- **Várias entradas:** com a ferramenta Entrada, clique move a entrada mais
+  próxima, **Shift+clique** cria outra, clicar numa entrada vira o lado
+  para onde os bonecos saem (a seta amarela mostra) e o botão direito numa
+  entrada a remove (enquanto sobrar outra). Várias entradas dividem os
+  bonecos.
+- **Modo dev: abrir e salvar as 15 fases da campanha** (botões do pergaminho
+  e do baú na barra de cima). Abrir traz terreno, tijolos, entradas (com o
+  lado), saída, bonecos e ferramentas. Salvar escolhe qualquer uma das 15 e
+  pede confirmação; **antes de substituir, a versão antiga vai para um
+  backup** em `user://campaign_backups/campaign_NN_<data>/` (cena e dados).
+  Uma fase com backups mostra um relógio no seletor; abrir pergunta qual
+  versão (a atual ou um backup pela data); para recuperar, abra o backup e
+  salve por cima (o que também guarda a versão de agora). O que o editor
+  não edita (nome, dica, meta %, tempo, cenário, ritmo de saída) fica o da
+  fase substituída. Código: `CampaignLevelStore`
+  (`scripts/level/campaign_level_store.gd`) e `EditorLevelPicker`.
+- Os tijolos de uma fase salva ficam em `TerrainDestructible.initial_bricks`
+  (não fazem parte dos dados do tile map).
+- Testes: `test_level_editor` e `test_editor_campaign_levels` (este trabalha
+  em cópias da fase 12; nunca mexe nas fases de verdade).
 
 ## Situação do repositório (2 de novembro de 2026)
 

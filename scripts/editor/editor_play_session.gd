@@ -37,14 +37,20 @@ static func make_level_data(lemming_count: int, skill_counts: Dictionary, scene_
 ## A level root ready to be added to the tree. LevelManager reads its data
 ## from GameManager.current_level_data on entering the tree, so the caller
 ## sets that first.
-static func build(source_terrain: TerrainDestructible, entrance_position: Vector2, exit_positions: Array[Vector2]) -> LevelManager:
+## entrances: [{"position", "faces_left"}]; several share the troop.
+static func build(source_terrain: TerrainDestructible, entrances: Array[Dictionary], exit_positions: Array[Vector2], lemming_count: int) -> LevelManager:
+	assert(not entrances.is_empty(), "A test run needs an entrance")
 	var level := LevelManager.new()
 	level.name = "PlaySession"
 	level.add_child(_copy_terrain(source_terrain))
 
-	var spawn_point: SpawnPoint = SPAWN_POINT_SCENE.instantiate()
-	spawn_point.position = entrance_position
-	level.add_child(spawn_point)
+	for index in entrances.size():
+		var spawn_point: SpawnPoint = SPAWN_POINT_SCENE.instantiate()
+		spawn_point.position = entrances[index].position
+		spawn_point.faces_left = entrances[index].faces_left
+		if entrances.size() > 1:
+			spawn_point.lemming_count = lemming_count / entrances.size() + (1 if index < lemming_count % entrances.size() else 0)
+		level.add_child(spawn_point)
 
 	for exit_position in exit_positions:
 		var exit_point: ExitPoint = EXIT_POINT_SCENE.instantiate()

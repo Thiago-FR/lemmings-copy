@@ -69,6 +69,10 @@ const ATLAS_FILE := "terrain_atlas.png"
 ## Read once, when the terrain enters the scene (LevelManager sets it from
 ## the level's LevelEnvironment unless the scene already did).
 @export var art_theme: StringName = &""
+## Bricks (bridges, steps) a saved level starts with: they are not part of
+## the tile data, so a level drawn in the editor keeps them here and they
+## are laid when the terrain enters the scene.
+@export var initial_bricks: Array[Rect2] = []
 
 
 func _ready() -> void:
@@ -87,6 +91,8 @@ func _ready() -> void:
 	_brick_body.collision_layer = tile_set.get_physics_layer_collision_layer(0)
 	_brick_body.collision_mask = 0
 	add_child(_brick_body)
+	for brick in initial_bricks:
+		place_brick(brick)
 
 
 ## The folder the block art is read from (atlas and edge strips).

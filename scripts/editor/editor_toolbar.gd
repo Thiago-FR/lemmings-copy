@@ -13,6 +13,9 @@ signal play_requested
 signal pause_requested
 signal restart_requested
 signal menu_requested
+## Developer mode only: open one of the campaign levels, or save over one.
+signal open_level_requested
+signal save_level_requested
 
 const FONT_SIZE := 12
 const COUNTER_COLUMNS := 6
@@ -41,6 +44,7 @@ var _counters_panel: PanelContainer
 var _run_counts: PanelContainer
 var _run_labels: Dictionary = {}
 var _is_editing := true
+var _level_buttons: Array[Button] = []
 
 
 func _ready() -> void:
@@ -68,6 +72,14 @@ func get_skill_counts() -> Dictionary:
 	for skill_id in skill_counters:
 		counts[skill_id] = skill_counters[skill_id].value
 	return counts
+
+
+## Sets the counters, as when a level is opened: tools missing from
+## skill_counts go to zero.
+func set_counts(lemming_count: int, skill_counts: Dictionary) -> void:
+	lemming_counter.set_value(lemming_count)
+	for skill_id in skill_counters:
+		skill_counters[skill_id].set_value(int(skill_counts.get(skill_id, 0)))
 
 
 ## The test run's counts (shown while it runs or is paused).
@@ -105,6 +117,8 @@ func update_for_state(is_editing: bool, is_paused: bool) -> void:
 	_pause_button.disabled = is_editing or is_paused
 	_restart_button.disabled = is_editing
 	_counters_toggle.disabled = not is_editing
+	for button in _level_buttons:
+		button.disabled = not is_editing
 	_run_counts.visible = not is_editing
 	_refresh_counters_visibility()
 
@@ -148,6 +162,15 @@ func _build_top_bar(theme: Theme) -> void:
 	_counters_toggle.toggle_mode = true
 	_counters_toggle.button_pressed = true
 	_counters_toggle.toggled.connect(func(_on: bool) -> void: _refresh_counters_visibility())
+	if GameManager.developer_mode:
+		row.add_child(VSeparator.new())
+		var open_button := _make_icon_button(row, "campaign", "Abrir uma das 15 fases")
+		open_button.name = "OpenLevelButton"
+		open_button.pressed.connect(open_level_requested.emit)
+		var save_button := _make_icon_button(row, "level_save", "Salvar por cima de uma das 15 fases")
+		save_button.name = "SaveLevelButton"
+		save_button.pressed.connect(save_level_requested.emit)
+		_level_buttons.assign([open_button, save_button])
 	var menu_button := _make_icon_button(row, "editor_menu", "Menu")
 	menu_button.pressed.connect(menu_requested.emit)
 
