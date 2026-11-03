@@ -363,41 +363,112 @@ func _build_planet() -> void:
 			_spot(island.x, island.y, MazeLayout.SpotKind.BONUS)
 
 
-## Station modules and asteroids spread through the void, at every height.
-## A fall is a fall into space.
+## A spaceship in the void: a long hull with the engines at the left and
+## the bridge in the nose at the right; inside, decks one above the other,
+## bulkheads with doors, shafts between the decks (some with a ladder up,
+## the rest to climb or build); hatches in the roof to walk out on the hull.
+## Asteroids drift around it. A fall outside is a fall into space.
 func _build_space() -> void:
-	var modules: Array[Vector2i] = []
-	# Rows of modules, each tall enough for a module (8 blocks) and its
-	# wandering height, so two rows never overlap.
-	var band_height := 16
-	var bands := maxi(1, (_rows - 4) / band_height)
-	for band in bands:
-		var x := 2 + _rng.randi_range(0, 4)
-		var lowest := mini(band * band_height + band_height, _rows - 4)
-		var highest := band * band_height + 10
-		var floor_row := _rng.randi_range(highest, lowest)
-		while x < _columns - 9:
-			var width := _rng.randi_range(7, 11)
-			floor_row = clampi(floor_row + _rng.randi_range(-4, 4), highest, lowest)
-			var right := mini(x + width - 1, _columns - 3)
-			_module(x, right, floor_row)
-			modules.append(Vector2i((x + right) / 2, floor_row))
-			var gap := _rng.randi_range(5, 9)
-			if _rng.randf() < 0.6:
-				_blob(Vector2i(right + gap / 2 + 1, floor_row + _rng.randi_range(-3, 3)), Vector2(2.2, 1.4), EARTH)
+	var left := 4
+	var right := _columns - 6
+	var centre := _rows / 2
+	var half_height := clampi(_rows / 2 - 5, 6, 26)
+	var tops := PackedInt32Array()
+	var bottoms := PackedInt32Array()
+	tops.resize(_columns)
+	bottoms.resize(_columns)
+	tops.fill(-1)
+	# The hull's outline: full height along the body, tapering to the nose.
+	for column in range(left, right + 1):
+		var t := float(column - left) / float(right - left)
+		var height := half_height
+		if t > 0.72:
+			height = maxi(4, roundi(half_height * (1.0 - (t - 0.72) / 0.28 * 0.75)))
+		tops[column] = centre - height
+		bottoms[column] = centre + height
+		_fill(column, tops[column], column, tops[column] + 1, CONCRETE)
+		_fill(column, bottoms[column] - 1, column, bottoms[column], CONCRETE)
+	_fill(left, tops[left], left + 1, bottoms[left], CONCRETE)
+	_fill(right - 1, tops[right], right, bottoms[right], CONCRETE)
+	# The nose's slanted plating follows the outline column to column.
+	for column in range(left + 1, right + 1):
+		for row in range(mini(tops[column], tops[column - 1]), maxi(tops[column], tops[column - 1]) + 1):
+			_set_cell(column, row, CONCRETE)
+		for row in range(mini(bottoms[column], bottoms[column - 1]), maxi(bottoms[column], bottoms[column - 1]) + 1):
+			_set_cell(column, row, CONCRETE)
+	# Engines sticking out at the back.
+	for engine in [centre - half_height / 2, centre + half_height / 2]:
+		_fill(left - 3, engine - 1, left - 1, engine + 1, CONCRETE)
+	# Decks every 6 rows, with shafts between them.
+	var deck_rows: Array[int] = []
+	var deck := bottoms[left] - 1
+	while deck - 6 > tops[left] + 3:
+		deck -= 6
+		deck_rows.append(deck)
+		var from := left + 2
+		var to := right - 2
+		for column in range(from, to + 1):
+			if deck > tops[column] + 2 and deck < bottoms[column] - 2:
+				_set_cell(column, deck, CONCRETE)
+		for shaft in 1 + _tier:
+			var at := _rng.randi_range(from + 4, (left + right) / 2 + 6)
+			_set_cell(at, deck, EMPTY)
+			_set_cell(at + 1, deck, EMPTY)
+			if _rng.randf() < 0.5:
+				for row in range(deck - 1, deck + 6):
+					if _cell(at, row) == EMPTY:
+						_ladders.append(Vector2i(at, row))
 			else:
-				_need("bridge", right + 1)
-			x = right + 1 + gap
-	modules.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
-	_spawn = modules[0]
-	_exit = modules[modules.size() - 1]
+				_need(["ladder_vertical", "builder"][_rng.randi_range(0, 1)], at)
+	# Bulkheads with a door on every deck, now and then one shut (to bash).
+	var bulkhead := left + _rng.randi_range(10, 14)
+	while bulkhead < right - 10:
+		for row in range(tops[bulkhead] + 2, bottoms[bulkhead] - 1):
+			if _cell(bulkhead, row) == EMPTY:
+				_set_cell(bulkhead, row, CONCRETE)
+		var floors := deck_rows.duplicate()
+		floors.append(bottoms[bulkhead] - 1)
+		for floor_row in floors:
+			if floor_row <= tops[bulkhead] + 3 or floor_row >= bottoms[bulkhead]:
+				continue
+			var shut := _rng.randf() < 0.2 + _tier * 0.1
+			for row in range(floor_row - 3, floor_row):
+				_set_cell(bulkhead, row, EARTH if shut else EMPTY)
+			if shut:
+				_need("basher", bulkhead)
+		bulkhead += _rng.randi_range(10, 15)
+	# Hatches in the roof, onto the hull.
+	for hatch in 1 + _tier:
+		var at := _rng.randi_range(left + 8, right - 12)
+		_set_cell(at, tops[at] + 1, EMPTY)
+		_set_cell(at + 1, tops[at] + 1, EMPTY)
+		_set_cell(at, tops[at], EMPTY)
+		_set_cell(at + 1, tops[at], EMPTY)
+		_need("ladder_vertical", at)
+	# The bridge: a window band in the nose.
+	for row in range(centre - 1, centre + 1):
+		_set_cell(right - 1, row, EMPTY)
+	for row in range(_rows):
+		for column in range(_columns):
+			if _cell(column, row) != EMPTY:
+				_skins[Vector2i(column, row)] = TerrainSkin.HULL
+	# Everything inside the hull is the ship's inner wall.
+	for column in range(left + 1, right):
+		for row in range(tops[column] + 2, bottoms[column] - 1):
+			if _cell(column, row) == EMPTY:
+				_backdrop[Vector2i(column, row)] = TerrainSkin.STATION_INSIDE
+	# Asteroids around the ship.
+	for rock in 4 + _tier * 2:
+		var at := Vector2i(_rng.randi_range(4, _columns - 5), _rng.randi_range(2, _rows - 3))
+		if at.y > tops[clampi(at.x, left, right)] - 3 and at.y < bottoms[clampi(at.x, left, right)] + 3 and at.x >= left - 4 and at.x <= right + 2:
+			continue
+		_blob(at, Vector2(2.4, 1.5), EARTH)
+	_spawn = Vector2i(left + 4, bottoms[left] - 1)
 	if _route == Route.ASCEND:
-		var highest := modules[0]
-		for module in modules:
-			if module.y < highest.y:
-				highest = module
-		_exit = highest
-		_need("ladder_vertical", _exit.x)
+		var top_column := (left + right) / 2
+		_exit = Vector2i(top_column, tops[top_column])
+	else:
+		_exit = Vector2i(right - 4, bottoms[right - 4] - 1)
 	_scatter_bonus(3)
 
 
@@ -680,12 +751,25 @@ func _plant_climb_trees(heights: PackedInt32Array, count: int, with_items: bool,
 			continue
 		var trunk := _rng.randi_range(3, 4) + (_rng.randi_range(2, 5) if tall else 0)
 		var crown_bottom := ground - trunk - 1
-		var crown_top := crown_bottom - _rng.randi_range(1, 2)
+		# The crown's outline, row by row from the top (half widths): narrow
+		# on top, widest in the middle, a little in again at the bottom, like
+		# a block-game oak; the widest rows lose an end now and then.
+		var shape: Array[int] = []
+		shape.assign([1, half, half, half - 1] if half == 2 else [1, half - 1, half, half, half - 1])
+		var crown_top := crown_bottom - shape.size() + 1
 		if crown_top < 3:
 			continue
-		for row in range(crown_top, crown_bottom + 1):
-			var shrink := 1 if row == crown_top and half >= 3 else 0
-			for x in range(column - half + shrink, column + half - shrink + 1):
+		for index in shape.size():
+			var row := crown_top + index
+			var reach: int = shape[index]
+			var left_end := column - reach
+			var right_end := column + reach
+			if reach == half and index > 0:
+				if _rng.randf() < 0.35:
+					left_end += 1
+				if _rng.randf() < 0.35:
+					right_end -= 1
+			for x in range(left_end, right_end + 1):
 				if _cell(x, row) == EMPTY:
 					_set_cell(x, row, EARTH)
 					_skins[Vector2i(x, row)] = TerrainSkin.LEAVES
@@ -881,7 +965,23 @@ func _to_data(biome: Dictionary) -> MazeStageData:
 	data.rows = _rows
 	data.cells = _cells
 	data.skins = _skins
-	data.backdrop = _backdrop
+	# Only trunks are kept as painted backdrop: the wall behind caves and
+	# rooms is worked out from the cells when the stage is shown.
+	var trunks := {}
+	for cell: Vector2i in _backdrop:
+		if _backdrop[cell] in [TerrainSkin.BARK, TerrainSkin.ALIEN_STEM, TerrainSkin.STATION_INSIDE]:
+			trunks[cell] = _backdrop[cell]
+	data.backdrop = trunks
+	match biome.id:
+		&"glacier":
+			data.inside_wall = TerrainSkin.ICE_WALL
+		&"space":
+			# The ship paints its inside itself; outside is open space.
+			data.inside_wall = &""
+		&"crystal":
+			data.inside_wall = &""
+		_:
+			data.inside_wall = TerrainSkin.CAVE_WALL
 	data.decor_trees = _decor
 	data.unbreakable = _unbreakable
 	data.ladders = _ladders

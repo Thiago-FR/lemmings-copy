@@ -45,8 +45,26 @@ var skins: Dictionary = {}
 ## Drawn on empty cells, behind the lemmings (they walk past it): a tree's
 ## trunk under its canopy. cell -> BARK or ALIEN_STEM.
 var backdrop: Dictionary = {}
+## The wall drawn behind enclosed air (CAVE_WALL, ICE_WALL, STATION_INSIDE),
+## or none. Enclosed: rock somewhere above it and rock to both sides, close
+## by, in its row; worked out from the cells themselves, so the wall always
+## follows the rock (a cave opening onto a cliff shows the sky there) and a
+## tunnel dug through a hill gets its wall too.
+var inside_wall: StringName = &""
+## The cells to look at (the stage's size).
+var area := Rect2i()
+
+## How close open sky may be before air stops counting as inside.
+const INSIDE_MARGIN := 2
+## Recomputed this far around a change (a change above can uncover cells
+## below it in the same column; the margin reaches sideways).
+const INSIDE_REACH := INSIDE_MARGIN + 1
 
 var _terrain: TerrainDestructible
+## cell -> true for air that gets the inside wall.
+var _inside: Dictionary = {}
+## column -> the first row of rock from the top.
+var _top_rock: Dictionary = {}
 var _back: Node2D
 ## Behind the portals (-1).
 const BACKDROP_Z := -2
@@ -61,7 +79,16 @@ func _ready() -> void:
 	_back.z_index = BACKDROP_Z
 	_back.draw.connect(_draw_backdrop)
 	add_child(_back)
-	_terrain.cells_changed.connect(func(_coords: Array[Vector2i]) -> void:
+	if inside_wall != &"":
+		_find_inside(area.position.x, area.end.x - 1)
+	_terrain.cells_changed.connect(func(coords: Array[Vector2i]) -> void:
+		if inside_wall != &"" and not coords.is_empty():
+			var from := coords[0].x
+			var to := coords[0].x
+			for cell in coords:
+				from = mini(from, cell.x)
+				to = maxi(to, cell.x)
+			_find_inside(from - INSIDE_REACH, to + INSIDE_REACH)
 		queue_redraw()
 		_back.queue_redraw())
 
@@ -70,6 +97,10 @@ func _ready() -> void:
 ## portals and the lemmings, which sit just behind the terrain (z -1).
 func _draw_backdrop() -> void:
 	var size := _terrain.get_cell_size()
+	if inside_wall != &"":
+		for cell: Vector2i in _inside:
+			if not backdrop.has(cell):
+				_draw_cave_wall(cell, Rect2(Vector2(cell) * size, size), COLOURS[inside_wall])
 	for cell: Vector2i in backdrop:
 		if _terrain.get_cell_source_id(cell) != -1:
 			continue
@@ -99,6 +130,53 @@ func _draw() -> void:
 				_draw_outline(cell, rect)
 			BORDER:
 				_draw_border(cell, rect, COLOURS[BORDER])
+
+
+## Works out which air is enclosed, for the columns from..to: air with
+## rock somewhere above it, and no open-sky air (air with nothing above it)
+## within INSIDE_MARGIN cells, so a cave mouth shows a lip of sky and the
+## wall starts just inside, however wide the cave.
+func _find_inside(from: int, to: int) -> void:
+	var first := maxi(from, area.position.x)
+	var last := mini(to, area.end.x - 1)
+	for column in range(maxi(first - INSIDE_MARGIN, area.position.x), mini(last + INSIDE_MARGIN, area.end.x - 1) + 1):
+		_top_rock[column] = _first_rock_row(column)
+	for column in range(first, last + 1):
+		for row in range(area.position.y, area.end.y):
+			var cell := Vector2i(column, row)
+			_inside.erase(cell)
+			if _is_rock(cell) or not _is_covered(cell):
+				continue
+			if not _open_sky_near(cell):
+				_inside[cell] = true
+
+
+func _first_rock_row(column: int) -> int:
+	for row in range(area.position.y, area.end.y):
+		if _is_rock(Vector2i(column, row)):
+			return row
+	return area.end.y
+
+
+func _is_covered(cell: Vector2i) -> bool:
+	return cell.y > int(_top_rock.get(cell.x, area.end.y))
+
+
+func _open_sky_near(cell: Vector2i) -> bool:
+	for dy in range(-INSIDE_MARGIN, INSIDE_MARGIN + 1):
+		for dx in range(-INSIDE_MARGIN, INSIDE_MARGIN + 1):
+			var near := cell + Vector2i(dx, dy)
+			if not area.has_point(near):
+				continue
+			if not _is_rock(near) and _terrain.get_cell_source_id(near) == -1 and not _is_covered(near):
+				return true
+	return false
+
+
+## Terrain that counts as rock around air: not a ladder, not a tree's
+## leaves (the air under a crown is outside).
+func _is_rock(cell: Vector2i) -> bool:
+	return _terrain.get_cell_source_id(cell) == TerrainDestructible.TERRAIN_SOURCE_ID and skins.get(cell) != LEAVES
 
 
 ## Dark rock with a few cracks and lumps, flat so the walls in front read.

@@ -40,6 +40,8 @@ var layout: MazeLayout = null
 var skins: Dictionary = {}
 ## Drawn behind the lemmings on empty cells (cell -> TerrainSkin name).
 var backdrop: Dictionary = {}
+## The wall behind enclosed air (TerrainSkin.inside_wall), or none.
+var inside_wall: StringName = &""
 ## Scenery trees painted behind the terrain (TreeArt, BackgroundDecor):
 ## not solid, no items.
 var decor_trees: Array[Dictionary] = []
@@ -85,11 +87,13 @@ func paint_onto(terrain: TerrainDestructible) -> void:
 		decor.name = "Decor"
 		decor.trees = decor_trees
 		terrain.add_child(decor)
-	if not skins.is_empty() or not backdrop.is_empty():
+	if not skins.is_empty() or not backdrop.is_empty() or inside_wall != &"":
 		var skin := TerrainSkin.new()
 		skin.name = "Skin"
 		skin.skins = skins
 		skin.backdrop = backdrop
+		skin.inside_wall = inside_wall
+		skin.area = Rect2i(0, 0, columns, rows)
 		terrain.add_child(skin)
 
 

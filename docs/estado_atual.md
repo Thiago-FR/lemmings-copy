@@ -1233,7 +1233,23 @@ palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
   (`_bottom_chamber`). As paredes de caverna e os troncos ficam numa camada
   própria atrás dos portais (z -2): antes cobriam o portal de saída, que é
   desenhado logo atrás do terreno (z -1), e a saída "sumia".
-- **Módulos do espaço** viraram salas (8 blocos de altura, portinhola de 3
+- **Copas com silhueta de árvore** (como o carvalho dos jogos de blocos):
+  estreitas em cima, mais largas no meio, um pouco para dentro embaixo, às
+  vezes sem uma ponta; o usuário reprovou as copas retangulares.
+- **Fundo de caverna segue os blocos** (`TerrainSkin.inside_wall`, calculado
+  do terreno, não pintado pelo gerador): ar com rocha em cima e sem céu
+  aberto a até 2 blocos ganha a parede; a boca da caverna mostra um pouco de
+  céu. Recalculado perto de cada mudança, então um túnel cavado também ganha
+  parede. Antes a parede pintada saía da caverna como um retângulo solto
+  (prints `bug7`, `bug9`).
+- **Espaço é uma nave** (o usuário achou os módulos soltos bizarros): casco
+  comprido com motores atrás e o nariz à direita, conveses a cada 6 blocos
+  ligados por poços (alguns com escada, os outros para escalar ou
+  construir), anteparas com porta em cada convés (algumas fechadas, para a
+  britadeira), escotilhas no teto para andar por fora do casco, asteroides
+  em volta. A saída fica na ponte (nariz) ou, na fase de subida, em cima do
+  casco.
+- (Substituído pela nave) **Módulos do espaço** viraram salas (8 blocos de altura, portinhola de 3
   em cada lado, parede interna atrás), em fileiras que não se sobrepõem e
   com alturas variando.
 - **Árvores de enfeite** (pinheiro, pinheiro com neve, palmeira, cogumelo;
