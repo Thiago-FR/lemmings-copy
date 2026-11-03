@@ -56,7 +56,6 @@ var _needs: Array[Dictionary] = []
 var _decor: Array[Dictionary] = []
 ## Furnished rooms (RoomDecor): {"kind", "rect"}.
 var furnished_rooms: Array[Dictionary] = []
-var climb_tree_tops: Array[Vector2i] = []
 var _unbreakable := {}
 ## 0 to 1: how hard, over the whole run (or as the editor asks).
 var stage_difficulty := 0.0
@@ -423,52 +422,7 @@ func _wall_in() -> void:
 
 # --- Trees ---------------------------------------------------------------------------
 
-## Trees whose square crowns can be climbed onto: a trunk the troop walks
-## past, right under a crown of leaf blocks. Some carry an item on top.
-func plant_climb_trees(heights: PackedInt32Array, count: int, with_items: bool, tall: bool = false) -> void:
-	var placed := 0
-	for attempt in count * 8:
-		if placed >= count:
-			return
-		var column := rng.randi_range(BORDER + 4, stage_columns - BORDER - 5)
-		var ground := heights[column]
-		if ground >= stage_rows or heights[column - 1] != ground or heights[column + 1] != ground or cell_kind(column, ground - 1) != EMPTY:
-			continue
-		var half := rng.randi_range(2, 3)
-		if climb_tree_tops.any(func(other: Vector2i) -> bool: return absi(other.x - column) <= half * 2 + 3):
-			continue
-		var trunk := rng.randi_range(3, 4) + (rng.randi_range(2, 5) if tall else 0)
-		var crown_bottom := ground - trunk - 1
-		# The crown's outline, row by row from the top (half widths): a
-		# rounded top widening down to its widest rows at the bottom, even on
-		# both sides (the user turned down crowns that tuck in at the base
-		# or lose an end at random).
-		var shape: Array[int] = []
-		if half <= 2:
-			shape.assign([1, half, half])
-		elif half == 3:
-			shape.assign([1, 2, 3, 3])
-		else:
-			shape.assign([half - 2, half - 1, half, half])
-		var crown_top := crown_bottom - shape.size() + 1
-		if crown_top < 3:
-			continue
-		for index in shape.size():
-			var row := crown_top + index
-			for x in range(column - shape[index], column + shape[index] + 1):
-				if cell_kind(x, row) == EMPTY:
-					set_cell_kind(x, row, EARTH)
-					cell_skins[Vector2i(x, row)] = TerrainSkin.LEAVES
-		for row in range(crown_bottom + 1, ground):
-			backdrop_skins[Vector2i(column, row)] = TerrainSkin.BARK
-		climb_tree_tops.append(Vector2i(column, crown_top))
-		placed += 1
-		if with_items and rng.randf() < 0.5:
-			add_spot(column, crown_top, MazeLayout.SpotKind.BONUS)
-
-
-## Scenery trees behind the terrain, on flat ground away from the climbing
-## trees.
+## Scenery trees behind the terrain, on flat ground, apart from each other.
 func plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName]) -> void:
 	var used: Array[int] = []
 	for attempt in count * 6:
@@ -479,8 +433,6 @@ func plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName]
 		if ground >= stage_rows or _surface_row(column) != ground or cell_kind(column, ground - 1) != EMPTY:
 			continue
 		if used.any(func(other: int) -> bool: return absi(other - column) < 5):
-			continue
-		if climb_tree_tops.any(func(tree: Vector2i) -> bool: return absi(tree.x - column) < 7):
 			continue
 		var kind := kinds[rng.randi_range(0, kinds.size() - 1)]
 		var half := rng.randi_range(2, 3)

@@ -1,6 +1,5 @@
 extends StageBiome
-## Tall trees to climb, pines behind them, a ravine, and caves under the
-## forest floor.
+## Many pines behind the hills, a ravine, and caves under the forest floor.
 
 
 func _init() -> void:
@@ -20,8 +19,5 @@ func build(g: BiomeStageGenerator) -> void:
 	g.carve_caves(heights, 5, 0.12 + g.stage_tier * 0.05, TerrainSkin.CAVE_WALL)
 	g.open_into_caves(heights, 1 + g.stage_tier)
 	g.rock_pockets(heights, 7, 0.55)
-	g.plant_climb_trees(heights, 4 + g.stage_tier * 2, g.stage_route != Route.ASCEND, true)
-	g.plant_decor(heights, 6 + g.stage_tier * 2, [TreeArt.PINE])
+	g.plant_decor(heights, 9 + g.stage_tier * 3, [TreeArt.PINE])
 	g.place_spawn_and_exit(heights)
-	if g.stage_route == Route.ASCEND and not g.climb_tree_tops.is_empty():
-		g.exit_cell = g.climb_tree_tops.reduce(func(best: Vector2i, top: Vector2i) -> Vector2i: return top if top.y < best.y else best)

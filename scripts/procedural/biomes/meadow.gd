@@ -1,5 +1,5 @@
 extends StageBiome
-## Hills with cliffs, ravines, a few square trees to climb, caves under the
+## Hills with cliffs, ravines, pines behind, caves under the
 ## ground from the second stage on.
 
 
@@ -21,6 +21,5 @@ func build(g: BiomeStageGenerator) -> void:
 		g.carve_caves(heights, 4, 0.18, TerrainSkin.CAVE_WALL)
 		g.open_into_caves(heights, 1)
 	g.rock_pockets(heights, 6, 0.55)
-	g.plant_climb_trees(heights, 2 + g.stage_tier, true)
-	g.plant_decor(heights, 2, [TreeArt.PINE])
+	g.plant_decor(heights, 4, [TreeArt.PINE])
 	g.place_spawn_and_exit(heights)

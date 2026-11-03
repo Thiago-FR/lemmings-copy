@@ -1249,7 +1249,10 @@ incluir o ambiente novo sem mais nada.
   (`_bottom_chamber`). As paredes de caverna e os troncos ficam numa camada
   própria atrás dos portais (z -2): antes cobriam o portal de saída, que é
   desenhado logo atrás do terreno (z -1), e a saída "sumia".
-- **Copas com silhueta de árvore**: topo arredondado alargando até as
+- **Árvores de subir removidas** (o usuário não gostou de nenhuma versão):
+  Prado e Floresta só têm árvores de enfeite, em maior número. A pele
+  `TerrainSkin.LEAVES` continua existindo, sem uso.
+- (Removidas depois) **Copas com silhueta de árvore**: topo arredondado alargando até as
   linhas mais largas **embaixo**, iguais dos dois lados (larguras por linha,
   de cima: 1,2,2 ou 1,2,3,3 meias-larguras). O usuário reprovou as copas
   retangulares, as que encolhem na base e as com pontas cortadas ao acaso
