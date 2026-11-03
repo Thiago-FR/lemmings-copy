@@ -1454,6 +1454,31 @@ O usuário: "sim, gerar as novas fases... pode ter 30 fases também agora".
   `tests/campaign_playthrough_test.gd`, rodam no `run_tests.bat completo`).
 - A tela de Fases mostra 10 colunas de 3.
 
+## Situação no fim de 3 de novembro de 2026 (ler antes de continuar)
+
+- **Campanha: 15 das 30 fases vencidas pelo robô no jogo de verdade** (1-6,
+  8, 9, 11, 12, 19, 22, 23, 25, 26). As outras 15 (7, 10, 13-18, 20, 21, 24,
+  27-30) perderam nas 10 tentativas da montagem e ficaram com a última
+  tentativa, **sem garantia de que dá para vencer**. São as maiores e as
+  de subida (cristal, geleira, vulcão, espaço). Para refazer só elas:
+  `CAMPAIGN_SPEED_UP=8 godot --headless --path . res://tools/build_generated_campaign.tscn -- <primeira> <última>`
+  (cada tentativa joga a fase inteira; uma hora e pouco por fase difícil).
+- **Por que perdem:** o modelo do verificador (`CellStageSolver`) erra no
+  jogo real. Visto nas partidas: a Escada diagonal de verdade começa na
+  frente do corpo, não no começo da coluna, então os tijolos ficam
+  deslocados e às vezes prendem o boneco num vão ou batem no morro; quedas
+  e o Paraquedas dado só ao primeiro boneco também diferem. Próximo passo:
+  trazer o modelo da Escada diagonal (e das quedas) para meio bloco,
+  conferindo cada caso com `tests/test_campaign_level.tscn -- <fase>` e
+  `CAMPAIGN_TRACE=1` (posição do primeiro boneco a cada 2 s).
+- **Roguelike:** a fase só é conferida pelo modelo; o
+  `test_procedural_stages` ainda falha em 1 de 60 fases (semente 136066,
+  fase 21, A Cratera): nenhuma das 8 tentativas deu certo e a fase saiu
+  sem solução. Falta um último recurso melhor que "fase sem solução".
+- **Testes que passam** (rodados no fim): campanha, editor, editor das
+  fases com duas entradas, estado e fluxo da partida do roguelike, relíquias,
+  cliques reais com janela, e o resto da bateria rápida.
+
 ## Editor: coleções de fases e gerador (2 de novembro de 2026)
 
 - **Abrir** e **Salvar** (pergaminho e baú, para todos) pedem primeiro o
