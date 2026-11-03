@@ -45,7 +45,7 @@ func _ready() -> void:
 	_check(_has_session(run), "choosing a character starts stage 1 at once")
 	_check(run.state.troop == ([RoguelikeCharacters.MINER] as Array[StringName]), "with a troop of the chosen character")
 
-	for stage in RoguelikeRunState.STAGE_COUNT - 1:
+	for stage in RoguelikeRunState.stage_count() - 1:
 		run._on_stage_finished(run.state.troop.duplicate(), [] as Array[StringName])
 		await get_tree().process_frame
 		# Cleared without losses: four cards instead of three.

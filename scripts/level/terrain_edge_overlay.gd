@@ -100,7 +100,7 @@ func _record_grassy_surface() -> void:
 
 func _draw() -> void:
 	var cells := _terrain.get_used_cells_by_id(TerrainDestructible.TERRAIN_SOURCE_ID).filter(
-		func(cell: Vector2i) -> bool: return not _terrain.hidden_cells.has(cell))
+		func(cell: Vector2i) -> bool: return not _terrain.hidden_cells.has(cell) and not _terrain.self_drawn_cells.has(cell))
 	var edges: Array[Dictionary] = []
 	for cell in cells:
 		edges.append(_edges_of(cell))

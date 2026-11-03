@@ -222,7 +222,7 @@ func _test_relic_templates() -> void:
 
 func _test_stage_definitions_build() -> void:
 	for handmade in [false, true]:
-		for index in RoguelikeRunState.STAGE_COUNT:
+		for index in RoguelikeRunState.stage_count():
 			var state := RoguelikeRunState.new_run()
 			state.use_handmade_stages = handmade
 			state.stage_index = index

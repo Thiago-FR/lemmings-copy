@@ -25,19 +25,24 @@ const STATION_INSIDE := &"station_inside"
 ## The stage's border, which nothing breaks: dark bedrock with iron bolts,
 ## so it reads as different from the ground.
 const BORDER := &"border"
+## A wooden crate in a ship's hold: earth for the lemmings (dug and bashed).
+const CRATE := &"crate"
+## Skins that draw their own edges (no grass or soil edge over them).
+const SELF_DRAWN: Array[StringName] = [LEAVES, ALIEN_LEAVES, CRATE]
 
 const OUTLINE := Color(0.08, 0.05, 0.06)
 ## Per skin: base, dark, light, accent.
 const COLOURS := {
 	BARK: [Color(0.42, 0.26, 0.14), Color(0.28, 0.17, 0.09), Color(0.55, 0.36, 0.20), Color(0.20, 0.12, 0.07)],
-	LEAVES: [Color(0.22, 0.52, 0.22), Color(0.13, 0.36, 0.15), Color(0.42, 0.72, 0.30), Color(0.60, 0.84, 0.36)],
+	LEAVES: [Color(0.20, 0.50, 0.26), Color(0.13, 0.37, 0.20), Color(0.28, 0.60, 0.32), Color(0.40, 0.72, 0.38)],
 	WALL: [Color(0.44, 0.42, 0.46), Color(0.30, 0.29, 0.33), Color(0.56, 0.54, 0.58), Color(1.0, 0.86, 0.48)],
 	HULL: [Color(0.52, 0.56, 0.62), Color(0.34, 0.37, 0.44), Color(0.72, 0.76, 0.82), Color(0.36, 0.86, 1.0)],
-	ALIEN_LEAVES: [Color(0.62, 0.26, 0.66), Color(0.42, 0.14, 0.48), Color(0.86, 0.46, 0.86), Color(0.40, 1.0, 0.86)],
+	ALIEN_LEAVES: [Color(0.58, 0.26, 0.62), Color(0.44, 0.17, 0.50), Color(0.70, 0.36, 0.74), Color(0.84, 0.52, 0.86)],
 	BORDER: [Color(0.18, 0.17, 0.20), Color(0.11, 0.10, 0.13), Color(0.28, 0.27, 0.31), Color(0.55, 0.52, 0.48)],
 	CAVE_WALL: [Color(0.17, 0.13, 0.11), Color(0.12, 0.09, 0.08), Color(0.22, 0.17, 0.14), Color(0.30, 0.24, 0.18)],
 	STATION_INSIDE: [Color(0.20, 0.23, 0.32), Color(0.15, 0.17, 0.25), Color(0.26, 0.30, 0.40), Color(0.40, 0.85, 1.0)],
 	ICE_WALL: [Color(0.28, 0.38, 0.52), Color(0.20, 0.28, 0.40), Color(0.38, 0.50, 0.64), Color(0.62, 0.80, 0.92)],
+	CRATE: [Color(0.62, 0.44, 0.24), Color(0.44, 0.30, 0.16), Color(0.76, 0.58, 0.34), Color(0.30, 0.20, 0.10)],
 	ALIEN_STEM: [Color(0.24, 0.48, 0.52), Color(0.14, 0.32, 0.36), Color(0.38, 0.66, 0.68), Color(0.10, 0.20, 0.22)],
 }
 
@@ -56,15 +61,21 @@ var area := Rect2i()
 
 ## How close open sky may be before air stops counting as inside.
 const INSIDE_MARGIN := 2
+## Rock further up than this is not a ceiling: the air under a floating
+## island or a high ledge is outside.
+const MAX_CEILING := 8
+## This much rock above makes any air underground.
+const DEEP_ROCK := 6
+enum Ceiling { NONE, CLOSE, DEEP }
+## How far to each side a cave's walls may be.
+const SIDE_REACH := 10
 ## Recomputed this far around a change (a change above can uncover cells
 ## below it in the same column; the margin reaches sideways).
-const INSIDE_REACH := INSIDE_MARGIN + 1
+const INSIDE_REACH := SIDE_REACH + 1
 
 var _terrain: TerrainDestructible
 ## cell -> true for air that gets the inside wall.
 var _inside: Dictionary = {}
-## column -> the first row of rock from the top.
-var _top_rock: Dictionary = {}
 var _back: Node2D
 ## Behind the portals (-1).
 const BACKDROP_Z := -2
@@ -130,36 +141,61 @@ func _draw() -> void:
 				_draw_outline(cell, rect)
 			BORDER:
 				_draw_border(cell, rect, COLOURS[BORDER])
+			CRATE:
+				_draw_crate(rect, COLOURS[CRATE])
 
 
 ## Works out which air is enclosed, for the columns from..to: air with
-## rock somewhere above it, and no open-sky air (air with nothing above it)
+## rock not far above it (a ceiling), and no open-sky air (air with nothing above it)
 ## within INSIDE_MARGIN cells, so a cave mouth shows a lip of sky and the
 ## wall starts just inside, however wide the cave.
 func _find_inside(from: int, to: int) -> void:
 	var first := maxi(from, area.position.x)
 	var last := mini(to, area.end.x - 1)
-	for column in range(maxi(first - INSIDE_MARGIN, area.position.x), mini(last + INSIDE_MARGIN, area.end.x - 1) + 1):
-		_top_rock[column] = _first_rock_row(column)
 	for column in range(first, last + 1):
 		for row in range(area.position.y, area.end.y):
 			var cell := Vector2i(column, row)
 			_inside.erase(cell)
-			if _is_rock(cell) or not _is_covered(cell):
+			if _is_rock(cell):
+				continue
+			var ceiling := _ceiling_over(cell)
+			if ceiling == Ceiling.NONE or ceiling == Ceiling.CLOSE and not _walled_sideways(cell):
 				continue
 			if not _open_sky_near(cell):
 				_inside[cell] = true
 
 
-func _first_rock_row(column: int) -> int:
-	for row in range(area.position.y, area.end.y):
-		if _is_rock(Vector2i(column, row)):
-			return row
-	return area.end.y
+## Rock to the left and to the right, not too far, in the cell's row: a
+## cave has walls; the air under an island in the sky does not.
+func _walled_sideways(cell: Vector2i) -> bool:
+	for step in [-1, 1]:
+		var found := false
+		for offset in range(1, SIDE_REACH + 1):
+			if _is_rock(cell + Vector2i(step * offset, 0)):
+				found = true
+				break
+		if not found:
+			return false
+	return true
+
+
+## What is over the cell: nothing (open sky, or a thin island far up), rock
+## close above, or a lot of rock (deep underground, however high or wide
+## the cavern).
+func _ceiling_over(cell: Vector2i) -> Ceiling:
+	var rock_above := 0
+	var close := false
+	for row in range(cell.y - 1, area.position.y - 1, -1):
+		if _is_rock(Vector2i(cell.x, row)):
+			close = close or cell.y - row <= MAX_CEILING
+			rock_above += 1
+			if rock_above >= DEEP_ROCK:
+				return Ceiling.DEEP
+	return Ceiling.CLOSE if close else Ceiling.NONE
 
 
 func _is_covered(cell: Vector2i) -> bool:
-	return cell.y > int(_top_rock.get(cell.x, area.end.y))
+	return _ceiling_over(cell) != Ceiling.NONE
 
 
 func _open_sky_near(cell: Vector2i) -> bool:
@@ -176,7 +212,7 @@ func _open_sky_near(cell: Vector2i) -> bool:
 ## Terrain that counts as rock around air: not a ladder, not a tree's
 ## leaves (the air under a crown is outside).
 func _is_rock(cell: Vector2i) -> bool:
-	return _terrain.get_cell_source_id(cell) == TerrainDestructible.TERRAIN_SOURCE_ID and skins.get(cell) != LEAVES
+	return _terrain.get_cell_source_id(cell) == TerrainDestructible.TERRAIN_SOURCE_ID and skins.get(cell) != LEAVES and skins.get(cell) != ALIEN_LEAVES
 
 
 ## Dark rock with a few cracks and lumps, flat so the walls in front read.
@@ -212,37 +248,57 @@ func _draw_bark(cell: Vector2i, rect: Rect2, colours: Array) -> void:
 		draw_circle(rect.get_center() + Vector2(0, 4), 3.5, colours[3])
 
 
-## A square block of foliage, for the crowns a lemming can climb on, in
-## the style of block games: an 8 x 8 grid of big pixels in a few greens,
-## some darker ones like gaps between the leaves, a little lighter on the
-## crown's top, a thin darker line where the block meets the air.
+## A square block of foliage, for the crowns a lemming can climb on, drawn
+## flat like the background pines: one green, a few soft clumps a shade
+## lighter above and darker below, and where the crown meets the air a dark
+## outline with a lit band on top and a shaded band underneath, so the
+## crown reads as one shape against the sky.
 func _draw_leaves(cell: Vector2i, rect: Rect2, colours: Array) -> void:
-	const PIXEL := 4.0
-	var air_above := _terrain.get_cell_source_id(cell + Vector2i.UP) == -1
-	for row in 8:
-		for column in 8:
-			var roll := _hash(cell, row * 8 + column) % 100
-			var shade: Color = colours[0]
-			if roll < 22:
-				shade = colours[1]
-			elif roll < 30:
-				shade = colours[1].darkened(0.35)
-			elif roll < 50:
-				shade = colours[2]
-			if air_above and row < 2 and roll >= 22:
-				shade = shade.lightened(0.12)
-			draw_rect(Rect2(rect.position + Vector2(column, row) * PIXEL, Vector2(PIXEL, PIXEL)), shade)
-	for side in _exposed_sides(cell):
-		var edge: Color = (colours[1] as Color).darkened(0.3)
+	const LINE := 2.0
+	draw_rect(rect, colours[0])
+	# Soft clumps on an 8 px grid: lighter in the upper half, darker below.
+	for clump in 3:
+		var at := Vector2(float(_hash(cell, 50 + clump) % 3) * 8.0 + 2.0, float(_hash(cell, 60 + clump) % 3) * 8.0 + 2.0)
+		var shade: Color = colours[2] if at.y < 12.0 else colours[1]
+		if _hash(cell, 70 + clump) % 3 == 0:
+			continue
+		draw_rect(Rect2(rect.position + at, Vector2(12, 6)), shade)
+		draw_rect(Rect2(rect.position + at + Vector2(2, -2), Vector2(8, 2)), shade)
+	var sides := _exposed_sides(cell)
+	if Vector2i.UP in sides:
+		draw_rect(Rect2(rect.position + Vector2(0, LINE), Vector2(rect.size.x, 5)), colours[2])
+		draw_rect(Rect2(rect.position + Vector2(4, LINE + 1), Vector2(rect.size.x - 12, 2)), colours[3])
+	if Vector2i.DOWN in sides:
+		draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - LINE - 6), Vector2(rect.size.x, 6)), colours[1])
+	if Vector2i.LEFT in sides:
+		draw_rect(Rect2(rect.position + Vector2(LINE, 0), Vector2(3, rect.size.y)), colours[2])
+	if Vector2i.RIGHT in sides:
+		draw_rect(Rect2(rect.position + Vector2(rect.size.x - LINE - 4, 0), Vector2(4, rect.size.y)), colours[1])
+	for side in sides:
 		match side:
 			Vector2i.UP:
-				draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), edge)
+				draw_rect(Rect2(rect.position, Vector2(rect.size.x, LINE)), OUTLINE)
 			Vector2i.DOWN:
-				draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - 2.0), Vector2(rect.size.x, 2.0)), edge)
+				draw_rect(Rect2(rect.position + Vector2(0, rect.size.y - LINE), Vector2(rect.size.x, LINE)), OUTLINE)
 			Vector2i.LEFT:
-				draw_rect(Rect2(rect.position, Vector2(1.0, rect.size.y)), edge)
+				draw_rect(Rect2(rect.position, Vector2(LINE, rect.size.y)), OUTLINE)
 			Vector2i.RIGHT:
-				draw_rect(Rect2(rect.position + Vector2(rect.size.x - 1.0, 0), Vector2(1.0, rect.size.y)), edge)
+				draw_rect(Rect2(rect.position + Vector2(rect.size.x - LINE, 0), Vector2(LINE, rect.size.y)), OUTLINE)
+
+
+## Planks with a frame and a cross brace.
+func _draw_crate(rect: Rect2, colours: Array) -> void:
+	var box := rect.grow(-1.0)
+	draw_rect(box, OUTLINE)
+	draw_rect(box.grow(-2.0), colours[0])
+	for plank in range(1, 3):
+		draw_rect(Rect2(box.position.x + 2, box.position.y + plank * 10.0, box.size.x - 4, 1.5), colours[1])
+	draw_line(box.position + Vector2(5, 5), box.end - Vector2(5, 5), colours[2], 3.0)
+	draw_line(Vector2(box.end.x - 5, box.position.y + 5), Vector2(box.position.x + 5, box.end.y - 5), colours[1], 3.0)
+	draw_rect(Rect2(box.position + Vector2(2, 2), Vector2(box.size.x - 4, 4)), colours[3])
+	draw_rect(Rect2(box.position + Vector2(2, box.size.y - 6), Vector2(box.size.x - 4, 4)), colours[3])
+	draw_rect(Rect2(box.position + Vector2(2, 2), Vector2(4, box.size.y - 4)), colours[3])
+	draw_rect(Rect2(box.position + Vector2(box.size.x - 6, 2), Vector2(4, box.size.y - 4)), colours[3])
 
 
 ## Concrete wall with a lit or dark window in most cells.

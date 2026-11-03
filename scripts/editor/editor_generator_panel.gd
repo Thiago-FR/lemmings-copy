@@ -21,7 +21,7 @@ const SIZES: Array = [
 ]
 const TIERS := ["Fácil", "Médio", "Difícil"]
 
-var _biome: StringName = BiomeStageGenerator.BIOMES[0].id
+var _biome: StringName = BiomeStageGenerator.biomes()[0].id
 var _size: Vector2i = SIZES[0][1]
 var _tier := 0
 var _size_label: Label
@@ -65,7 +65,7 @@ func _ready() -> void:
 	biomes.add_theme_constant_override("v_separation", 6)
 	column.add_child(biomes)
 	var biome_group := ButtonGroup.new()
-	for biome in BiomeStageGenerator.BIOMES:
+	for biome in BiomeStageGenerator.biomes():
 		var button := UiStyle.make_text_button(biome.name)
 		button.name = "Biome_%s" % biome.id
 		button.custom_minimum_size = BIOME_BUTTON_SIZE

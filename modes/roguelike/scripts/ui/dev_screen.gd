@@ -124,7 +124,7 @@ func _build_troop_section(parent: VBoxContainer) -> void:
 func _build_stage_section(parent: VBoxContainer) -> void:
 	_add_section_title(parent, "Fase")
 	var row := _add_row(parent)
-	for index in RoguelikeRunState.STAGE_COUNT:
+	for index in RoguelikeRunState.stage_count():
 		row.add_child(_make_text_button("Fase %d" % (index + 1), "Stage_%d" % (index + 1), stage_chosen.emit.bind(index)))
 	row.add_child(VSeparator.new())
 	# Which stages the run plays: generated from the run's seed, or the five

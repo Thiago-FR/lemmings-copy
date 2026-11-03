@@ -1,7 +1,7 @@
 class_name RoguelikeRunController
 extends Node
 ## The roguelike mode's entry point (roguelike_run.tscn): plays a run of
-## RoguelikeRunState.STAGE_COUNT stages in one scene. A run opens on the
+## RoguelikeRunState.stage_count() stages in one scene. A run opens on the
 ## character screen, then goes stage, reward cards, shop, next stage, and
 ## ends on the run-end screen; during a stage a RoguelikeStageSession runs
 ## the level. There is no stage intro screen any more: the user found its
@@ -170,7 +170,7 @@ func _show_run_end(won: bool, summary: RoguelikeStageSummary) -> void:
 	var deposited := state.coins
 	profile.deposit(deposited)
 	state.coins = 0
-	var rank := profile.record_run(state.score, state.character_id, mini(state.stage_index + 1, RoguelikeRunState.STAGE_COUNT), won)
+	var rank := profile.record_run(state.score, state.character_id, mini(state.stage_index + 1, RoguelikeRunState.stage_count()), won)
 	var screen := RoguelikeRunEndScreen.new(state, won, summary, deposited, profile.vault_coins, rank)
 	screen.play_again_requested.connect(start_run)
 	screen.ranking_requested.connect(_show_ranking.bind(rank, screen))

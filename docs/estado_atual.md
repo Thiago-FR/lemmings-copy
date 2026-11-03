@@ -1200,20 +1200,32 @@ primeira passada reprovou tudo (prints em `prints/bugsambientes/`): copas
 redondas "de tinta espirrada" e "babaloo", fresta entre tronco e copa, fases
 retas, linha de concreto solta na mina, prédios baixos, fundo do espaço sem
 graça. Gostou da pirâmide (`bom1`), da caverna de cristal e dos pinheiros,
-palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
-(`RoguelikeRunState.STAGE_COUNT = BiomeStageGenerator.STAGE_COUNT`).
+palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem uma fase
+para cada fase de cada ambiente, hoje **30**
+(`RoguelikeRunState.stage_count()` = `BiomeStageGenerator.stage_count()`).
+
+**Cada ambiente é um arquivo** em `scripts/procedural/biomes/` (pedido do
+usuário: incluir um tema novo sem mexer nos outros). O arquivo estende
+`StageBiome` (`scripts/procedural/stage_biome.gd`), diz em `_init` o `id`, o
+nome, os nomes das fases (quantas quiser), `shapes`, `routes`, `order` (a
+posição na partida; os atuais vão de 10 a 100, deixando espaço entre eles),
+`walled` e `inside_wall`, e monta a fase em `build(g)` com as ferramentas do
+gerador (`g.make_relief`, `g.carve_caves`, `g.fill_cells`, `g.add_need`,
+`g.spawn_cell`, `g.exit_cell`...). O gerador acha os arquivos sozinho
+(`BiomeStageGenerator.biomes()`); a partida, o editor e as prints passam a
+incluir o ambiente novo sem mais nada.
 
 - `BiomeStageGenerator` (`scripts/procedural/biome_stage_generator.gd`, no
-  núcleo): 10 ambientes, 3 fases cada (Prado, Floresta, Deserto, Mina,
+  núcleo, com as ferramentas comuns): 10 ambientes, 3 fases cada (Prado, Floresta, Deserto, Mina,
   Caverna de Cristal, Geleira, Vulcão, Cidade, Outro Planeta, Espaço). Cada
   fase tem:
   - **tamanho que cresce** com a fase (`stage_size`): a 1ª cabe numa tela
     (56x30 blocos); a última é `GROWTH_AT_LAST_STAGE` (3,6) vezes maior no
     lado comprido. **Formato** comprida (`WIDE`), alta (`TALL`) ou os dois
-    (`BOTH`), escolhido por ambiente e fase (`BIOMES[...].shapes`);
+    (`BOTH`), escolhido por ambiente e fase (`StageBiome.shapes`);
   - um **caminho**: atravessar (`TRAVERSE`), **subir** até uma saída lá em
     cima (`ASCEND`) ou descer até o fundo (`DESCEND`) (`routes`);
-  - **relevo** (`_relief`): morros que se anda (1 bloco por coluna) e, de vez
+  - **relevo** (`make_relief`): morros que se anda (1 bloco por coluna) e, de vez
     em quando, paredões de 2 a 5 blocos que pedem ferramenta; ravinas;
     **subsolo** de cavernas em quase todos os ambientes, com buracos da
     superfície até elas e a parede da caverna desenhada atrás do ar;
@@ -1226,9 +1238,13 @@ palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
     andaimes** (plataformas de madeira e algumas escadas já montadas; a
     saída no telhado mais alto) e metrô sob a rua, ilhas flutuantes,
     módulos de estação em várias alturas.
-- **Copas para subir** no estilo de jogos de blocos (grade 8x8 de
-  "pixels" em tons de verde com buracos escuros; o usuário achou as
-  anteriores parecidas com pisca-pisca). Os enfeites não nascem perto delas.
+- **Copas para subir** desenhadas **chapadas como os pinheiros de fundo**:
+  um verde só, algumas manchas um tom acima ou abaixo, e na borda com o ar
+  contorno escuro, faixa clara em cima e sombra embaixo e à direita. O
+  usuário reprovou o contraste da grade 8x8 de "pixels" (granulada demais).
+  As células de folha e de caixote não recebem grama nem pedrinhas da terra
+  (`TerrainDestructible.self_drawn_cells`, `TerrainSkin.SELF_DRAWN`). Os
+  enfeites não nascem perto delas.
 - **Saída das fases de descida** numa câmara no fundo, à direita
   (`_bottom_chamber`). As paredes de caverna e os troncos ficam numa camada
   própria atrás dos portais (z -2): antes cobriam o portal de saída, que é
@@ -1237,11 +1253,15 @@ palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
   estreitas em cima, mais largas no meio, um pouco para dentro embaixo, às
   vezes sem uma ponta; o usuário reprovou as copas retangulares.
 - **Fundo de caverna segue os blocos** (`TerrainSkin.inside_wall`, calculado
-  do terreno, não pintado pelo gerador): ar com rocha em cima e sem céu
-  aberto a até 2 blocos ganha a parede; a boca da caverna mostra um pouco de
-  céu. Recalculado perto de cada mudança, então um túnel cavado também ganha
-  parede. Antes a parede pintada saía da caverna como um retângulo solto
-  (prints `bug7`, `bug9`).
+  do terreno, não pintado pelo gerador). Um ar ganha a parede quando tem
+  **teto** e não há céu aberto a até 2 blocos (a boca da caverna mostra um
+  pouco de céu). Teto é: muita rocha em cima (6 blocos ou mais, subsolo
+  fundo, qualquer altura ou largura de galeria), ou rocha perto em cima (até
+  8 blocos) com rocha dos dois lados na linha (até 10 blocos). Folhas
+  (verdes e roxas) e escadas não são rocha. Assim o ar sob uma ilha
+  flutuante ou sob uma copa fica sem fundo (print `bugsambientes/bug11`:
+  colunas escuras sob as ilhas do planeta). Recalculado perto de cada
+  mudança, então um túnel cavado também ganha parede.
 - **Espaço é uma nave** (o usuário achou os módulos soltos bizarros): casco
   comprido com motores atrás e o nariz à direita, conveses a cada 6 blocos
   ligados por poços (alguns com escada, os outros para escalar ou
@@ -1249,6 +1269,19 @@ palmeiras e cogumelos como **enfeite de fundo**. O roguelike tem **30 fases**
   britadeira), escotilhas no teto para andar por fora do casco, asteroides
   em volta. A saída fica na ponte (nariz) ou, na fase de subida, em cima do
   casco.
+- **Salas da nave** (`RoomDecor`, `scripts/level/room_decor.gd`, móveis
+  desenhados na parede do fundo, não sólidos): cada compartimento entre duas
+  anteparas e dois conveses ganha um uso. Atrás, a **sala de máquinas**
+  (reatores com núcleo pulsando, canos, faixas de alerta). No nariz, na
+  altura da janela, a **ponte** (janela de estrelas, consoles piscando,
+  cadeiras). No meio, sorteadas sem repetir lado a lado nem uma sobre a
+  outra: **refeitório** (mesas, banquinhos, pratos, máquina de comida),
+  **dormitório** (beliches, armários), **laboratório** (tanques com bolhas
+  subindo, bancada com frascos, monitor), **estufa** (prateleiras de plantas
+  sob luz violeta), **porão de carga** (estantes, barris e **caixotes de
+  verdade** no chão, 1 bloco, dá para subir ou cavar: `TerrainSkin.CRATE`) e
+  **enfermaria** (cama, monitor cardíaco, armário com cruz). Lâmpadas no
+  teto de todas. `MazeStageData.rooms` leva as salas para a fase.
 - (Substituído pela nave) **Módulos do espaço** viraram salas (8 blocos de altura, portinhola de 3
   em cada lado, parede interna atrás), em fileiras que não se sobrepõem e
   com alturas variando.

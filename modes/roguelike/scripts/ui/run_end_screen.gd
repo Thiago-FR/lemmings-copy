@@ -46,7 +46,7 @@ func _init(state: RoguelikeRunState, won: bool, summary: RoguelikeStageSummary, 
 	stats.add_theme_constant_override("v_separation", STATS_SEPARATION)
 	stats.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	content.add_child(stats)
-	_add_stat(stats, "give_up", "Fase alcançada", "%d de %d" % [mini(state.stage_index + 1, RoguelikeRunState.STAGE_COUNT), RoguelikeRunState.STAGE_COUNT])
+	_add_stat(stats, "give_up", "Fase alcançada", "%d de %d" % [mini(state.stage_index + 1, RoguelikeRunState.stage_count()), RoguelikeRunState.stage_count()])
 	_add_stat(stats, "hud_saved", "Bonecos salvos na run", str(state.lemmings_saved_total))
 	if won:
 		_add_stat(stats, "hud_troop", "Chegaram ao fim", str(state.troop.size()))

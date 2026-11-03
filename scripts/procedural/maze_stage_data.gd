@@ -45,6 +45,8 @@ var inside_wall: StringName = &""
 ## Scenery trees painted behind the terrain (TreeArt, BackgroundDecor):
 ## not solid, no items.
 var decor_trees: Array[Dictionary] = []
+## Furnished rooms painted on their back wall (RoomDecor): {"kind", "rect"}.
+var rooms: Array[Dictionary] = []
 ## Cells nothing breaks (the border), see TerrainDestructible.
 var unbreakable: Dictionary = {}
 ## The entrance releases lemmings walking left.
@@ -94,7 +96,15 @@ func paint_onto(terrain: TerrainDestructible) -> void:
 		skin.backdrop = backdrop
 		skin.inside_wall = inside_wall
 		skin.area = Rect2i(0, 0, columns, rows)
+		for cell: Vector2i in skins:
+			if skins[cell] in TerrainSkin.SELF_DRAWN:
+				terrain.self_drawn_cells[cell] = true
 		terrain.add_child(skin)
+	if not rooms.is_empty():
+		var furniture := RoomDecor.new()
+		furniture.name = "Rooms"
+		furniture.rooms = rooms
+		terrain.add_child(furniture)
 
 
 ## World position of the middle of a column, at the top of a floor row.

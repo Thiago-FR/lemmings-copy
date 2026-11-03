@@ -100,7 +100,7 @@ func _make_row(index: int, entry: Dictionary) -> PanelContainer:
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	reached.add_child(icon)
 	var stage := Label.new()
-	stage.text = "%d/%d" % [int(entry.get("stage", 1)), RoguelikeRunState.STAGE_COUNT]
+	stage.text = "%d/%d" % [int(entry.get("stage", 1)), RoguelikeRunState.stage_count()]
 	stage.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	reached.add_child(stage)
 	reached.tooltip_text = "Venceu a run" if won else "Fase alcançada"

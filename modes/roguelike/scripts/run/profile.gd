@@ -14,7 +14,7 @@ var vault_coins := 0
 var unlocked: Array[StringName] = []
 var discovered: Array[String] = []
 ## The best runs, best first: {"score", "character", "stage" (reached, 1 to
-## STAGE_COUNT), "won", "date" (YYYY-MM-DD)}. At most RANKING_SIZE.
+## stage_count()), "won", "date" (YYYY-MM-DD)}. At most RANKING_SIZE.
 var ranking: Array[Dictionary] = []
 
 const RANKING_SIZE := 10

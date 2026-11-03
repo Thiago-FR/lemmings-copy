@@ -19,12 +19,12 @@ func get_icon_id() -> String:
 
 
 func get_slot_count() -> int:
-	return RoguelikeRunState.STAGE_COUNT
+	return RoguelikeRunState.stage_count()
 
 
 func get_slot_name(index: int) -> String:
 	var biome := BiomeStageGenerator.biome_of(index)
-	var stage_name: String = biome.stages[index % BiomeStageGenerator.STAGES_PER_BIOME]
+	var stage_name: String = biome.stages[BiomeStageGenerator.tier_of(index)]
 	return "%s: %s%s" % [biome.name, stage_name, " (desenhada)" if FileAccess.file_exists(stage_path(index)) else ""]
 
 
@@ -88,6 +88,6 @@ static func override_maze(index: int) -> MazeStageData:
 			maze.item_spots.append({"column": floors[next].x, "row": floors[next].y, "kind": MazeLayout.SpotKind.TOOL, "tool_id": tool_id, "amount": 1, "required": false, "spot_index": maze.item_spots.size()})
 			next += 2
 	var biome := BiomeStageGenerator.biome_of(index)
-	maze.stage_name = biome.stages[index % BiomeStageGenerator.STAGES_PER_BIOME]
+	maze.stage_name = biome.stages[BiomeStageGenerator.tier_of(index)]
 	maze.suggested_time_seconds = 300
 	return maze

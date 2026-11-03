@@ -20,7 +20,7 @@ func _run() -> void:
 	var output_dir: String = args[0] if args.size() > 0 else OS.get_user_data_dir()
 	var seed_value := int(args[1]) if args.size() > 1 else 1
 	var first := int(args[2]) if args.size() > 2 else 1
-	var last := int(args[3]) if args.size() > 3 else RoguelikeRunState.STAGE_COUNT
+	var last := int(args[3]) if args.size() > 3 else RoguelikeRunState.stage_count()
 	DirAccess.make_dir_recursive_absolute(output_dir)
 	for number in range(first, last + 1):
 		var state := RoguelikeRunState.new()

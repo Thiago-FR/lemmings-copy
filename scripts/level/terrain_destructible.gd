@@ -83,6 +83,9 @@ const ATLAS_FILE := "terrain_atlas.png"
 ## Cells that stay solid but are not drawn: something else paints them (a
 ## tree's crown, see TerrainSkin). cell -> true.
 var hidden_cells: Dictionary = {}
+## Cells that something else draws whole, edges included (a tree's leaves,
+## a crate): the edge overlay leaves them alone, no grass, no pebbles.
+var self_drawn_cells: Dictionary = {}
 ## Cells nothing breaks: no tool, no explosive (a stage's border, so no one
 ## digs out of the map). cell -> true.
 var unbreakable_cells: Dictionary = {}

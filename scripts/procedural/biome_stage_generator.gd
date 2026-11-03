@@ -1,7 +1,9 @@
 class_name BiomeStageGenerator
 extends RefCounted
-## Stages shaped by where they happen: ten biomes in a fixed order (BIOMES),
-## STAGES_PER_BIOME stages each, so a player wants to see what comes next.
+## Stages shaped by where they happen. The biomes are scripts of their own
+## in BIOME_DIRECTORY (StageBiome), found there by themselves and played in
+## their order, each for as many stages as it names: adding a biome is
+## adding a file there, without touching the others.
 ##
 ## Every stage has:
 ## - a size that grows with the stage (stage_size: the first fits about one
@@ -9,59 +11,18 @@ extends RefCounted
 ##   long (WIDE), tall (TALL) or both (BOTH);
 ## - a way through: across (TRAVERSE), up to an exit high above (ASCEND) or
 ##   down to one deep below (DESCEND);
-## - relief: hills, cliffs too tall to walk up, ravines, and an underground
-##   of caves under the surface in most biomes, with the cave's wall drawn
-##   behind its air (TerrainSkin.CAVE_WALL);
-## - its biome's own pieces: square tree crowns to climb, a pyramid, a mine,
-##   skyscrapers with scaffolding, floating islands, station modules...
-## Scenery trees (pines, palms, mushrooms) stand behind the terrain and
-## carry nothing (BackgroundDecor). A border of bedrock nothing breaks walls
-## the stage in, except in space.
+## - its biome's ground and pieces, built with the toolkit below (relief,
+##   ravines, caves, trees, a pyramid, scaffolding, items for the obstacles).
+## Scenery trees stand behind the terrain and carry nothing
+## (BackgroundDecor). A border of bedrock nothing breaks walls the stage in
+## unless the biome says otherwise.
 ##
 ## The result is the core's plain MazeStageData. generate() makes a run's
 ## stage; generate_custom() makes any biome at any size (the editor).
 ##
 ## Not yet: checking a stage can be won, and recording its solution.
 
-const STAGES_PER_BIOME := 3
-const STAGE_COUNT := 30
-
-enum Shape { WIDE, TALL, BOTH }
-enum Route { TRAVERSE, ASCEND, DESCEND }
-
-## Fixed order. Per tier (stage within the biome): the shape and the route.
-const BIOMES: Array[Dictionary] = [
-	{"id": &"meadow", "name": "Prado", "kind": LevelEnvironment.Kind.SURFACE,
-		"stages": ["Campo Aberto", "Colinas Verdes", "Vale dos Ventos"],
-		"shapes": [Shape.WIDE, Shape.WIDE, Shape.BOTH], "routes": [Route.TRAVERSE, Route.TRAVERSE, Route.ASCEND]},
-	{"id": &"forest", "name": "Floresta", "kind": LevelEnvironment.Kind.FOREST,
-		"stages": ["Bosque Alto", "Copas Antigas", "Floresta Funda"],
-		"shapes": [Shape.WIDE, Shape.BOTH, Shape.BOTH], "routes": [Route.TRAVERSE, Route.ASCEND, Route.DESCEND]},
-	{"id": &"desert", "name": "Deserto", "kind": LevelEnvironment.Kind.DESERT,
-		"stages": ["Dunas Quentes", "Ruínas na Areia", "A Pirâmide"],
-		"shapes": [Shape.WIDE, Shape.BOTH, Shape.BOTH], "routes": [Route.TRAVERSE, Route.DESCEND, Route.ASCEND]},
-	{"id": &"mine", "name": "Mina", "kind": LevelEnvironment.Kind.SURFACE,
-		"stages": ["Boca da Mina", "Galerias de Carvão", "Fundo da Mina"],
-		"shapes": [Shape.TALL, Shape.BOTH, Shape.TALL], "routes": [Route.DESCEND, Route.DESCEND, Route.DESCEND]},
-	{"id": &"crystal", "name": "Caverna de Cristal", "kind": LevelEnvironment.Kind.CRYSTAL_CAVE,
-		"stages": ["Gruta Brilhante", "Salões de Cristal", "Coração da Caverna"],
-		"shapes": [Shape.BOTH, Shape.WIDE, Shape.BOTH], "routes": [Route.TRAVERSE, Route.TRAVERSE, Route.ASCEND]},
-	{"id": &"glacier", "name": "Geleira", "kind": LevelEnvironment.Kind.SNOWFIELD,
-		"stages": ["Fenda de Gelo", "Paredão Gelado", "O Cume"],
-		"shapes": [Shape.BOTH, Shape.TALL, Shape.TALL], "routes": [Route.ASCEND, Route.ASCEND, Route.ASCEND]},
-	{"id": &"volcano", "name": "Vulcão", "kind": LevelEnvironment.Kind.VOLCANO,
-		"stages": ["Encosta Negra", "Rios de Brasa", "A Cratera"],
-		"shapes": [Shape.WIDE, Shape.BOTH, Shape.TALL], "routes": [Route.TRAVERSE, Route.DESCEND, Route.ASCEND]},
-	{"id": &"city", "name": "Cidade", "kind": LevelEnvironment.Kind.CITY,
-		"stages": ["Telhados", "Becos e Pontes", "Arranha-céus"],
-		"shapes": [Shape.BOTH, Shape.TALL, Shape.TALL], "routes": [Route.ASCEND, Route.ASCEND, Route.ASCEND]},
-	{"id": &"planet", "name": "Outro Planeta", "kind": LevelEnvironment.Kind.ALIEN_PLANET,
-		"stages": ["Pouso", "Crateras", "Ilhas Flutuantes"],
-		"shapes": [Shape.WIDE, Shape.BOTH, Shape.BOTH], "routes": [Route.TRAVERSE, Route.DESCEND, Route.ASCEND]},
-	{"id": &"space", "name": "Espaço", "kind": LevelEnvironment.Kind.SPACE,
-		"stages": ["Estação", "Cinturão de Asteroides", "Última Doca"],
-		"shapes": [Shape.WIDE, Shape.BOTH, Shape.BOTH], "routes": [Route.TRAVERSE, Route.ASCEND, Route.TRAVERSE]},
-]
+const BIOME_DIRECTORY := "res://scripts/procedural/biomes/"
 
 ## The first stage: about one screen at 1080p.
 const BASE_SIZE := Vector2i(56, 30)
@@ -70,72 +31,125 @@ const GROWTH_AT_LAST_STAGE := 3.6
 ## A tall stage is never narrower than this, nor a long one lower.
 const MIN_SIZE := Vector2i(40, 26)
 
-const EMPTY := MazeLayout.EMPTY
-const EARTH := MazeLayout.EARTH
-const CONCRETE := MazeLayout.CONCRETE
-## Rows of air a lemming needs over the floor it walks on.
-const HEADROOM := 2
-## Two columns of bedrock at each side.
-const BORDER := 2
+const EMPTY := StageBiome.EMPTY
+const EARTH := StageBiome.EARTH
+const CONCRETE := StageBiome.CONCRETE
+const HEADROOM := StageBiome.HEADROOM
+const BORDER := StageBiome.BORDER
 
-var _rng := RandomNumberGenerator.new()
+## The biomes found in BIOME_DIRECTORY, in their order (filled on first use).
+static var _biomes: Array[StageBiome] = []
+
+var rng := RandomNumberGenerator.new()
 var _noise := FastNoiseLite.new()
-var _columns := 64
-var _rows := 32
+var stage_columns := 64
+var stage_rows := 32
 var _cells := PackedByteArray()
-var _skins := {}
-var _backdrop := {}
-var _ladders: Array[Vector2i] = []
+var cell_skins := {}
+var backdrop_skins := {}
+var ladder_cells: Array[Vector2i] = []
 var _bricks: Array[Rect2] = []
 var _spots: Array[Dictionary] = []
 ## Tools the obstacles call for, with each obstacle's column (its item goes
 ## somewhere before it).
 var _needs: Array[Dictionary] = []
 var _decor: Array[Dictionary] = []
-var _climb_trees: Array[Vector2i] = []
+## Furnished rooms (RoomDecor): {"kind", "rect"}.
+var furnished_rooms: Array[Dictionary] = []
+var climb_tree_tops: Array[Vector2i] = []
 var _unbreakable := {}
 ## 0 to 1: how hard, over the whole run (or as the editor asks).
-var _difficulty := 0.0
-var _tier := 0
-var _route := Route.TRAVERSE
-var _spawn := Vector2i.ZERO
-var _exit := Vector2i.ZERO
+var stage_difficulty := 0.0
+var stage_tier := 0
+var stage_route := StageBiome.Route.TRAVERSE
+var spawn_cell := Vector2i.ZERO
+var exit_cell := Vector2i.ZERO
 
 
-static func biome_of(stage_index: int) -> Dictionary:
-	return BIOMES[clampi(stage_index / STAGES_PER_BIOME, 0, BIOMES.size() - 1)]
+## Every biome, in the order a run goes through them.
+static func biomes() -> Array[StageBiome]:
+	if _biomes.is_empty():
+		_biomes = _find_biomes()
+	return _biomes
 
 
-static func biome_by_id(biome_id: StringName) -> Dictionary:
-	for biome in BIOMES:
+static func _find_biomes() -> Array[StageBiome]:
+	var found: Array[StageBiome] = []
+	for file in DirAccess.get_files_at(BIOME_DIRECTORY):
+		# Exported games list scripts as .gd.remap or .gdc; load() takes .gd.
+		var script_file := file.trim_suffix(".remap")
+		if script_file.ends_with(".gdc"):
+			script_file = script_file.trim_suffix(".gdc") + ".gd"
+		if not script_file.ends_with(".gd"):
+			continue
+		var script := load(BIOME_DIRECTORY.path_join(script_file)) as GDScript
+		var biome := script.new() as StageBiome if script != null else null
+		if biome == null or biome.stages.is_empty():
+			push_error("%s is not a StageBiome with stages" % file)
+			continue
+		found.append(biome)
+	found.sort_custom(func(a: StageBiome, b: StageBiome) -> bool: return a.order < b.order)
+	assert(not found.is_empty(), "No biome in " + BIOME_DIRECTORY)
+	return found
+
+
+## How many stages a run has: every stage of every biome.
+static func stage_count() -> int:
+	var count := 0
+	for biome in biomes():
+		count += biome.stages.size()
+	return count
+
+
+static func biome_of(stage_index: int) -> StageBiome:
+	var index := maxi(stage_index, 0)
+	for biome in biomes():
+		if index < biome.stages.size():
+			return biome
+		index -= biome.stages.size()
+	return biomes().back()
+
+
+## Which of its biome's stages a run's stage is (0 for the first).
+static func tier_of(stage_index: int) -> int:
+	var index := maxi(stage_index, 0)
+	for biome in biomes():
+		if index < biome.stages.size():
+			return index
+		index -= biome.stages.size()
+	return biomes().back().stages.size() - 1
+
+
+static func biome_by_id(biome_id: StringName) -> StageBiome:
+	for biome in biomes():
 		if biome.id == biome_id:
 			return biome
-	return BIOMES[0]
+	return biomes()[0]
 
 
 ## Size of a run's stage: bigger with every stage, along the long side for a
 ## long or a tall stage, along both (less on each) for one that is both.
-static func stage_size(stage_index: int, shape: Shape) -> Vector2i:
-	var growth := 1.0 + (GROWTH_AT_LAST_STAGE - 1.0) * clampf(float(stage_index) / float(STAGE_COUNT - 1), 0.0, 1.0)
+static func stage_size(stage_index: int, shape: StageBiome.Shape) -> Vector2i:
+	var growth := 1.0 + (GROWTH_AT_LAST_STAGE - 1.0) * clampf(float(stage_index) / float(maxi(stage_count() - 1, 1)), 0.0, 1.0)
 	var size := Vector2(BASE_SIZE)
 	match shape:
-		Shape.WIDE:
+		StageBiome.Shape.WIDE:
 			size.x *= growth
-		Shape.TALL:
+		StageBiome.Shape.TALL:
 			size = Vector2(BASE_SIZE.x * 0.8, BASE_SIZE.y * growth * 1.2)
-		Shape.BOTH:
+		StageBiome.Shape.BOTH:
 			size *= pow(growth, 0.65)
 	return Vector2i(maxi(roundi(size.x), MIN_SIZE.x), maxi(roundi(size.y), MIN_SIZE.y))
 
 
 ## A run's stage.
 static func generate(seed_value: int, stage_index: int) -> MazeStageData:
-	var index := clampi(stage_index, 0, STAGE_COUNT - 1)
+	var index := clampi(stage_index, 0, stage_count() - 1)
 	var biome := biome_of(index)
-	var tier := index % STAGES_PER_BIOME
+	var tier := tier_of(index)
 	var generator := BiomeStageGenerator.new()
 	var size := stage_size(index, biome.shapes[tier])
-	return generator._generate(hash("%d:%d" % [seed_value, index]), biome, tier, size, float(index) / float(STAGE_COUNT - 1))
+	return generator._generate(hash("%d:%d" % [seed_value, index]), biome, tier, size, float(index) / float(maxi(stage_count() - 1, 1)))
 
 
 ## Any biome at any size and difficulty (0 to 1), as its tier-th stage is
@@ -143,334 +157,30 @@ static func generate(seed_value: int, stage_index: int) -> MazeStageData:
 static func generate_custom(seed_value: int, biome_id: StringName, size: Vector2i, difficulty: float, tier: int = 1) -> MazeStageData:
 	var generator := BiomeStageGenerator.new()
 	var clamped := Vector2i(maxi(size.x, MIN_SIZE.x), maxi(size.y, MIN_SIZE.y))
-	return generator._generate(seed_value, biome_by_id(biome_id), clampi(tier, 0, STAGES_PER_BIOME - 1), clamped, clampf(difficulty, 0.0, 1.0))
+	var biome := biome_by_id(biome_id)
+	return generator._generate(seed_value, biome, clampi(tier, 0, biome.stages.size() - 1), clamped, clampf(difficulty, 0.0, 1.0))
 
 
-func _generate(seed_value: int, biome: Dictionary, tier: int, size: Vector2i, difficulty: float) -> MazeStageData:
-	_rng.seed = seed_value
-	_noise.seed = _rng.randi()
+func _generate(seed_value: int, biome: StageBiome, tier: int, size: Vector2i, difficulty: float) -> MazeStageData:
+	rng.seed = seed_value
+	_noise.seed = rng.randi()
 	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	_tier = tier
-	_route = biome.routes[tier]
-	_difficulty = difficulty
-	_columns = size.x
-	_rows = size.y
+	stage_tier = tier
+	stage_route = biome.routes[tier]
+	stage_difficulty = difficulty
+	stage_columns = size.x
+	stage_rows = size.y
 	_cells = PackedByteArray()
-	_cells.resize(_columns * _rows)
+	_cells.resize(stage_columns * stage_rows)
 	_cells.fill(EMPTY)
-	match biome.id:
-		&"meadow":
-			_build_meadow()
-		&"forest":
-			_build_forest()
-		&"desert":
-			_build_desert()
-		&"mine":
-			_build_mine()
-		&"crystal":
-			_build_crystal_cave()
-		&"glacier":
-			_build_glacier()
-		&"volcano":
-			_build_volcano()
-		&"city":
-			_build_city()
-		&"planet":
-			_build_planet()
-		&"space":
-			_build_space()
-	if biome.id != &"space":
+	biome.build(self)
+	if biome.walled:
 		_wall_in()
 	_place_tools()
 	return _to_data(biome)
 
 
-# --- Biomes --------------------------------------------------------------------
-
-## Hills with cliffs, ravines, a few square trees to climb, caves under the
-## ground from the second stage on.
-func _build_meadow() -> void:
-	var heights := _relief(0.78 if _route == Route.ASCEND else 0.62, 0.45 if _route == Route.ASCEND else 0.05, 4 + _tier * 2, 0.05, 0.10 + _difficulty * 0.2)
-	_ravines(heights, 1 + _tier, 3)
-	_fill_ground(heights, EARTH)
-	if _tier >= 1:
-		_caves(heights, 4, 0.18, TerrainSkin.CAVE_WALL)
-		_open_into_caves(heights, 1)
-	_rock_pockets(heights, 6, 0.55)
-	_plant_climb_trees(heights, 2 + _tier, true)
-	_plant_decor(heights, 2, [TreeArt.PINE])
-	_spawn_and_exit(heights)
-
-
-## Tall trees to climb, pines behind them, a ravine, and caves under the
-## forest floor.
-func _build_forest() -> void:
-	var heights := _relief(0.68, 0.10 if _route == Route.ASCEND else 0.0, 3 + _tier, 0.06, 0.08 + _difficulty * 0.15)
-	_ravines(heights, 1, 4 + _tier)
-	_fill_ground(heights, EARTH)
-	_caves(heights, 5, 0.12 + _tier * 0.05, TerrainSkin.CAVE_WALL)
-	_open_into_caves(heights, 1 + _tier)
-	_rock_pockets(heights, 7, 0.55)
-	_plant_climb_trees(heights, 4 + _tier * 2, _route != Route.ASCEND, true)
-	_plant_decor(heights, 6 + _tier * 2, [TreeArt.PINE])
-	_spawn_and_exit(heights)
-	if _route == Route.ASCEND and not _climb_trees.is_empty():
-		_exit = _climb_trees.reduce(func(best: Vector2i, top: Vector2i) -> Vector2i: return top if top.y < best.y else best)
-
-
-## Dunes, a wide pit, tombs under the sand, and a stepped pyramid that grows
-## stage by stage, the exit on its top in the last one.
-func _build_desert() -> void:
-	var heights := _relief(0.60, 0.0, 4 + _tier * 2, 0.03, 0.05)
-	_ravines(heights, 1, 4 + _tier)
-	_fill_ground(heights, EARTH)
-	_caves(heights, 6, 0.14 + _tier * 0.04, TerrainSkin.CAVE_WALL)
-	_open_into_caves(heights, 1)
-	_rock_pockets(heights, 5, 0.5)
-	_plant_decor(heights, 3 + _tier, [TreeArt.PALM])
-	var pyramid_top := _pyramid(heights, 4 + _tier * 2)
-	_spawn_and_exit(heights)
-	if _route == Route.ASCEND and pyramid_top.x >= 0:
-		_exit = pyramid_top
-
-
-## The way in is on the surface; the exit is at the bottom of the mine, down
-## through galleries, around rock that the shovel cannot cut.
-func _build_mine() -> void:
-	var heights := _relief(0.18, 0.0, 3, 0.07, 0.06)
-	_fill_ground(heights, EARTH)
-	_caves(heights, 4, 0.22 + _tier * 0.04, TerrainSkin.CAVE_WALL)
-	_open_into_caves(heights, 1)
-	_rock_pockets(heights, 3, 0.45 - _tier * 0.04)
-	_plant_decor(heights, 3, [TreeArt.PINE])
-	_spawn_and_exit(heights)
-	_need("digger", _spawn.x + 3)
-	_need("floater", _columns / 2)
-	_scatter_bonus(3)
-
-
-## A closed cavern of rounded halls and passages, crystal veins in the rock.
-func _build_crystal_cave() -> void:
-	_fill(0, 0, _columns - 1, _rows - 1, EARTH)
-	var heights := PackedInt32Array()
-	heights.resize(_columns)
-	heights.fill(2)
-	_caves(heights, 1, 0.34 + _tier * 0.02, &"")
-	_veins(5 + _tier * 3)
-	_spawn_and_exit(heights)
-	_need("basher", _columns / 3)
-	_need("ladder_vertical", _columns * 2 / 3)
-	_scatter_bonus(4)
-
-
-## From an ice cave at the bottom up a mountain of cliffs to the summit;
-## more ice caves inside it.
-func _build_glacier() -> void:
-	var heights := _relief(0.86, 0.72, 3, 0.06, 0.25 + _difficulty * 0.2)
-	_fill_ground(heights, EARTH)
-	_caves(heights, 4, 0.12 + _tier * 0.04, TerrainSkin.ICE_WALL)
-	_start_cave(heights, TerrainSkin.ICE_WALL)
-	_plant_decor(heights, 4 + _tier * 2, [TreeArt.SNOW_PINE])
-	_exit = _floor_near(_columns - BORDER - 4, heights)
-
-
-## Black slopes, chasms, lava tubes below; in the last stage a volcano to
-## climb with the exit on the crater's rim.
-func _build_volcano() -> void:
-	var heights: PackedInt32Array
-	if _route == Route.ASCEND:
-		heights = _volcano_cone()
-	else:
-		heights = _relief(0.55, 0.0, 6 + _tier * 2, 0.08, 0.2)
-		_ravines(heights, 2 + _tier, 3)
-	_fill_ground(heights, EARTH)
-	_caves(heights, 4, 0.16 + _tier * 0.04, TerrainSkin.CAVE_WALL)
-	_open_into_caves(heights, 1)
-	for column_index in 1 + _tier:
-		var at := _rng.randi_range(BORDER + 6, _columns - BORDER - 7)
-		if heights[at] < _rows:
-			_fill(at, heights[at] - 4, at, heights[at] - 1, CONCRETE)
-			_need("basher", at)
-	_spawn_and_exit(heights)
-
-
-## Towers far taller than a lemming can climb, with scaffolding up their
-## sides (some ladders already up, the rest to build), the street below and
-## a subway under it. The exit is on the tallest roof.
-func _build_city() -> void:
-	var street := _rows - maxi(6, _rows / 5)
-	_fill(0, street, _columns - 1, _rows - 1, EARTH)
-	_fill(0, street, _columns - 1, street, CONCRETE)
-	var heights := PackedInt32Array()
-	heights.resize(_columns)
-	heights.fill(street)
-	# The subway: a tunnel under the street, entered by stairs at one end.
-	var tunnel_top := street + 2
-	_fill(BORDER + 2, tunnel_top, _columns - BORDER - 3, tunnel_top + 2, EMPTY)
-	_fill(BORDER + 2, tunnel_top + 3, _columns - BORDER - 3, tunnel_top + 3, CONCRETE)
-	for column in range(BORDER + 2, _columns - BORDER - 2):
-		for row in range(tunnel_top, tunnel_top + 3):
-			_backdrop[Vector2i(column, row)] = TerrainSkin.CAVE_WALL
-	for step in 3:
-		_set_cell(BORDER + 3 + step, street, EMPTY)
-		_set_cell(BORDER + 3 + step, street + 1 + step, EMPTY)
-	var x := BORDER + 6
-	var tallest := Vector2i(-1, _rows)
-	while x < _columns - BORDER - 8:
-		var width := _rng.randi_range(6, 10)
-		var right := mini(x + width - 1, _columns - BORDER - 3)
-		var top := street - roundi((street - 4) * _rng.randf_range(0.35, 0.55 + _difficulty * 0.4))
-		_fill(x, top, right, street - 1, CONCRETE)
-		for row in range(top, street):
-			for column in range(x, right + 1):
-				_skins[Vector2i(column, row)] = TerrainSkin.WALL
-		_scaffold(x, right, top, street)
-		if top < tallest.y:
-			tallest = Vector2i((x + right) / 2, top)
-		x = right + _rng.randi_range(4, 7)
-	_spawn = Vector2i(BORDER + 3, street)
-	_exit = tallest if tallest.x >= 0 else Vector2i(_columns - 6, street)
-	_need("ladder_vertical", _columns / 3)
-	_need("builder", _columns / 2)
-	_scatter_bonus(3)
-
-
-## Purple hills with craters, caves, giant mushrooms behind and rocks
-## floating above; the exit up on the highest rock in the last stage.
-func _build_planet() -> void:
-	var heights := _relief(0.66, 0.0, 4 + _tier, 0.05, 0.1)
-	_fill_ground(heights, EARTH)
-	for crater in 2 + _tier:
-		var at := _rng.randi_range(BORDER + 10, _columns - BORDER - 11)
-		_carve_disc(Vector2(at, heights[at]), 3.5 + _rng.randf() * 2.5)
-		_need("builder", at - 3)
-	heights = _surface_heights()
-	_caves(heights, 5, 0.16 + _tier * 0.04, TerrainSkin.CAVE_WALL)
-	_open_into_caves(heights, 1)
-	_plant_decor(heights, 4, [TreeArt.MUSHROOM])
-	var islands: Array[Vector2i] = []
-	for island in 2 + _tier:
-		var centre := Vector2i(_rng.randi_range(BORDER + 8, _columns - BORDER - 9), _rng.randi_range(4, maxi(5, _rows / 3)))
-		_blob(centre, Vector2(4.5, 2.0), EARTH)
-		islands.append(centre)
-	_spawn_and_exit(_surface_heights())
-	if _route == Route.ASCEND:
-		islands.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
-		_exit = islands[0]
-		_need("ladder_vertical", _exit.x - 4)
-	for island in islands:
-		if island != _exit:
-			_spot(island.x, island.y, MazeLayout.SpotKind.BONUS)
-
-
-## A spaceship in the void: a long hull with the engines at the left and
-## the bridge in the nose at the right; inside, decks one above the other,
-## bulkheads with doors, shafts between the decks (some with a ladder up,
-## the rest to climb or build); hatches in the roof to walk out on the hull.
-## Asteroids drift around it. A fall outside is a fall into space.
-func _build_space() -> void:
-	var left := 4
-	var right := _columns - 6
-	var centre := _rows / 2
-	var half_height := clampi(_rows / 2 - 5, 6, 26)
-	var tops := PackedInt32Array()
-	var bottoms := PackedInt32Array()
-	tops.resize(_columns)
-	bottoms.resize(_columns)
-	tops.fill(-1)
-	# The hull's outline: full height along the body, tapering to the nose.
-	for column in range(left, right + 1):
-		var t := float(column - left) / float(right - left)
-		var height := half_height
-		if t > 0.72:
-			height = maxi(4, roundi(half_height * (1.0 - (t - 0.72) / 0.28 * 0.75)))
-		tops[column] = centre - height
-		bottoms[column] = centre + height
-		_fill(column, tops[column], column, tops[column] + 1, CONCRETE)
-		_fill(column, bottoms[column] - 1, column, bottoms[column], CONCRETE)
-	_fill(left, tops[left], left + 1, bottoms[left], CONCRETE)
-	_fill(right - 1, tops[right], right, bottoms[right], CONCRETE)
-	# The nose's slanted plating follows the outline column to column.
-	for column in range(left + 1, right + 1):
-		for row in range(mini(tops[column], tops[column - 1]), maxi(tops[column], tops[column - 1]) + 1):
-			_set_cell(column, row, CONCRETE)
-		for row in range(mini(bottoms[column], bottoms[column - 1]), maxi(bottoms[column], bottoms[column - 1]) + 1):
-			_set_cell(column, row, CONCRETE)
-	# Engines sticking out at the back.
-	for engine in [centre - half_height / 2, centre + half_height / 2]:
-		_fill(left - 3, engine - 1, left - 1, engine + 1, CONCRETE)
-	# Decks every 6 rows, with shafts between them.
-	var deck_rows: Array[int] = []
-	var deck := bottoms[left] - 1
-	while deck - 6 > tops[left] + 3:
-		deck -= 6
-		deck_rows.append(deck)
-		var from := left + 2
-		var to := right - 2
-		for column in range(from, to + 1):
-			if deck > tops[column] + 2 and deck < bottoms[column] - 2:
-				_set_cell(column, deck, CONCRETE)
-		for shaft in 1 + _tier:
-			var at := _rng.randi_range(from + 4, (left + right) / 2 + 6)
-			_set_cell(at, deck, EMPTY)
-			_set_cell(at + 1, deck, EMPTY)
-			if _rng.randf() < 0.5:
-				for row in range(deck - 1, deck + 6):
-					if _cell(at, row) == EMPTY:
-						_ladders.append(Vector2i(at, row))
-			else:
-				_need(["ladder_vertical", "builder"][_rng.randi_range(0, 1)], at)
-	# Bulkheads with a door on every deck, now and then one shut (to bash).
-	var bulkhead := left + _rng.randi_range(10, 14)
-	while bulkhead < right - 10:
-		for row in range(tops[bulkhead] + 2, bottoms[bulkhead] - 1):
-			if _cell(bulkhead, row) == EMPTY:
-				_set_cell(bulkhead, row, CONCRETE)
-		var floors := deck_rows.duplicate()
-		floors.append(bottoms[bulkhead] - 1)
-		for floor_row in floors:
-			if floor_row <= tops[bulkhead] + 3 or floor_row >= bottoms[bulkhead]:
-				continue
-			var shut := _rng.randf() < 0.2 + _tier * 0.1
-			for row in range(floor_row - 3, floor_row):
-				_set_cell(bulkhead, row, EARTH if shut else EMPTY)
-			if shut:
-				_need("basher", bulkhead)
-		bulkhead += _rng.randi_range(10, 15)
-	# Hatches in the roof, onto the hull.
-	for hatch in 1 + _tier:
-		var at := _rng.randi_range(left + 8, right - 12)
-		_set_cell(at, tops[at] + 1, EMPTY)
-		_set_cell(at + 1, tops[at] + 1, EMPTY)
-		_set_cell(at, tops[at], EMPTY)
-		_set_cell(at + 1, tops[at], EMPTY)
-		_need("ladder_vertical", at)
-	# The bridge: a window band in the nose.
-	for row in range(centre - 1, centre + 1):
-		_set_cell(right - 1, row, EMPTY)
-	for row in range(_rows):
-		for column in range(_columns):
-			if _cell(column, row) != EMPTY:
-				_skins[Vector2i(column, row)] = TerrainSkin.HULL
-	# Everything inside the hull is the ship's inner wall.
-	for column in range(left + 1, right):
-		for row in range(tops[column] + 2, bottoms[column] - 1):
-			if _cell(column, row) == EMPTY:
-				_backdrop[Vector2i(column, row)] = TerrainSkin.STATION_INSIDE
-	# Asteroids around the ship.
-	for rock in 4 + _tier * 2:
-		var at := Vector2i(_rng.randi_range(4, _columns - 5), _rng.randi_range(2, _rows - 3))
-		if at.y > tops[clampi(at.x, left, right)] - 3 and at.y < bottoms[clampi(at.x, left, right)] + 3 and at.x >= left - 4 and at.x <= right + 2:
-			continue
-		_blob(at, Vector2(2.4, 1.5), EARTH)
-	_spawn = Vector2i(left + 4, bottoms[left] - 1)
-	if _route == Route.ASCEND:
-		var top_column := (left + right) / 2
-		_exit = Vector2i(top_column, tops[top_column])
-	else:
-		_exit = Vector2i(right - 4, bottoms[right - 4] - 1)
-	_scatter_bonus(3)
-
+# --- Toolkit for the biomes (scripts/procedural/biomes) ----------------------
 
 # --- Relief ------------------------------------------------------------------------
 
@@ -479,24 +189,24 @@ func _build_space() -> void:
 ## much higher it ends at the right (negative: lower). Hills roll gently
 ## (one block per column at most, so the troop walks them), but now and
 ## then a cliff rises or drops two to five blocks: those need a tool.
-func _relief(base_share: float, slope: float, amplitude: int, frequency: float, cliff_chance: float) -> PackedInt32Array:
+func make_relief(base_share: float, slope: float, amplitude: int, frequency: float, cliff_chance: float) -> PackedInt32Array:
 	_noise.frequency = frequency
 	_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
 	_noise.fractal_octaves = 3
 	var heights := PackedInt32Array()
-	heights.resize(_columns)
+	heights.resize(stage_columns)
 	var previous := -1
-	for column in _columns:
-		var share := float(column) / float(_columns - 1)
-		var base := (base_share - slope * share) * _rows
-		var target := clampi(roundi(base + _noise.get_noise_1d(column * 1.0) * amplitude * 2.0), 4, _rows - 5)
+	for column in stage_columns:
+		var share := float(column) / float(stage_columns - 1)
+		var base := (base_share - slope * share) * stage_rows
+		var target := clampi(roundi(base + _noise.get_noise_1d(column * 1.0) * amplitude * 2.0), 4, stage_rows - 5)
 		if previous < 0:
 			previous = target
 		var difference := target - previous
-		if absi(difference) >= 2 and _rng.randf() < cliff_chance:
+		if absi(difference) >= 2 and rng.randf() < cliff_chance:
 			previous += clampi(difference, -5, 5)
 			if difference < 0:
-				_need(["ladder_vertical", "builder", "climber"][_rng.randi_range(0, 2)], column)
+				add_need(["ladder_vertical", "builder", "climber"][rng.randi_range(0, 2)], column)
 		else:
 			previous += clampi(difference, -1, 1)
 		heights[column] = previous
@@ -504,25 +214,25 @@ func _relief(base_share: float, slope: float, amplitude: int, frequency: float, 
 
 
 ## Gaps down to the bottom: falling in is the end.
-func _ravines(heights: PackedInt32Array, count: int, width: int) -> void:
+func cut_ravines(heights: PackedInt32Array, count: int, width: int) -> void:
 	for index in count:
-		var at := BORDER + 6 + (_columns - BORDER * 2 - 14) * (index + 1) / (count + 1) + _rng.randi_range(-2, 2)
-		for column in range(at, mini(at + width + _rng.randi_range(0, 1), _columns - BORDER - 4)):
-			heights[column] = _rows
-		_need("bridge", at)
+		var at := BORDER + 6 + (stage_columns - BORDER * 2 - 14) * (index + 1) / (count + 1) + rng.randi_range(-2, 2)
+		for column in range(at, mini(at + width + rng.randi_range(0, 1), stage_columns - BORDER - 4)):
+			heights[column] = stage_rows
+		add_need("bridge", at)
 
 
-func _fill_ground(heights: PackedInt32Array, material: int) -> void:
-	for column in _columns:
-		if heights[column] < _rows:
-			_fill(column, heights[column], column, _rows - 1, material)
+func fill_ground(heights: PackedInt32Array, material: int) -> void:
+	for column in stage_columns:
+		if heights[column] < stage_rows:
+			fill_cells(column, heights[column], column, stage_rows - 1, material)
 
 
 ## The current top solid row of every column.
-func _surface_heights() -> PackedInt32Array:
+func surface_heights() -> PackedInt32Array:
 	var heights := PackedInt32Array()
-	heights.resize(_columns)
-	for column in _columns:
+	heights.resize(stage_columns)
+	for column in stage_columns:
 		heights[column] = _surface_row(column)
 	return heights
 
@@ -530,138 +240,138 @@ func _surface_heights() -> PackedInt32Array:
 ## Caves under the ground, from depth rows below the surface down to the
 ## bottom: rounded halls stretched sideways (so there is floor to walk on),
 ## with the cave's wall drawn behind their air.
-func _caves(heights: PackedInt32Array, depth: int, density: float, wall: StringName) -> void:
+func carve_caves(heights: PackedInt32Array, depth: int, density: float, wall: StringName) -> void:
 	_noise.frequency = 0.075
 	_noise.fractal_type = FastNoiseLite.FRACTAL_NONE
 	var threshold := 0.55 - density
-	for column in range(BORDER, _columns - BORDER):
-		if heights[column] >= _rows:
+	for column in range(BORDER, stage_columns - BORDER):
+		if heights[column] >= stage_rows:
 			continue
-		for row in range(heights[column] + depth, _rows - 2):
+		for row in range(heights[column] + depth, stage_rows - 2):
 			if _noise.get_noise_2d(column * 0.8, row * 1.7) > threshold:
-				_set_cell(column, row, EMPTY)
+				set_cell_kind(column, row, EMPTY)
 				if wall != &"":
-					_backdrop[Vector2i(column, row)] = wall
+					backdrop_skins[Vector2i(column, row)] = wall
 
 
 ## Holes from the surface down into the caves below, so the underground is
 ## part of the way.
-func _open_into_caves(heights: PackedInt32Array, count: int) -> void:
+func open_into_caves(heights: PackedInt32Array, count: int) -> void:
 	for index in count:
 		for attempt in 20:
-			var column := _rng.randi_range(BORDER + 8, _columns - BORDER - 9)
+			var column := rng.randi_range(BORDER + 8, stage_columns - BORDER - 9)
 			var top := heights[column]
-			if top >= _rows:
+			if top >= stage_rows:
 				continue
 			var depth := 0
-			while top + depth < _rows - 2 and _cell(column, top + depth) != EMPTY and depth < 8:
+			while top + depth < stage_rows - 2 and cell_kind(column, top + depth) != EMPTY and depth < 8:
 				depth += 1
-			if depth >= 8 or top + depth >= _rows - 2:
+			if depth >= 8 or top + depth >= stage_rows - 2:
 				continue
-			_fill(column, top, column + 1, top + depth - 1, EMPTY)
+			fill_cells(column, top, column + 1, top + depth - 1, EMPTY)
 			for row in range(top + 1, top + depth):
-				_backdrop[Vector2i(column, row)] = TerrainSkin.CAVE_WALL
-				_backdrop[Vector2i(column + 1, row)] = TerrainSkin.CAVE_WALL
-			_need("floater", column)
+				backdrop_skins[Vector2i(column, row)] = TerrainSkin.CAVE_WALL
+				backdrop_skins[Vector2i(column + 1, row)] = TerrainSkin.CAVE_WALL
+			add_need("floater", column)
 			break
 
 
 ## Rounded lumps of rock the shovel cannot cut, inside the ground only.
-func _rock_pockets(heights: PackedInt32Array, depth: int, threshold: float) -> void:
+func rock_pockets(heights: PackedInt32Array, depth: int, threshold: float) -> void:
 	_noise.frequency = 0.11
-	for column in range(BORDER, _columns - BORDER):
-		if heights[column] >= _rows:
+	for column in range(BORDER, stage_columns - BORDER):
+		if heights[column] >= stage_rows:
 			continue
-		for row in range(heights[column] + depth, _rows - 1):
-			if _cell(column, row) == EARTH and _noise.get_noise_2d(column + 500.0, row * 1.3) > threshold:
-				_set_cell(column, row, CONCRETE)
+		for row in range(heights[column] + depth, stage_rows - 1):
+			if cell_kind(column, row) == EARTH and _noise.get_noise_2d(column + 500.0, row * 1.3) > threshold:
+				set_cell_kind(column, row, CONCRETE)
 
 
 ## Streaks of crystal through the rock.
-func _veins(count: int) -> void:
+func crystal_veins(count: int) -> void:
 	for vein in count:
-		var position := Vector2(_rng.randi_range(4, _columns - 5), _rng.randi_range(4, _rows - 5))
-		var heading := _rng.randf() * TAU
-		for step in _rng.randi_range(5, 10):
-			if _cell(roundi(position.x), roundi(position.y)) == EARTH:
-				_set_cell(roundi(position.x), roundi(position.y), CONCRETE)
-			heading += _rng.randf_range(-0.5, 0.5)
+		var position := Vector2(rng.randi_range(4, stage_columns - 5), rng.randi_range(4, stage_rows - 5))
+		var heading := rng.randf() * TAU
+		for step in rng.randi_range(5, 10):
+			if cell_kind(roundi(position.x), roundi(position.y)) == EARTH:
+				set_cell_kind(roundi(position.x), roundi(position.y), CONCRETE)
+			heading += rng.randf_range(-0.5, 0.5)
 			position += Vector2.from_angle(heading)
 
 
 ## The troop starts in a cave at the bottom of the left side; a shaft leads
 ## up from it to the open air.
-func _start_cave(heights: PackedInt32Array, wall: StringName) -> void:
-	var floor_row := _rows - 3
+func start_cave(heights: PackedInt32Array, wall: StringName) -> void:
+	var floor_row := stage_rows - 3
 	var left := BORDER + 1
-	var right := mini(left + 10, _columns / 3)
-	_fill(left, floor_row - 4, right, floor_row - 1, EMPTY)
+	var right := mini(left + 10, stage_columns / 3)
+	fill_cells(left, floor_row - 4, right, floor_row - 1, EMPTY)
 	var shaft := right - 1
-	_fill(shaft, heights[shaft], shaft + 1, floor_row - 4, EMPTY)
+	fill_cells(shaft, heights[shaft], shaft + 1, floor_row - 4, EMPTY)
 	for column in range(left, shaft + 2):
 		for row in range(heights[shaft] + 1, floor_row):
-			if _cell(column, row) == EMPTY:
-				_backdrop[Vector2i(column, row)] = wall
-	_need("ladder_vertical", shaft)
-	_spawn = Vector2i(left + 2, floor_row)
+			if cell_kind(column, row) == EMPTY:
+				backdrop_skins[Vector2i(column, row)] = wall
+	add_need("ladder_vertical", shaft)
+	spawn_cell = Vector2i(left + 2, floor_row)
 
 
 ## A chamber carved at the bottom right with the exit in it: the deepest
 ## place of a stage that goes down, easy to spot. Returns the exit.
 func _bottom_chamber(wall: StringName) -> Vector2i:
-	var floor_row := _rows - 3
-	var right := _columns - BORDER - 2
+	var floor_row := stage_rows - 3
+	var right := stage_columns - BORDER - 2
 	var left := right - 9
-	_fill(left, floor_row - 4, right, floor_row - 1, EMPTY)
-	_fill(left, floor_row, right, floor_row, EARTH)
+	fill_cells(left, floor_row - 4, right, floor_row - 1, EMPTY)
+	fill_cells(left, floor_row, right, floor_row, EARTH)
 	for row in range(floor_row - 4, floor_row):
 		for column in range(left, right + 1):
-			_backdrop[Vector2i(column, row)] = wall
+			backdrop_skins[Vector2i(column, row)] = wall
 	return Vector2i(left + 6, floor_row)
 
 
 ## A volcano filling the stage: slopes rising from both sides to a crater
 ## near the top, cliffs on the way.
-func _volcano_cone() -> PackedInt32Array:
+func volcano_cone() -> PackedInt32Array:
 	var heights := PackedInt32Array()
-	heights.resize(_columns)
-	var centre := _columns / 2
-	var rim := maxi(4, _rows / 6)
-	var foot := _rows - 4
+	heights.resize(stage_columns)
+	var centre := stage_columns / 2
+	var rim := maxi(4, stage_rows / 6)
+	var foot := stage_rows - 4
 	var previous := foot
-	for column in _columns:
-		var distance := absf(column - centre) / (_columns / 2.0)
+	for column in stage_columns:
+		var distance := absf(column - centre) / (stage_columns / 2.0)
 		var target := roundi(lerpf(rim, foot, clampf(distance * 1.15, 0.0, 1.0)))
 		if absi(column - centre) <= 3:
 			target = rim + 3
 		var difference := target - previous
-		previous += clampi(difference, -4, 4) if _rng.randf() < 0.35 else clampi(difference, -1, 1)
+		previous += clampi(difference, -4, 4) if rng.randf() < 0.35 else clampi(difference, -1, 1)
 		heights[column] = previous
 	return heights
 
 
 ## A stepped pyramid on the ground, steps two blocks high; returns its top.
-func _pyramid(heights: PackedInt32Array, steps: int) -> Vector2i:
+func build_pyramid(heights: PackedInt32Array, steps: int) -> Vector2i:
 	var base_width := steps * 4 + 3
-	var left := _columns - BORDER - base_width - 4
-	if left < _columns / 3:
+	var left := stage_columns - BORDER - base_width - 4
+	if left < stage_columns / 3:
 		return Vector2i(-1, -1)
 	var ground := heights[left]
 	for column in range(left, left + base_width):
-		ground = maxi(ground, mini(heights[column], _rows - 3))
+		ground = maxi(ground, mini(heights[column], stage_rows - 3))
 	for step in steps:
-		_fill(left + step * 2, ground - (step + 1) * 2, left + base_width - 1 - step * 2, ground - 1, CONCRETE)
+		fill_cells(left + step * 2, ground - (step + 1) * 2, left + base_width - 1 - step * 2, ground - 1, CONCRETE)
 	# A tomb inside, its door to dig to.
-	_fill(left + steps, ground - 3, left + base_width - 1 - steps, ground - 2, EMPTY)
-	_spot(left + base_width / 2, ground - 1, MazeLayout.SpotKind.BONUS)
-	_need("builder", left)
+	fill_cells(left + steps, ground - 3, left + base_width - 1 - steps, ground - 2, EMPTY)
+	add_spot(left + base_width / 2, ground - 1, MazeLayout.SpotKind.BONUS)
+	add_need("builder", left)
 	return Vector2i(left + base_width / 2, ground - steps * 2)
 
 
 ## Scaffolding up one face of a tower: wooden platforms every few rows,
 ## some joined by ladders already standing, the rest left to the player.
-func _scaffold(left: int, right: int, top: int, street: int) -> void:
-	var on_left := _rng.randf() < 0.5
+func scaffold(left: int, right: int, top: int, street: int) -> void:
+	var on_left := rng.randf() < 0.5
 	var face := left - 1 if on_left else right + 1
 	var reach := 3
 	var row := street - 4
@@ -669,87 +379,65 @@ func _scaffold(left: int, right: int, top: int, street: int) -> void:
 	while row > top + 2:
 		for offset in reach:
 			var column := face - offset if on_left else face + offset
-			if _cell(column, row) == EMPTY:
+			if cell_kind(column, row) == EMPTY:
 				_bricks.append(Rect2(column * tile, row * tile, tile, tile / 4.0))
-		if _rng.randf() < 0.55:
+		if rng.randf() < 0.55:
 			var ladder_column := face - 1 if on_left else face + 1
 			for ladder_row in range(row, row + 4):
-				if _cell(ladder_column, ladder_row) == EMPTY:
-					_ladders.append(Vector2i(ladder_column, ladder_row))
+				if cell_kind(ladder_column, ladder_row) == EMPTY:
+					ladder_cells.append(Vector2i(ladder_column, ladder_row))
 		row -= 4
 
 
-## A station module: a room with a thick hull floor, a roof, walls down
-## to a hatch on each side (3 blocks high, enough to walk through), and
-## its inner wall drawn behind the air inside.
-func _module(left: int, right: int, floor_row: int) -> void:
-	var roof := floor_row - 8
-	_fill(left, floor_row, right, floor_row + 1, CONCRETE)
-	_fill(left, roof, right, roof, CONCRETE)
-	_fill(left, roof, left, floor_row - 4, CONCRETE)
-	_fill(right, roof, right, floor_row - 4, CONCRETE)
-	# Rounded ends: the roof's and the floor's outer corners cut.
-	_set_cell(left, roof, EMPTY)
-	_set_cell(right, roof, EMPTY)
-	_set_cell(left, floor_row + 1, EMPTY)
-	_set_cell(right, floor_row + 1, EMPTY)
-	for row in range(roof, floor_row + 2):
-		for column in range(left, right + 1):
-			if _cell(column, row) != EMPTY:
-				_skins[Vector2i(column, row)] = TerrainSkin.HULL
-			elif row > roof and row < floor_row and column > left and column < right:
-				_backdrop[Vector2i(column, row)] = TerrainSkin.STATION_INSIDE
-
-
-func _carve_disc(centre: Vector2, radius: float) -> void:
+func carve_disc(centre: Vector2, radius: float) -> void:
 	for row in range(floori(centre.y - radius), ceili(centre.y + radius) + 1):
 		for column in range(floori(centre.x - radius), ceili(centre.x + radius) + 1):
 			if Vector2(column, row).distance_to(centre) <= radius:
-				_set_cell(column, row, EMPTY)
+				set_cell_kind(column, row, EMPTY)
 
 
 ## A rounded lump, flat on top so it can be stood on.
-func _blob(centre: Vector2i, radii: Vector2, material: int) -> void:
+func blob(centre: Vector2i, radii: Vector2, material: int) -> void:
 	for row in range(centre.y, centre.y + ceili(radii.y) + 1):
 		for column in range(centre.x - ceili(radii.x), centre.x + ceili(radii.x) + 1):
 			var offset := Vector2(column - centre.x, row - centre.y)
 			if (offset.x / radii.x) ** 2 + (offset.y / radii.y) ** 2 <= 1.0:
-				_set_cell(column, row, material)
+				set_cell_kind(column, row, material)
 
 
 ## Two columns of bedrock at each side, top to bottom, and the rock of the
 ## top and bottom rows: nothing breaks them.
 func _wall_in() -> void:
-	for column in [0, 1, _columns - 2, _columns - 1]:
-		for row in _rows:
-			_set_cell(column, row, EARTH)
+	for column in [0, 1, stage_columns - 2, stage_columns - 1]:
+		for row in stage_rows:
+			set_cell_kind(column, row, EARTH)
 			_unbreakable[Vector2i(column, row)] = true
-	for row in [0, _rows - 1]:
-		for column in _columns:
-			if _cell(column, row) != EMPTY:
+	for row in [0, stage_rows - 1]:
+		for column in stage_columns:
+			if cell_kind(column, row) != EMPTY:
 				_unbreakable[Vector2i(column, row)] = true
 	for cell: Vector2i in _unbreakable:
-		_skins[cell] = TerrainSkin.BORDER
-		_backdrop.erase(cell)
+		cell_skins[cell] = TerrainSkin.BORDER
+		backdrop_skins.erase(cell)
 
 
 # --- Trees ---------------------------------------------------------------------------
 
 ## Trees whose square crowns can be climbed onto: a trunk the troop walks
 ## past, right under a crown of leaf blocks. Some carry an item on top.
-func _plant_climb_trees(heights: PackedInt32Array, count: int, with_items: bool, tall: bool = false) -> void:
+func plant_climb_trees(heights: PackedInt32Array, count: int, with_items: bool, tall: bool = false) -> void:
 	var placed := 0
 	for attempt in count * 8:
 		if placed >= count:
 			return
-		var column := _rng.randi_range(BORDER + 4, _columns - BORDER - 5)
+		var column := rng.randi_range(BORDER + 4, stage_columns - BORDER - 5)
 		var ground := heights[column]
-		if ground >= _rows or heights[column - 1] != ground or heights[column + 1] != ground or _cell(column, ground - 1) != EMPTY:
+		if ground >= stage_rows or heights[column - 1] != ground or heights[column + 1] != ground or cell_kind(column, ground - 1) != EMPTY:
 			continue
-		var half := _rng.randi_range(2, 3)
-		if _climb_trees.any(func(other: Vector2i) -> bool: return absi(other.x - column) <= half * 2 + 3):
+		var half := rng.randi_range(2, 3)
+		if climb_tree_tops.any(func(other: Vector2i) -> bool: return absi(other.x - column) <= half * 2 + 3):
 			continue
-		var trunk := _rng.randi_range(3, 4) + (_rng.randi_range(2, 5) if tall else 0)
+		var trunk := rng.randi_range(3, 4) + (rng.randi_range(2, 5) if tall else 0)
 		var crown_bottom := ground - trunk - 1
 		# The crown's outline, row by row from the top (half widths): narrow
 		# on top, widest in the middle, a little in again at the bottom, like
@@ -765,40 +453,40 @@ func _plant_climb_trees(heights: PackedInt32Array, count: int, with_items: bool,
 			var left_end := column - reach
 			var right_end := column + reach
 			if reach == half and index > 0:
-				if _rng.randf() < 0.35:
+				if rng.randf() < 0.35:
 					left_end += 1
-				if _rng.randf() < 0.35:
+				if rng.randf() < 0.35:
 					right_end -= 1
 			for x in range(left_end, right_end + 1):
-				if _cell(x, row) == EMPTY:
-					_set_cell(x, row, EARTH)
-					_skins[Vector2i(x, row)] = TerrainSkin.LEAVES
+				if cell_kind(x, row) == EMPTY:
+					set_cell_kind(x, row, EARTH)
+					cell_skins[Vector2i(x, row)] = TerrainSkin.LEAVES
 		for row in range(crown_bottom + 1, ground):
-			_backdrop[Vector2i(column, row)] = TerrainSkin.BARK
-		_climb_trees.append(Vector2i(column, crown_top))
+			backdrop_skins[Vector2i(column, row)] = TerrainSkin.BARK
+		climb_tree_tops.append(Vector2i(column, crown_top))
 		placed += 1
-		if with_items and _rng.randf() < 0.5:
-			_spot(column, crown_top, MazeLayout.SpotKind.BONUS)
+		if with_items and rng.randf() < 0.5:
+			add_spot(column, crown_top, MazeLayout.SpotKind.BONUS)
 
 
 ## Scenery trees behind the terrain, on flat ground away from the climbing
 ## trees.
-func _plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName]) -> void:
+func plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName]) -> void:
 	var used: Array[int] = []
 	for attempt in count * 6:
 		if used.size() >= count:
 			return
-		var column := _rng.randi_range(BORDER + 3, _columns - BORDER - 4)
+		var column := rng.randi_range(BORDER + 3, stage_columns - BORDER - 4)
 		var ground := heights[column]
-		if ground >= _rows or _surface_row(column) != ground or _cell(column, ground - 1) != EMPTY:
+		if ground >= stage_rows or _surface_row(column) != ground or cell_kind(column, ground - 1) != EMPTY:
 			continue
 		if used.any(func(other: int) -> bool: return absi(other - column) < 5):
 			continue
-		if _climb_trees.any(func(tree: Vector2i) -> bool: return absi(tree.x - column) < 7):
+		if climb_tree_tops.any(func(tree: Vector2i) -> bool: return absi(tree.x - column) < 7):
 			continue
-		var kind := kinds[_rng.randi_range(0, kinds.size() - 1)]
-		var half := _rng.randi_range(2, 3)
-		var height := _rng.randi_range(6, 9)
+		var kind := kinds[rng.randi_range(0, kinds.size() - 1)]
+		var half := rng.randi_range(2, 3)
+		var height := rng.randi_range(6, 9)
 		var top := ground - height
 		if top < 2:
 			continue
@@ -812,48 +500,48 @@ func _plant_decor(heights: PackedInt32Array, count: int, kinds: Array[StringName
 		var trunk: Array[Vector2i] = []
 		for row in range(top, ground):
 			trunk.append(Vector2i(column, row))
-		_decor.append({"kind": kind, "box": Rect2i(column - half - 1, top - 1, half * 2 + 3, ground - top + 1), "crown": crown, "trunk": trunk, "seed": _rng.randi()})
+		_decor.append({"kind": kind, "box": Rect2i(column - half - 1, top - 1, half * 2 + 3, ground - top + 1), "crown": crown, "trunk": trunk, "seed": rng.randi()})
 		used.append(column)
 
 
 # --- Places ------------------------------------------------------------------------
 
-func _cell(column: int, row: int) -> int:
-	if column < 0 or row < 0 or column >= _columns or row >= _rows:
+func cell_kind(column: int, row: int) -> int:
+	if column < 0 or row < 0 or column >= stage_columns or row >= stage_rows:
 		return CONCRETE
-	return _cells[row * _columns + column]
+	return _cells[row * stage_columns + column]
 
 
-func _set_cell(column: int, row: int, value: int) -> void:
-	if column < 0 or row < 0 or column >= _columns or row >= _rows:
+func set_cell_kind(column: int, row: int, value: int) -> void:
+	if column < 0 or row < 0 or column >= stage_columns or row >= stage_rows:
 		return
-	_cells[row * _columns + column] = value
+	_cells[row * stage_columns + column] = value
 	var cell := Vector2i(column, row)
 	if value == EMPTY:
-		_skins.erase(cell)
+		cell_skins.erase(cell)
 	else:
-		_backdrop.erase(cell)
+		backdrop_skins.erase(cell)
 
 
-func _fill(x0: int, y0: int, x1: int, y1: int, value: int) -> void:
+func fill_cells(x0: int, y0: int, x1: int, y1: int, value: int) -> void:
 	for row in range(mini(y0, y1), maxi(y0, y1) + 1):
 		for column in range(mini(x0, x1), maxi(x0, x1) + 1):
-			_set_cell(column, row, value)
+			set_cell_kind(column, row, value)
 
 
 func _surface_row(column: int) -> int:
-	for row in _rows:
-		if _cell(column, row) != EMPTY:
+	for row in stage_rows:
+		if cell_kind(column, row) != EMPTY:
 			return row
-	return _rows
+	return stage_rows
 
 
 ## Whether a lemming can stand on top of that cell.
 func _is_floor(column: int, row: int) -> bool:
-	if _cell(column, row) == EMPTY:
+	if cell_kind(column, row) == EMPTY:
 		return false
 	for above in range(1, HEADROOM + 1):
-		if _cell(column, row - above) != EMPTY:
+		if cell_kind(column, row - above) != EMPTY:
 			return false
 	return true
 
@@ -862,68 +550,68 @@ func _is_floor(column: int, row: int) -> bool:
 ## spike).
 func _floors(from: int, to: int) -> Array[Vector2i]:
 	var floors: Array[Vector2i] = []
-	for column in range(maxi(from, BORDER + 1), mini(to, _columns - BORDER - 2) + 1):
-		for row in range(2, _rows - 1):
-			if _is_floor(column, row) and _cell(column - 1, row) != EMPTY and _cell(column + 1, row) != EMPTY:
+	for column in range(maxi(from, BORDER + 1), mini(to, stage_columns - BORDER - 2) + 1):
+		for row in range(2, stage_rows - 1):
+			if _is_floor(column, row) and cell_kind(column - 1, row) != EMPTY and cell_kind(column + 1, row) != EMPTY:
 				floors.append(Vector2i(column, row))
 	return floors
 
 
 ## The floor nearest to a column on the surface.
-func _floor_near(column: int, heights: PackedInt32Array) -> Vector2i:
+func floor_near(column: int, heights: PackedInt32Array) -> Vector2i:
 	for offset in 12:
 		for side in [-1, 1]:
-			var x := clampi(column + offset * side, BORDER + 1, _columns - BORDER - 2)
+			var x := clampi(column + offset * side, BORDER + 1, stage_columns - BORDER - 2)
 			var row := _surface_row(x)
-			if row < _rows and _is_floor(x, row) and _cell(x - 1, row) != EMPTY and _cell(x + 1, row) != EMPTY:
+			if row < stage_rows and _is_floor(x, row) and cell_kind(x - 1, row) != EMPTY and cell_kind(x + 1, row) != EMPTY:
 				return Vector2i(x, row)
-	return Vector2i(column, mini(heights[column], _rows - 2))
+	return Vector2i(column, mini(heights[column], stage_rows - 2))
 
 
 ## Entrance and exit by the stage's route: across (left to right on the
 ## surface), up (low on the left, the highest floor on the right) or down
 ## (on the surface, the deepest floor far from it).
-func _spawn_and_exit(heights: PackedInt32Array) -> void:
+func place_spawn_and_exit(heights: PackedInt32Array) -> void:
 	var left := BORDER + 3
-	var right := _columns - BORDER - 4
-	var third := _columns / 3
-	match _route:
-		Route.TRAVERSE:
-			_spawn = _floor_near(left + 2, heights)
-			_exit = _floor_near(right - 2, heights)
-		Route.ASCEND:
-			_spawn = _lowest(_floors(left, third))
-			_exit = _highest(_floors(right - third, right))
-		Route.DESCEND:
-			_spawn = _floor_near(left + 2, heights)
-			_exit = _bottom_chamber(TerrainSkin.CAVE_WALL)
-	if _spawn == Vector2i(-1, -1):
-		_spawn = _floor_near(left + 2, heights)
-	if _exit == Vector2i(-1, -1):
-		_exit = _floor_near(right - 2, heights)
+	var right := stage_columns - BORDER - 4
+	var third := stage_columns / 3
+	match stage_route:
+		StageBiome.Route.TRAVERSE:
+			spawn_cell = floor_near(left + 2, heights)
+			exit_cell = floor_near(right - 2, heights)
+		StageBiome.Route.ASCEND:
+			spawn_cell = _lowest(_floors(left, third))
+			exit_cell = _highest(_floors(right - third, right))
+		StageBiome.Route.DESCEND:
+			spawn_cell = floor_near(left + 2, heights)
+			exit_cell = _bottom_chamber(TerrainSkin.CAVE_WALL)
+	if spawn_cell == Vector2i(-1, -1):
+		spawn_cell = floor_near(left + 2, heights)
+	if exit_cell == Vector2i(-1, -1):
+		exit_cell = floor_near(right - 2, heights)
 
 
 func _lowest(floors: Array[Vector2i]) -> Vector2i:
 	if floors.is_empty():
 		return Vector2i(-1, -1)
 	floors.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
-	return floors[_rng.randi_range(0, mini(2, floors.size() - 1))]
+	return floors[rng.randi_range(0, mini(2, floors.size() - 1))]
 
 
 func _highest(floors: Array[Vector2i]) -> Vector2i:
 	if floors.is_empty():
 		return Vector2i(-1, -1)
 	floors.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y)
-	return floors[_rng.randi_range(0, mini(2, floors.size() - 1))]
+	return floors[rng.randi_range(0, mini(2, floors.size() - 1))]
 
 
 # --- Items --------------------------------------------------------------------------
 
-func _need(tool_id: String, column: int) -> void:
+func add_need(tool_id: String, column: int) -> void:
 	_needs.append({"tool": tool_id, "column": column})
 
 
-func _spot(column: int, row: int, kind: MazeLayout.SpotKind, tool_id: String = "") -> void:
+func add_spot(column: int, row: int, kind: MazeLayout.SpotKind, tool_id: String = "") -> void:
 	for spot in _spots:
 		if absi(spot.column - column) <= 1 and spot.row == row:
 			return
@@ -934,63 +622,55 @@ func _spot(column: int, row: int, kind: MazeLayout.SpotKind, tool_id: String = "
 ## is not all ladders), on a floor somewhere before its obstacle and not
 ## right in front of it.
 func _place_tools() -> void:
-	var floors := _floors(0, _columns)
+	var floors := _floors(0, stage_columns)
 	var counts := {}
 	for need in _needs:
 		if int(counts.get(need.tool, 0)) >= 2:
 			continue
 		counts[need.tool] = int(counts.get(need.tool, 0)) + 1
 		var before := floors.filter(func(floor_cell: Vector2i) -> bool:
-			return absi(floor_cell.x - _spawn.x) < absi(need.column - _spawn.x) - 3 and floor_cell != _spawn and floor_cell != _exit)
+			return absi(floor_cell.x - spawn_cell.x) < absi(need.column - spawn_cell.x) - 3 and floor_cell != spawn_cell and floor_cell != exit_cell)
 		if before.is_empty():
 			before = floors
 		if before.is_empty():
 			continue
-		var at: Vector2i = before[_rng.randi_range(0, before.size() - 1)]
-		_spot(at.x, at.y, MazeLayout.SpotKind.TOOL, need.tool)
+		var at: Vector2i = before[rng.randi_range(0, before.size() - 1)]
+		add_spot(at.x, at.y, MazeLayout.SpotKind.TOOL, need.tool)
 
 
-func _scatter_bonus(count: int) -> void:
-	var floors := _floors(0, _columns)
+func scatter_bonus(count: int) -> void:
+	var floors := _floors(0, stage_columns)
 	for bonus in count:
 		if floors.is_empty():
 			return
-		var at: Vector2i = floors[_rng.randi_range(0, floors.size() - 1)]
-		_spot(at.x, at.y, MazeLayout.SpotKind.BONUS)
+		var at: Vector2i = floors[rng.randi_range(0, floors.size() - 1)]
+		add_spot(at.x, at.y, MazeLayout.SpotKind.BONUS)
 
 
-func _to_data(biome: Dictionary) -> MazeStageData:
+func _to_data(biome: StageBiome) -> MazeStageData:
 	var data := MazeStageData.new()
-	data.columns = _columns
-	data.rows = _rows
+	data.columns = stage_columns
+	data.rows = stage_rows
 	data.cells = _cells
-	data.skins = _skins
+	data.skins = cell_skins
 	# Only trunks are kept as painted backdrop: the wall behind caves and
 	# rooms is worked out from the cells when the stage is shown.
 	var trunks := {}
-	for cell: Vector2i in _backdrop:
-		if _backdrop[cell] in [TerrainSkin.BARK, TerrainSkin.ALIEN_STEM, TerrainSkin.STATION_INSIDE]:
-			trunks[cell] = _backdrop[cell]
+	for cell: Vector2i in backdrop_skins:
+		if backdrop_skins[cell] in [TerrainSkin.BARK, TerrainSkin.ALIEN_STEM, TerrainSkin.STATION_INSIDE]:
+			trunks[cell] = backdrop_skins[cell]
 	data.backdrop = trunks
-	match biome.id:
-		&"glacier":
-			data.inside_wall = TerrainSkin.ICE_WALL
-		&"space":
-			# The ship paints its inside itself; outside is open space.
-			data.inside_wall = &""
-		&"crystal":
-			data.inside_wall = &""
-		_:
-			data.inside_wall = TerrainSkin.CAVE_WALL
+	data.inside_wall = biome.inside_wall
 	data.decor_trees = _decor
+	data.rooms = furnished_rooms
 	data.unbreakable = _unbreakable
-	data.ladders = _ladders
+	data.ladders = ladder_cells
 	data.bricks = _bricks
-	data.spawn_cell = _spawn
-	data.exit_cell = _exit
+	data.spawn_cell = spawn_cell
+	data.exit_cell = exit_cell
 	data.spawn_faces_left = false
 	data.item_spots = _spots
 	data.environment_kind = biome.kind
-	data.stage_name = biome.stages[_tier]
-	data.suggested_time_seconds = clampi(90 + (_columns * _rows) / 30 + 15 * mini(_needs.size(), 12), 120, 600)
+	data.stage_name = biome.stages[stage_tier]
+	data.suggested_time_seconds = clampi(90 + (stage_columns * stage_rows) / 30 + 15 * mini(_needs.size(), 12), 120, 600)
 	return data

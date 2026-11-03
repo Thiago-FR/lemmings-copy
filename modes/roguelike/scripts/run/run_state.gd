@@ -7,7 +7,10 @@ extends RefCounted
 
 ## One stage per biome stage of the core's generator: ten settings in a
 ## fixed order, three stages each.
-const STAGE_COUNT := BiomeStageGenerator.STAGE_COUNT
+## Every stage of every biome (BiomeStageGenerator).
+static func stage_count() -> int:
+	return BiomeStageGenerator.stage_count()
+
 
 # --- Stages (maze generator) ---
 ## The run's seed: each stage is generated from it and its index, so a run
@@ -99,7 +102,7 @@ func is_over() -> bool:
 
 
 func is_won() -> bool:
-	return stage_index >= STAGE_COUNT
+	return stage_index >= stage_count()
 
 
 ## What happened in a stage: who got out and who did not. Survivors are the

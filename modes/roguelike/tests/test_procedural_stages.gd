@@ -18,7 +18,7 @@ var _checks := 0
 func _ready() -> void:
 	for seed_index in SEEDS:
 		var run_seed := 31337 + seed_index * 104729
-		for stage_index in RoguelikeRunState.STAGE_COUNT:
+		for stage_index in RoguelikeRunState.stage_count():
 			var state := RoguelikeRunState.new()
 			state.seed_value = run_seed
 			state.stage_index = stage_index
