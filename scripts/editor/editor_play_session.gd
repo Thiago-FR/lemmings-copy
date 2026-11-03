@@ -38,11 +38,14 @@ static func make_level_data(lemming_count: int, skill_counts: Dictionary, scene_
 ## from GameManager.current_level_data on entering the tree, so the caller
 ## sets that first.
 ## entrances: [{"position", "faces_left"}]; several share the troop.
-static func build(source_terrain: TerrainDestructible, entrances: Array[Dictionary], exit_positions: Array[Vector2], lemming_count: int) -> LevelManager:
+static func build(source_terrain: TerrainDestructible, entrances: Array[Dictionary], exit_positions: Array[Vector2], lemming_count: int, dressing: Dictionary = {}) -> LevelManager:
 	assert(not entrances.is_empty(), "A test run needs an entrance")
 	var level := LevelManager.new()
 	level.name = "PlaySession"
-	level.add_child(_copy_terrain(source_terrain))
+	var terrain := _copy_terrain(source_terrain)
+	# A generated stage plays with its looks, border and ramps.
+	StageDressing.apply(terrain, dressing)
+	level.add_child(terrain)
 
 	for index in entrances.size():
 		var spawn_point: SpawnPoint = SPAWN_POINT_SCENE.instantiate()

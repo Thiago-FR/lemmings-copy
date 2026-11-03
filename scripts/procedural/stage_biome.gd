@@ -39,6 +39,13 @@ var routes: Array[Route] = []
 var walled := true
 ## The wall drawn behind enclosed air (TerrainSkin.inside_wall), or none.
 var inside_wall: StringName = TerrainSkin.CAVE_WALL
+## The tools a stage's solution may use; empty for the generator's own
+## (BiomeStageGenerator.SOLUTION_TOOLS). The climber climbs any wall, so it
+## only goes where walls are meant to be climbed.
+var solution_tools: Array[String] = []
+## Ground floating in the air is part of the biome (the planet's islands,
+## space's asteroids); elsewhere loose bits are taken away.
+var floating_ground := false
 
 
 ## Shapes the stage onto the generator's grid.

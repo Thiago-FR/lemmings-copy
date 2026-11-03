@@ -1,6 +1,7 @@
 extends Node
-## The editor's developer tools for the campaign, on copies of level 12 (it
-## has two entrances facing opposite ways) so the real levels and the
+## The editor's developer tools for the campaign, on copies of the old
+## hand-made level 12 (tests/fixtures/two_entrances_level: two entrances
+## facing opposite ways) put in level 12's place, so the real levels and the
 ## player's progress are never touched:
 ## - opening a level brings its terrain, entrances (and their facing), exit,
 ##   lemming count and tools into the editor;
@@ -12,6 +13,7 @@ extends Node
 ## - developer mode can open every campaign level and lock them again.
 
 const LEVEL_INDEX := 11
+const FIXTURE_DATA := "res://tests/fixtures/two_entrances_level_data.tres"
 const WORK_DIRECTORY := "user://test_editor_campaign/"
 const EDITOR_SCENE := preload("res://scenes/editor/level_editor.tscn")
 var _failures: Array[String] = []
@@ -52,7 +54,7 @@ func _run() -> void:
 func _prepare_copies() -> void:
 	_clean_up()
 	DirAccess.make_dir_recursive_absolute(WORK_DIRECTORY + "backups")
-	var real_data := load(Campaign.level_path(LEVEL_INDEX)) as LevelData
+	var real_data := load(FIXTURE_DATA) as LevelData
 	var scene_copy := WORK_DIRECTORY + "campaign_12.tscn"
 	DirAccess.copy_absolute(real_data.scene_path, scene_copy)
 	var data_copy := real_data.duplicate() as LevelData

@@ -12,3 +12,9 @@ extends Resource
 @export var scene_path: String          # path to the level's terrain scene
 ## The setting the level takes place in (what is drawn behind and around it).
 @export var environment_kind: LevelEnvironment.Kind = LevelEnvironment.Kind.SURFACE
+## A generated level's looks, border and ramps (StageDressing), laid on its
+## terrain when the level starts. Empty for a level drawn by hand.
+@export var dressing: Dictionary = {}
+## A generated level's recorded solution (MazeStageData.solution), which
+## the tests play; empty when there is none.
+@export var solution: Array[Dictionary] = []

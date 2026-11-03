@@ -19,7 +19,8 @@ extends "res://tests/level_playthrough_test.gd"
 ## overrides _expects_win() to return false: it then passes only if the
 ## level is lost, which is what keeps a puzzle from being trivial.
 
-const SPEED_UP := 4.0
+## CAMPAIGN_SPEED_UP=<n> runs faster (the campaign builder plays every level).
+var SPEED_UP := float(OS.get_environment("CAMPAIGN_SPEED_UP")) if OS.has_environment("CAMPAIGN_SPEED_UP") else 4.0
 const GAME_TICKS_PER_SECOND := 60
 const TILE := 32.0
 ## Winning records progress; never in the player's own file.
@@ -59,8 +60,18 @@ func is_done(step: String) -> bool:
 	return _done_steps.has(step)
 
 
+var _next_trace := 0.0
+
+
 func _physics_process(delta: float) -> void:
 	_watch_deaths()
+	# CAMPAIGN_TRACE=1 prints where the first lemming is every 2 seconds.
+	if OS.has_environment("CAMPAIGN_TRACE") and elapsed >= _next_trace:
+		_next_trace = elapsed + 2.0
+		var lemmings := get_lemmings()
+		if not lemmings.is_empty():
+			var body := lemmings[0].get_body_rect()
+			print("  trace t=%.0fs column %d, feet %.1f rows, %s, facing %d" % [elapsed, int(body.get_center().x / TILE), body.end.y / TILE, LemmingStateMachine.State.keys()[lemmings[0].state_machine.current_state], lemmings[0].direction])
 	super._physics_process(delta)
 
 
@@ -97,6 +108,25 @@ func give_each(tool_id: String, condition: Callable) -> void:
 			continue
 		if give_tool(tool_id, lemming, "each"):
 			given[key] = true
+
+
+## Plays a generated level's recorded solution (LevelData.solution), one
+## step after another: each tool to the first lemming walking at its
+## column, its way, on its floor.
+func play_recorded_solution() -> void:
+	var steps := level_data.solution
+	var next := _done_steps.size()
+	if next >= steps.size():
+		return
+	var step: Dictionary = steps[next]
+	give_once("step %d (%s)" % [next + 1, step.tool], step.tool, near_floor(walking_in(step.from_column, step.to_column, step.direction), step.row))
+
+
+## Also standing within half a block of the top of that floor row (on a
+## soil ramp the feet are a little above it).
+func near_floor(condition: Callable, floor_row: int) -> Callable:
+	return func(lemming: LemmingController) -> bool:
+		return condition.call(lemming) and absf(lemming.get_body_rect().end.y - floor_row * TILE) <= TILE / 2.0
 
 
 # --- Conditions ---------------------------------------------------------------

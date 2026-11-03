@@ -62,6 +62,9 @@ var _slot_index := -1
 ## Size of the drawing, in cells. A level opened or generated brings its own.
 var map_size := DEFAULT_MAP_SIZE
 var _environment_kind: LevelEnvironment.Kind = LevelEnvironment.Kind.SURFACE
+## A generated stage's looks, border, ramps, items and solution
+## (LevelDrawing.dressing); empty for a drawing made here.
+var _dressing: Dictionary = {}
 var _background: LevelBackground
 var _backdrop: LevelBackdrop
 
@@ -377,7 +380,7 @@ func _start_run() -> void:
 	var exit_positions: Array[Vector2] = []
 	if has_exit():
 		exit_positions.append(_exit.position)
-	play_session = EditorPlaySession.build(terrain, _entrance_specs(), exit_positions, toolbar.get_lemming_count())
+	play_session = EditorPlaySession.build(terrain, _entrance_specs(), exit_positions, toolbar.get_lemming_count(), get_drawing().dressing)
 	play_session.process_mode = Node.PROCESS_MODE_PAUSABLE
 	play_session.counts_changed.connect(_on_counts_changed)
 	play_session.level_completed.connect(_on_run_finished)
@@ -430,7 +433,7 @@ func new_drawing() -> void:
 	_load_drawing({
 		"tile_map_data": PackedByteArray(), "bricks": [], "entrances": [], "exit": null,
 		"total_lemmings": EditorToolbar.DEFAULT_LEMMING_COUNT, "skill_counts": {},
-		"environment_kind": LevelEnvironment.Kind.SURFACE, "size": DEFAULT_MAP_SIZE,
+		"environment_kind": LevelEnvironment.Kind.SURFACE, "size": DEFAULT_MAP_SIZE, "dressing": {},
 	})
 	toolbar.set_counts(EditorToolbar.DEFAULT_LEMMING_COUNT, _default_tool_counts())
 	_collection = null
@@ -518,16 +521,21 @@ func get_drawing() -> Dictionary:
 		"skill_counts": toolbar.get_skill_counts(),
 		"environment_kind": _environment_kind,
 		"size": map_size,
+		"dressing": _dressing.merged({"ramps": terrain.get_ramps()}, true),
 	}
 
 
 func _load_drawing(drawing: Dictionary) -> void:
+	StageDressing.strip(terrain)
 	for brick in terrain.get_bricks():
 		terrain.remove_bricks_in(brick)
 	terrain.clear()
 	terrain.tile_map_data = drawing.tile_map_data
 	for brick in drawing.bricks:
 		terrain.place_brick(brick)
+	# A generated stage's looks, border and ramps come with it.
+	_dressing = drawing.get("dressing", {}).duplicate()
+	StageDressing.apply(terrain, _dressing)
 	for entrance in _entrances:
 		entrance.queue_free()
 	_entrances.clear()

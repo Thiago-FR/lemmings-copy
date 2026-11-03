@@ -86,6 +86,8 @@ func _ready() -> void:
 
 	for terrain in get_tree().get_nodes_in_group("terrain"):
 		(terrain as TerrainDestructible).unbreakable_hit.connect(_on_unbreakable_hit)
+		if level_data.dressing.has("area"):
+			StageDressing.apply(terrain as TerrainDestructible, level_data.dressing)
 
 	AudioManager.play_music_track(&"level_theme")
 	_set_up_view()

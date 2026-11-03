@@ -28,9 +28,11 @@ func build(g: BiomeStageGenerator) -> void:
 	for column in range(BORDER + 2, g.stage_columns - BORDER - 2):
 		for row in range(tunnel_top, tunnel_top + 3):
 			g.backdrop_skins[Vector2i(column, row)] = TerrainSkin.CAVE_WALL
+	# The stairs are at the far end of the street, clear of the entrance.
+	var stairs := g.stage_columns - BORDER - 7
 	for step in 3:
-		g.set_cell_kind(BORDER + 3 + step, street, EMPTY)
-		g.set_cell_kind(BORDER + 3 + step, street + 1 + step, EMPTY)
+		g.set_cell_kind(stairs + step, street, EMPTY)
+		g.set_cell_kind(stairs + step, street + 1 + step, EMPTY)
 	var x := BORDER + 6
 	var tallest := Vector2i(-1, g.stage_rows)
 	while x < g.stage_columns - BORDER - 8:

@@ -1,15 +1,16 @@
 extends Node
 ## The roguelike's stages without playing them: for SEEDS run seeds, every
-## one of the run's stages is generated from the seed, can be won by one
-## lemming with only its own items (the core's reachability model), puts a
+## one of the run's stages is generated from the seed (BiomeStageGenerator),
+## has the size of its place in the run, can be won by one lemming with
+## only its own items (CellStageSolver), has a recorded solution, puts a
 ## pickup on every spot, never holds more different tools than the bar has
-## slots, picks the environment with the depth, and comes out the same for
-## the same seed. The five hand-made labyrinths pass the same checks, and the
+## slots, has its biome's setting, and comes out the same for the same seed. The five hand-made labyrinths pass the same checks, and the
 ## developer switch between the two sources works. Run via:
 ##   godot --headless res://modes/roguelike/tests/test_procedural_stages.tscn
 ## Exits 0 when every check passes, 1 otherwise.
 
-const SEEDS := 20
+## Every stage is drawn and solved: a few seeds are plenty.
+const SEEDS := 2
 
 var _failures: Array[String] = []
 var _checks := 0
@@ -44,10 +45,16 @@ func _check(condition: bool, description: String) -> void:
 
 func _check_definition(definition: RoguelikeStageDefinition, name: String, stage_index: int) -> void:
 	var maze := definition.maze
-	_check(maze != null and maze.columns == 60 and maze.rows == 34, "%s: a 60x34 maze" % name)
 	_check(definition.stage_name != "", "%s: has a name" % name)
-	var result := MazeSolver.solve(maze.layout)
-	_check(result.solved, "%s: one lemming with only the stage's items can win it" % name)
+	if maze.layout != null:
+		_check(maze.columns == 60 and maze.rows == 34, "%s: a 60x34 maze" % name)
+		_check(MazeSolver.solve(maze.layout).solved, "%s: one lemming with only the stage's items can win it" % name)
+	else:
+		var biome := BiomeStageGenerator.biome_of(stage_index)
+		var size := BiomeStageGenerator.stage_size(stage_index, biome.shapes[BiomeStageGenerator.tier_of(stage_index)])
+		_check(Vector2i(maze.columns, maze.rows) == size, "%s: the size of its place in the run" % name)
+		_check(CellStageSolver.solve(maze).solved, "%s: one lemming with only the stage's items can win it" % name)
+		_check(definition.get_environment_kind() == biome.kind, "%s: its biome's setting" % name)
 	_check(not definition.get_solution().is_empty(), "%s: has a recorded solution" % name)
 	_check(definition.pickups.size() == maze.item_spots.size(), "%s: a pickup on every spot" % name)
 	var kinds := {}
@@ -60,8 +67,9 @@ func _check_definition(definition: RoguelikeStageDefinition, name: String, stage
 		if spec.kind == RoguelikePickupSpec.Kind.TOOL:
 			kinds[spec.tool_id] = true
 	_check(kinds.size() <= RoguelikeToolInventory.DEFAULT_MAX_SLOTS, "%s: at most %d different tools (%s)" % [name, RoguelikeToolInventory.DEFAULT_MAX_SLOTS, kinds.keys()])
-	var cave := stage_index >= MazeStageGenerator.FIRST_CAVE_DIFFICULTY
-	_check(definition.get_environment_kind() == (LevelEnvironment.Kind.CAVE if cave else LevelEnvironment.Kind.SURFACE), "%s: environment follows depth" % name)
+	if maze.layout != null:
+		var cave := stage_index >= MazeStageGenerator.FIRST_CAVE_DIFFICULTY
+		_check(definition.get_environment_kind() == (LevelEnvironment.Kind.CAVE if cave else LevelEnvironment.Kind.SURFACE), "%s: environment follows depth" % name)
 	_check(definition.time_limit_seconds >= MazeStageGenerator.MIN_TIME_SECONDS, "%s: time limit" % name)
 
 

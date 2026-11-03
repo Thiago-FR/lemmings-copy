@@ -20,7 +20,9 @@ extends RefCounted
 ## The result is the core's plain MazeStageData. generate() makes a run's
 ## stage; generate_custom() makes any biome at any size (the editor).
 ##
-## Not yet: checking a stage can be won, and recording its solution.
+## Every stage is checked to be winnable (CellStageSolver): it is drawn
+## again until one lemming can walk from the entrance to an exit far across
+## it with the items placed on its way, and that solution is recorded.
 
 const BIOME_DIRECTORY := "res://scripts/procedural/biomes/"
 
@@ -37,6 +39,9 @@ const CONCRETE := StageBiome.CONCRETE
 const HEADROOM := StageBiome.HEADROOM
 const BORDER := StageBiome.BORDER
 
+## Why each try of the last stage drawn was thrown away (for tools that
+## check the generator).
+static var last_report := PackedStringArray()
 ## The biomes found in BIOME_DIRECTORY, in their order (filled on first use).
 static var _biomes: Array[StageBiome] = []
 
@@ -49,6 +54,8 @@ var cell_skins := {}
 var backdrop_skins := {}
 var ladder_cells: Array[Vector2i] = []
 var _bricks: Array[Rect2] = []
+## Soil steps up the one-block rises (TerrainDestructible.initial_ramps).
+var _ramps: Array[Rect2] = []
 var _spots: Array[Dictionary] = []
 ## Tools the obstacles call for, with each obstacle's column (its item goes
 ## somewhere before it).
@@ -146,9 +153,8 @@ static func generate(seed_value: int, stage_index: int) -> MazeStageData:
 	var index := clampi(stage_index, 0, stage_count() - 1)
 	var biome := biome_of(index)
 	var tier := tier_of(index)
-	var generator := BiomeStageGenerator.new()
 	var size := stage_size(index, biome.shapes[tier])
-	return generator._generate(hash("%d:%d" % [seed_value, index]), biome, tier, size, float(index) / float(maxi(stage_count() - 1, 1)))
+	return _generate_solved(hash("%d:%d" % [seed_value, index]), biome, tier, size, float(index) / float(maxi(stage_count() - 1, 1)))
 
 
 ## Any biome at any size and difficulty (0 to 1), as its tier-th stage is
@@ -157,10 +163,37 @@ static func generate_custom(seed_value: int, biome_id: StringName, size: Vector2
 	var generator := BiomeStageGenerator.new()
 	var clamped := Vector2i(maxi(size.x, MIN_SIZE.x), maxi(size.y, MIN_SIZE.y))
 	var biome := biome_by_id(biome_id)
-	return generator._generate(seed_value, biome, clampi(tier, 0, biome.stages.size() - 1), clamped, clampf(difficulty, 0.0, 1.0))
+	return _generate_solved(seed_value, biome, clampi(tier, 0, biome.stages.size() - 1), clamped, clampf(difficulty, 0.0, 1.0))
+
+
+## Draws stages until one can be won (CellStageSolver) along a way that
+## crosses the stage, with the items its solution needs on that way. The
+## last one drawn if none could (its solution then stays empty).
+static func _generate_solved(seed_value: int, biome: StageBiome, tier: int, size: Vector2i, difficulty: float) -> MazeStageData:
+	var data: MazeStageData = null
+	last_report.clear()
+	var easy_seed := -1
+	for attempt in MAX_ATTEMPTS:
+		var generator := BiomeStageGenerator.new()
+		var attempt_seed := hash("%d:%d" % [seed_value, attempt])
+		data = generator._generate(attempt_seed, biome, tier, size, difficulty)
+		if generator._solve_and_place_items(data):
+			return data
+		if generator.was_too_easy and easy_seed < 0:
+			easy_seed = attempt_seed
+	# Better an easy stage than none.
+	if easy_seed >= 0:
+		var generator := BiomeStageGenerator.new()
+		generator.allow_easy = true
+		data = generator._generate(easy_seed, biome, tier, size, difficulty)
+		if generator._solve_and_place_items(data):
+			return data
+	push_warning("No winnable %s stage %d in %d tries" % [biome.id, tier + 1, MAX_ATTEMPTS])
+	return data
 
 
 func _generate(seed_value: int, biome: StageBiome, tier: int, size: Vector2i, difficulty: float) -> MazeStageData:
+	_biome = biome
 	rng.seed = seed_value
 	_noise.seed = rng.randi()
 	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
@@ -175,8 +208,159 @@ func _generate(seed_value: int, biome: StageBiome, tier: int, size: Vector2i, di
 	biome.build(self)
 	if biome.walled:
 		_wall_in()
-	_place_tools()
+	if not biome.floating_ground:
+		_remove_specks()
+	_add_ramps()
 	return _to_data(biome)
+
+
+# --- Winnable -------------------------------------------------------------------
+
+## A stage drawn is thrown away and drawn again at most this many times.
+const MAX_ATTEMPTS := 8
+## A solution uses at most this many kinds of tool (a tool bar has four
+## places).
+const MAX_TOOL_KINDS := 4
+## The tools a generated stage's solution may use.
+const SOLUTION_TOOLS: Array[String] = ["digger", "builder", "bridge", "basher", "ladder_vertical", "floater"]
+## How much of the stage the entrance and the exit lie apart, along the
+## route's way (across for a crossing, up or down for a climb or a descent),
+## so a big stage is not won a few steps from the entrance.
+const MIN_SPAN_ACROSS := 0.6
+const MIN_SPAN_UP_OR_DOWN := 0.25
+## Seconds a lemming takes to walk one block (32px at 50px/s), and the
+## stage's clock against the solution's walk.
+const SECONDS_PER_BLOCK := 0.64
+const TIME_PER_TOOL_SECONDS := 8
+const TIME_FACTOR := 1.6
+const TIME_MARGIN_SECONDS := 40
+
+
+## Set when a try was thrown away only for being too easy; allow_easy
+## keeps it (the last resort).
+var was_too_easy := false
+var _biome: StageBiome = null
+var allow_easy := false
+
+
+## Finds a way to the exit with tools to spare, puts one item for every
+## tool on that way before the place it is used, checks the stage can then
+## be won with those items alone and records how. False if any step fails.
+func _solve_and_place_items(data: MazeStageData) -> bool:
+	if not _spans_stage():
+		last_report.append("entrance %s and exit %s too close" % [spawn_cell, exit_cell])
+		return false
+	var hints: Array[int] = []
+	for need in _needs:
+		hints.append(int(need.column))
+	var route := CellStageSolver.solve_unlimited(data, SOLUTION_TOOLS if _biome.solution_tools.is_empty() else _biome.solution_tools, hints)
+	if not route.solved and not _exit_where_the_way_ends(data, route):
+		last_report.append("no way: %s %s" % [route.reason, route.get("best", "")])
+		return false
+	if not route.solved:
+		route = route.nearest
+	# A stage further into its biome asks for more: one tool in the first,
+	# two in the second, three in the third.
+	if route.steps.size() < stage_tier + 1 and not allow_easy:
+		last_report.append("too easy: %d tools" % route.steps.size())
+		was_too_easy = true
+		return false
+	var kinds := {}
+	for step: Dictionary in route.steps:
+		kinds[step.tool] = true
+	if kinds.size() > MAX_TOOL_KINDS:
+		last_report.append("too many kinds of tool: %s" % ", ".join(kinds.keys()))
+		return false
+	_place_items_along(route)
+	data.item_spots = _spots
+	var check := CellStageSolver.solve(data, hints)
+	if not check.solved:
+		last_report.append("not with the items: %s %s" % [check.reason, check.get("best", "")])
+		return false
+	data.solution.clear()
+	for step: Dictionary in check.steps:
+		data.solution.append({"tool": step.tool, "from_column": step.column, "to_column": step.column,
+			"row": roundi(float(step.feet) / CellStageSolver.UNITS_PER_CELL), "direction": step.direction,
+			"why": "", "collect_first": step.collect_first})
+	var walk_seconds := int(check.walk_steps) * SECONDS_PER_BLOCK
+	data.suggested_time_seconds = clampi(ceili(walk_seconds * TIME_FACTOR) + TIME_PER_TOOL_SECONDS * check.steps.size() + TIME_MARGIN_SECONDS, 90, 900)
+	return true
+
+
+## When the exit drawn cannot be reached, it goes where the nearest way to
+## it ends, if that place is still far enough from the entrance and a
+## floor to stand the exit on. The bottom chamber of a descent stays as a
+## cave without it.
+func _exit_where_the_way_ends(data: MazeStageData, route: Dictionary) -> bool:
+	var nearest: Dictionary = route.get("nearest", {})
+	if not nearest.has("point") or not nearest.on_whole_block:
+		return false
+	var previous_exit := exit_cell
+	exit_cell = nearest.point
+	if not _spans_stage() or cell_kind(exit_cell.x, exit_cell.y) == EMPTY:
+		exit_cell = previous_exit
+		return false
+	data.exit_cell = exit_cell
+	return true
+
+
+## Far enough: across most of the stage, or a good part of its height up
+## (a climb) or down (a descent).
+func _spans_stage() -> bool:
+	if absi(exit_cell.x - spawn_cell.x) >= stage_columns * MIN_SPAN_ACROSS:
+		return true
+	match stage_route:
+		StageBiome.Route.ASCEND:
+			return spawn_cell.y - exit_cell.y >= stage_rows * MIN_SPAN_UP_OR_DOWN
+		StageBiome.Route.DESCEND:
+			return exit_cell.y - spawn_cell.y >= stage_rows * MIN_SPAN_UP_OR_DOWN
+	return false
+
+
+## One item for each tool the way uses, on a floor the lemming walks over
+## between the previous tool and this one.
+func _place_items_along(route: Dictionary) -> void:
+	var path: Array = route.path
+	var previous := 0
+	for step: Dictionary in route.steps:
+		var at: int = step.path_index
+		var choices := _item_floors(path, previous, at - 2, false)
+		if choices.is_empty():
+			choices = _item_floors(path, 0, at, false)
+		if choices.is_empty():
+			choices = _item_floors(path, 0, at, true)
+		if choices.is_empty():
+			last_report.append("no floor for the %s item before column %d" % [step.tool, step.column])
+			continue
+		var spot: Vector2i = choices[rng.randi_range(0, choices.size() - 1)]
+		_spots = _spots.filter(func(other: Dictionary) -> bool: return Vector2i(other.column, other.row) != spot)
+		_spots.append({"column": spot.x, "row": spot.y, "kind": MazeLayout.SpotKind.TOOL, "tool_id": step.tool,
+			"amount": 1, "required": true, "spot_index": _spots.size()})
+		previous = at
+
+
+## Cells of the path from..to (indexes) where an item can stand: on ground
+## that is there from the start, with the air over it open from the start
+## too (never a place the way only reaches by digging: the item would sit
+## inside the rock), not on the exit, not where an item already is. On a
+## whole block; on a ramp's step only with on_ramps (the item then floats
+## over the step, at the top of its block).
+func _item_floors(path: Array, from: int, to: int, on_ramps: bool) -> Array[Vector2i]:
+	var floors: Array[Vector2i] = []
+	for index in range(maxi(from, 0), mini(to, path.size() - 1) + 1):
+		var point: Vector3i = path[index]
+		var whole := point.y % CellStageSolver.UNITS_PER_CELL == 0
+		if whole == on_ramps:
+			continue
+		var cell := Vector2i(point.x, point.y / CellStageSolver.UNITS_PER_CELL)
+		if cell.x == exit_cell.x or floors.has(cell) or cell_kind(cell.x, cell.y - 1) != EMPTY:
+			continue
+		if whole and cell_kind(cell.x, cell.y) == EMPTY:
+			continue
+		if _spots.any(func(other: Dictionary) -> bool: return other.kind == MazeLayout.SpotKind.TOOL and Vector2i(other.column, other.row) == cell):
+			continue
+		floors.append(cell)
+	return floors
 
 
 # --- Toolkit for the biomes (scripts/procedural/biomes) ----------------------
@@ -195,7 +379,9 @@ func make_relief(base_share: float, slope: float, amplitude: int, frequency: flo
 	var heights := PackedInt32Array()
 	heights.resize(stage_columns)
 	var previous := -1
+	var flat_for := MIN_PLATEAU
 	for column in stage_columns:
+		flat_for += 1
 		var share := float(column) / float(stage_columns - 1)
 		var base := (base_share - slope * share) * stage_rows
 		var target := clampi(roundi(base + _noise.get_noise_1d(column * 1.0) * amplitude * 2.0), 4, stage_rows - 5)
@@ -204,10 +390,12 @@ func make_relief(base_share: float, slope: float, amplitude: int, frequency: flo
 		var difference := target - previous
 		if absi(difference) >= 2 and rng.randf() < cliff_chance:
 			previous += clampi(difference, -5, 5)
+			flat_for = 0
 			if difference < 0:
 				add_need(["ladder_vertical", "builder", "climber"][rng.randi_range(0, 2)], column)
-		else:
+		elif difference != 0 and flat_for >= MIN_PLATEAU:
 			previous += clampi(difference, -1, 1)
+			flat_for = 0
 		heights[column] = previous
 	return heights
 
@@ -533,12 +721,22 @@ func place_spawn_and_exit(heights: PackedInt32Array) -> void:
 			spawn_cell = _lowest(_floors(left, third))
 			exit_cell = _highest(_floors(right - third, right))
 		StageBiome.Route.DESCEND:
-			spawn_cell = floor_near(left + 2, heights)
+			# As high as the left side goes: the way down is the stage's.
+			spawn_cell = _highest(_floors(left, third))
 			exit_cell = _bottom_chamber(TerrainSkin.CAVE_WALL)
 	if spawn_cell == Vector2i(-1, -1):
 		spawn_cell = floor_near(left + 2, heights)
 	if exit_cell == Vector2i(-1, -1):
 		exit_cell = floor_near(right - 2, heights)
+
+
+## A floor inside the rock (rock over it, below the stage's top rows)
+## between two columns: the highest one, or one of the lowest.
+func cave_floor(from: int, to: int, highest: bool) -> Vector2i:
+	var floors := _floors(from, to).filter(func(cell: Vector2i) -> bool:
+		return cell.y > HEADROOM + 3 and _surface_row(cell.x) < cell.y - HEADROOM)
+	var chosen := _highest(floors) if highest else _lowest(floors)
+	return chosen if chosen.x >= 0 else Vector2i(from + 2, stage_rows - 3)
 
 
 func _lowest(floors: Array[Vector2i]) -> Vector2i:
@@ -555,6 +753,100 @@ func _highest(floors: Array[Vector2i]) -> Vector2i:
 	return floors[rng.randi_range(0, mini(2, floors.size() - 1))]
 
 
+# --- Ramps --------------------------------------------------------------------------
+
+## The step up a one-block rise: half a block high, half a column wide.
+const RAMP_STEP_HEIGHT := 16.0
+const RAMP_STEP_WIDTH := 16.0
+## A gentle slope changes height at most once every this many columns, so
+## a hill is a few broad steps and not a staircase of single columns.
+const MIN_PLATEAU := 3
+## Ground left hanging in the air this small is taken away.
+const SPECK_CELLS := 80
+
+
+## A walking lemming steps up less than a block: a full block is a wall. So
+## every one-block rise of earth gets low soil steps in front of it, on the
+## side it is climbed from (both sides of a hill), and the hills can be
+## walked over. Rises of two blocks or more stay walls: those are the
+## obstacles that call for a tool.
+func _add_ramps() -> void:
+	_fill_narrow_dips()
+	var claimed := {}
+	for row in range(3, stage_rows):
+		for column in range(1, stage_columns - 1):
+			if not _is_floor_with_room(column, row - 1) or cell_kind(column, row - 1) != EARTH:
+				continue
+			for side in [-1, 1]:
+				_ramp_up_to(column, row, side, claimed)
+
+
+## Ramp pieces on the side `side` of the high column, whose floor is
+## row - 1, down to the low floor at row.
+func _ramp_up_to(high: int, row: int, side: int, claimed: Dictionary) -> void:
+	# One step half a block high and half a column wide, against the rise:
+	# the lemming goes up the block in two half steps, and it reads as a
+	# plain step cut in the ground.
+	var low := high + side
+	if not _is_floor_with_room(low, row) or cell_kind(low, row) != EARTH:
+		return
+	if low == exit_cell.x or claimed.has(Vector2i(low, row)):
+		return
+	claimed[Vector2i(low, row)] = true
+	var tile := Constants.TERRAIN_TILE_SIZE
+	var left := float(low) * tile + (tile - RAMP_STEP_WIDTH if side < 0 else 0.0)
+	_ramps.append(Rect2(left, row * tile - RAMP_STEP_HEIGHT, RAMP_STEP_WIDTH, RAMP_STEP_HEIGHT))
+
+
+## Ground of at most SPECK_CELLS cells hanging in the air, cut loose by the
+## carving (a ravine or a cave round it), is taken away: in a meadow it
+## looks like a mistake. Not in a biome with floating ground on purpose.
+func _remove_specks() -> void:
+	var seen := {}
+	for row in stage_rows:
+		for column in stage_columns:
+			var start := Vector2i(column, row)
+			if seen.has(start) or cell_kind(column, row) == EMPTY:
+				continue
+			var piece: Array[Vector2i] = [start]
+			seen[start] = true
+			var index := 0
+			while index < piece.size() and piece.size() <= SPECK_CELLS:
+				var cell := piece[index]
+				index += 1
+				for step in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+					var next: Vector2i = cell + step
+					if seen.has(next) or cell_kind(next.x, next.y) == EMPTY:
+						continue
+					seen[next] = true
+					piece.append(next)
+			if piece.size() <= SPECK_CELLS:
+				for cell in piece:
+					set_cell_kind(cell.x, cell.y, EMPTY)
+					cell_skins.erase(cell)
+	# A scenery tree that stood on what was taken away goes with it.
+	_decor = _decor.filter(func(tree: Dictionary) -> bool:
+		var trunk: Array = tree.trunk
+		var base: Vector2i = trunk.back()
+		return cell_kind(base.x, base.y + 1) != EMPTY)
+
+
+## A dip one column wide and one block deep between two floors: no room
+## for a ramp on both sides, and a lemming turns at its far lip. Filled.
+func _fill_narrow_dips() -> void:
+	for row in range(3, stage_rows - 1):
+		for column in range(1, stage_columns - 1):
+			if not _is_floor_with_room(column, row + 1) or cell_kind(column, row + 1) != EARTH:
+				continue
+			if _is_floor_with_room(column - 1, row) and _is_floor_with_room(column + 1, row) and column != spawn_cell.x and column != exit_cell.x:
+				set_cell_kind(column, row, EARTH)
+
+
+## Solid ground with two empty cells over it (a lemming's room).
+func _is_floor_with_room(column: int, row: int) -> bool:
+	return cell_kind(column, row) != EMPTY and cell_kind(column, row - 1) == EMPTY and cell_kind(column, row - 2) == EMPTY
+
+
 # --- Items --------------------------------------------------------------------------
 
 func add_need(tool_id: String, column: int) -> void:
@@ -566,26 +858,6 @@ func add_spot(column: int, row: int, kind: MazeLayout.SpotKind, tool_id: String 
 		if absi(spot.column - column) <= 1 and spot.row == row:
 			return
 	_spots.append({"column": column, "row": row, "kind": kind, "tool_id": tool_id, "amount": 1, "required": kind == MazeLayout.SpotKind.TOOL, "spot_index": _spots.size()})
-
-
-## One item per tool the way calls for (at most two of a kind, so the bar
-## is not all ladders), on a floor somewhere before its obstacle and not
-## right in front of it.
-func _place_tools() -> void:
-	var floors := _floors(0, stage_columns)
-	var counts := {}
-	for need in _needs:
-		if int(counts.get(need.tool, 0)) >= 2:
-			continue
-		counts[need.tool] = int(counts.get(need.tool, 0)) + 1
-		var before := floors.filter(func(floor_cell: Vector2i) -> bool:
-			return absi(floor_cell.x - spawn_cell.x) < absi(need.column - spawn_cell.x) - 3 and floor_cell != spawn_cell and floor_cell != exit_cell)
-		if before.is_empty():
-			before = floors
-		if before.is_empty():
-			continue
-		var at: Vector2i = before[rng.randi_range(0, before.size() - 1)]
-		add_spot(at.x, at.y, MazeLayout.SpotKind.TOOL, need.tool)
 
 
 func scatter_bonus(count: int) -> void:
@@ -616,11 +888,12 @@ func _to_data(biome: StageBiome) -> MazeStageData:
 	data.unbreakable = _unbreakable
 	data.ladders = ladder_cells
 	data.bricks = _bricks
+	data.ramps = _ramps
 	data.spawn_cell = spawn_cell
 	data.exit_cell = exit_cell
 	data.spawn_faces_left = false
 	data.item_spots = _spots
 	data.environment_kind = biome.kind
 	data.stage_name = biome.stages[stage_tier]
-	data.suggested_time_seconds = clampi(90 + (stage_columns * stage_rows) / 30 + 15 * mini(_needs.size(), 12), 120, 600)
+	data.suggested_time_seconds = clampi(90 + (stage_columns * stage_rows) / 30, 120, 600)
 	return data

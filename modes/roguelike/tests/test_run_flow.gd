@@ -50,7 +50,10 @@ func _ready() -> void:
 		await get_tree().process_frame
 		# Cleared without losses: four cards instead of three.
 		_check(_cards(run).size() == RoguelikeCardPool.PERFECT_OFFER_SIZE, "after a perfect stage %d four reward cards are offered (%d)" % [stage + 1, _cards(run).size()])
-		_check(run.state.troop.size() >= stage + 2 and not run.state.troop.has(RoguelikeCharacters.WIZARD), "and one more Miner joined (troop of %d)" % run.state.troop.size())
+		# A recruit joins after each of the first stages only (one per
+		# character there is to buy).
+		var expected := mini(stage + 2, RoguelikeCharacters.UNLOCK_ORDER.size() + 1)
+		_check(run.state.troop.size() >= expected and not run.state.troop.has(RoguelikeCharacters.WIZARD), "and the troop grew as it should (troop of %d, %d expected)" % [run.state.troop.size(), expected])
 		if _cards(run).is_empty():
 			break
 		(_cards(run)[0] as BaseButton).pressed.emit()

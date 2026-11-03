@@ -73,6 +73,11 @@ static func override_maze(index: int) -> MazeStageData:
 	if (drawing.entrances as Array).is_empty():
 		return null
 	var maze := LevelDrawing.maze_from_dictionary(drawing)
+	# A generated stage saved as it was keeps its own items and solution.
+	if not maze.item_spots.is_empty():
+		if maze.stage_name.is_empty():
+			maze.stage_name = BiomeStageGenerator.biome_of(index).stages[BiomeStageGenerator.tier_of(index)]
+		return maze
 	var floors: Array[Vector2i] = []
 	for row in range(2, maze.rows - 1):
 		for column in range(1, maze.columns - 1):

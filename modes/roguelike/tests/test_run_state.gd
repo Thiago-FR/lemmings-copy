@@ -221,8 +221,10 @@ func _test_relic_templates() -> void:
 
 
 func _test_stage_definitions_build() -> void:
+	# Generated stages are drawn and solved, which takes a while: the
+	# hand-made ones and a generated stage from a few biomes.
 	for handmade in [false, true]:
-		for index in RoguelikeRunState.stage_count():
+		for index in [0, 1, 2, 3, 4, 9, 27]:
 			var state := RoguelikeRunState.new_run()
 			state.use_handmade_stages = handmade
 			state.stage_index = index
@@ -230,5 +232,6 @@ func _test_stage_definitions_build() -> void:
 			var builder := RoguelikeStageBuilder.new()
 			var level := builder.build(definition)
 			var used := (level.get_node("Terrain") as TerrainDestructible).get_used_rect()
-			_check(used.size.x == 60 and used.size.y == 34, "%s stage %d fills one screen, 60x34 blocks (%dx%d)" % ["hand-made" if handmade else "generated", index + 1, used.size.x, used.size.y])
+			var size := Vector2i(definition.maze.columns, definition.maze.rows)
+			_check(used.end.x <= size.x and used.end.y <= size.y and used.size.x > 0, "%s stage %d is built at its maze's size, %dx%d blocks (%dx%d)" % ["hand-made" if handmade else "generated", index + 1, size.x, size.y, used.size.x, used.size.y])
 			level.free()

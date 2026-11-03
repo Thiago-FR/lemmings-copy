@@ -20,6 +20,10 @@ extends Resource
 @export var environment_kind: LevelEnvironment.Kind = LevelEnvironment.Kind.SURFACE
 ## In cells.
 @export var size := Vector2i(120, 60)
+## The looks of a generated stage (StageDressing), plus what the generator
+## worked out for it: "items" (MazeStageData.item_spots), "solution",
+## "stage_name", "time". Empty for a drawing made by hand.
+@export var dressing: Dictionary = {}
 
 ## Matching RoguelikeStageBuilder and the campaign levels: the entrance
 ## stands a short drop above the floor, the exit on it.
@@ -38,6 +42,7 @@ func to_dictionary() -> Dictionary:
 		"skill_counts": skill_counts.duplicate(),
 		"environment_kind": environment_kind,
 		"size": size,
+		"dressing": dressing.duplicate(),
 	}
 
 
@@ -52,13 +57,14 @@ static func from_dictionary(drawing: Dictionary) -> LevelDrawing:
 	file.skill_counts = drawing.get("skill_counts", {}).duplicate()
 	file.environment_kind = drawing.get("environment_kind", LevelEnvironment.Kind.SURFACE)
 	file.size = drawing.get("size", Vector2i(120, 60))
+	file.dressing = drawing.get("dressing", {}).duplicate()
 	return file
 
 
 ## A generated stage as a drawing: its terrain (with ladders and bricks),
 ## entrance, exit and, as the tool counts, one charge per tool item the
-## generator placed. The looks laid over the cells (trees, walls) are not
-## part of a drawing.
+## generator placed, and its dressing (looks, border, ramps) with its items
+## and solution.
 static func dictionary_from_maze(maze: MazeStageData) -> Dictionary:
 	var terrain := TerrainDestructible.new()
 	terrain.tile_set = preload("res://resources/tilesets/terrain_tileset.tres")
@@ -76,7 +82,11 @@ static func dictionary_from_maze(maze: MazeStageData) -> Dictionary:
 		"skill_counts": counts,
 		"environment_kind": maze.environment_kind,
 		"size": Vector2i(maze.columns, maze.rows),
+		"dressing": StageDressing.from_maze(maze).merged({"items": maze.item_spots, "solution": maze.solution,
+			"stage_name": maze.stage_name, "time": maze.suggested_time_seconds}),
 	}
+	for child in terrain.get_children():
+		child.free()
 	terrain.free()
 	return drawing
 
@@ -110,4 +120,10 @@ static func maze_from_dictionary(drawing: Dictionary) -> MazeStageData:
 		var exit: Vector2 = drawing.exit
 		maze.exit_cell = Vector2i(floori(exit.x / tile), roundi((exit.y + EXIT_HEIGHT) / tile))
 	maze.environment_kind = drawing.get("environment_kind", LevelEnvironment.Kind.SURFACE)
+	var dressing: Dictionary = drawing.get("dressing", {})
+	StageDressing.onto_maze(maze, dressing)
+	maze.item_spots.assign(dressing.get("items", []))
+	maze.solution.assign(dressing.get("solution", []))
+	maze.stage_name = dressing.get("stage_name", "")
+	maze.suggested_time_seconds = int(dressing.get("time", maze.suggested_time_seconds))
 	return maze

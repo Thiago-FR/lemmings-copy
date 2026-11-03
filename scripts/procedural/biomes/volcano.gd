@@ -11,6 +11,7 @@ func _init() -> void:
 	stages.assign(["Encosta Negra", "Rios de Brasa", "A Cratera"])
 	shapes.assign([Shape.WIDE, Shape.BOTH, Shape.TALL])
 	routes.assign([Route.TRAVERSE, Route.DESCEND, Route.ASCEND])
+	solution_tools.assign(["digger", "builder", "bridge", "basher", "ladder_vertical", "floater", "climber"])
 
 
 func build(g: BiomeStageGenerator) -> void:

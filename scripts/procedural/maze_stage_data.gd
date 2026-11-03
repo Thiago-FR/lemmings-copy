@@ -16,6 +16,8 @@ var cells := PackedByteArray()
 ## stages that start with some built; generated ones have none yet.
 var ladders: Array[Vector2i] = []
 var bricks: Array[Rect2] = []
+## Soil steps up one-block rises (TerrainDestructible.initial_ramps).
+var ramps: Array[Rect2] = []
 ## Column and floor row (lemmings stand on top of that row) of the entrance
 ## and of the exit.
 var spawn_cell := Vector2i.ZERO
@@ -83,28 +85,8 @@ func paint_onto(terrain: TerrainDestructible) -> void:
 		terrain.place_ladder_at(Vector2((ladder.x + 0.5) * tile, (ladder.y + 0.5) * tile))
 	# Bricks need the terrain's brick body, made when it enters the tree.
 	terrain.initial_bricks.append_array(bricks)
-	terrain.unbreakable_cells = unbreakable
-	if not decor_trees.is_empty():
-		var decor := BackgroundDecor.new()
-		decor.name = "Decor"
-		decor.trees = decor_trees
-		terrain.add_child(decor)
-	if not skins.is_empty() or not backdrop.is_empty() or inside_wall != &"":
-		var skin := TerrainSkin.new()
-		skin.name = "Skin"
-		skin.skins = skins
-		skin.backdrop = backdrop
-		skin.inside_wall = inside_wall
-		skin.area = Rect2i(0, 0, columns, rows)
-		for cell: Vector2i in skins:
-			if skins[cell] in TerrainSkin.SELF_DRAWN:
-				terrain.self_drawn_cells[cell] = true
-		terrain.add_child(skin)
-	if not rooms.is_empty():
-		var furniture := RoomDecor.new()
-		furniture.name = "Rooms"
-		furniture.rooms = rooms
-		terrain.add_child(furniture)
+	# The looks over the cells, the border and the ramps.
+	StageDressing.apply(terrain, StageDressing.from_maze(self))
 
 
 ## World position of the middle of a column, at the top of a floor row.

@@ -1312,12 +1312,147 @@ incluir o ambiente novo sem mais nada.
   guardam o número); `TerrainSkin` desenha parede de prédio, casco de
   estação, borda, folhas quadradas e, atrás do ar subterrâneo, parede de
   caverna ou de gelo (segue `TerrainDestructible.cells_changed`).
-- **Ainda não confere se a fase dá para vencer** e não grava a solução: os
-  testes de partida do roguelike (`run_tests.bat completo`) falham até isso
-  existir. De propósito, enquanto o usuário aprova o visual.
+- **Confere se a fase dá para vencer** (ver a seção "Fases que dão para
+  vencer", 3 de novembro de 2026).
 - **Prints de todas as fases:** `prints/ambientes/`, gerados por
   `godot --path . --resolution 1920x1080 res://modes/roguelike/tools/capture_stages.tscn -- <pasta> [semente] [primeira] [última]`.
 - **Itens ao cavar** (plano aprovado antes) **ainda não existem**.
+
+## Fases que dão para vencer (3 de novembro de 2026)
+
+O usuário pediu a garantia de que toda fase gerada dá para terminar, com a
+saída longe da entrada ("não adianta o mapa gigante e a saída logo abaixo
+da entrada").
+
+- **Descoberta: um degrau de 1 bloco é parede.** O boneco só sobe menos de
+  30 px (`LemmingController._forward_step_height`); o bloco tem 32. Os
+  morros do gerador subiam 1 bloco por coluna, então cada subida virava o
+  boneco. O usuário escolheu **rampas de terra**. Depois de três versões
+  reprovadas (degraus soltos "desconexos", bug15; uma encosta lisa, "ficou
+  pior"; escadinhas de 3 degraus finos, "tranqueira empilhada", bug16),
+  ficou assim: **cada subida de 1 bloco tem um degrau simples de meio
+  bloco** (16 px de altura e de largura) encostado nela (`_ramp_up_to`),
+  desenhado como um bloco: a textura de terra no lugar certo do bloco, a
+  borda de cima do chão do tema e, no lado aberto, a lateral e o canto do
+  bloco (`TerrainDestructible._soil_piece`). São tijolos (`initial_ramps`,
+  `place_brick(rect, true)`) e cavam como qualquer tijolo. **O relevo anda
+  em patamares**: uma mudança suave de altura só a cada 3 colunas
+  (`MIN_PLATEAU`), então um morro são poucos degraus largos e não uma
+  escada de coluna em coluna. Paredões de 2 blocos ou mais continuam
+  parede: são os quebra-cabeças.
+- **Terra solta no ar** (até 80 blocos, cortada por ravina ou caverna) é
+  tirada, com as árvores de enfeite em cima dela (`_remove_specks`); menos
+  no Planeta e no Espaço (`StageBiome.floating_ground`).
+- **Item nunca dentro do bloco** (bug15 e bug17: o item ficou enterrado, o
+  boneco não o pegava e ficou preso logo no começo). Causas: um ponto do
+  caminho que só existe depois de cavar (o item ficava dentro da rocha até o
+  túnel ser aberto) e pontos em cima de rampa. Agora o item vai só em chão
+  que existe desde o início com ar livre em cima, de preferência em bloco
+  inteiro em todo o caminho até ali; em degrau de rampa só em último caso
+  (fica no alto do bloco, sobre o degrau). Conferido em 48 fases sem nenhum
+  item enterrado.
+- **Verificador** `CellStageSolver` (`scripts/procedural/cell_stage_solver.gd`,
+  núcleo): segue **um** boneco pela fase em fatias de 8 px e meias colunas,
+  com as regras do código do jogo: sobe até 3 fatias por meia coluna,
+  queda segura até 80 px, pega escada andando ou caindo, sobe até o último
+  degrau e sai para o lado com chão, tijolo é chão mas não parede. As
+  ferramentas: Pá (desce pela terra), Picareta/Britadeira (túnel de 1 bloco
+  na próxima parede), Escada vertical (próxima parede de até 12 blocos),
+  Escada diagonal (12 degraus de 8 px), Ponte (12 peças a partir da
+  beirada), Paraquedas e Garras. Busca o melhor primeiro: tenta antes o que
+  chega mais perto da saída com menos ferramentas, e as ferramentas só nos
+  lugares que importam (onde ele vira, cai ou bate, nas colunas que o
+  gerador marcou e no começo de cada trecho para as que ele carrega).
+- **No gerador** (`BiomeStageGenerator._solve_and_place_items`): desenha a
+  fase, confere se a entrada e a saída estão **longe** (60% da largura numa
+  travessia, ou 25% da altura numa subida ou descida), procura um caminho com
+  ferramentas à vontade, põe **um item de cada ferramenta no caminho antes
+  do lugar onde ela é usada**, confere de novo só com esses itens e grava a
+  **solução** (`MazeStageData.solution`) e o tempo (caminhada × 1,6 + 8 s
+  por ferramenta + 40 s). No máximo 4 tipos de ferramenta (a barra tem 4).
+  Se algo falha, desenha de novo (até 8 vezes); `BiomeStageGenerator.last_report`
+  diz por quê.
+- **Se a saída sorteada não é alcançável**, ela vai para o ponto do melhor
+  caminho mais perto dela, num bloco inteiro, desde que continue longe da
+  entrada (60% da largura, ou 25% da altura no sentido da rota).
+- **Dificuldade mínima:** a 1ª fase de cada paisagem pede pelo menos 1
+  ferramenta, a 2ª 2, a 3ª 3; uma fase mais fácil é desenhada de novo (só
+  fica, como último recurso, se nenhuma tentativa der certo).
+- **Garras só na Geleira e no Vulcão** (`StageBiome.solution_tools`): com
+  elas qualquer paredão vira uma ferramenta só (O Cume e os Telhados saíam
+  resolvidos com uma Garra).
+- Consertos que o verificador revelou: a escada do metrô ficava embaixo da
+  entrada da Cidade (o boneco caía e morria ao nascer; agora fica no fim da
+  rua); as escadas prontas dos poços da nave terminavam um bloco acima do
+  convés (o boneco ficava pendurado; agora o último degrau fica no nível do
+  convés) e todo poço e escotilha tem escada (nenhuma ferramenta sobe por um
+  buraco no teto); na Caverna de Cristal a entrada nascia em cima do teto
+  da caverna (agora `cave_floor`, dentro dos salões); no Planeta a subida
+  agora é pelo relevo (as ilhas ficam fora do fim da rota).
+- **Tempo de geração:** de 0,02 s a ~60 s por fase (as grandes de subida
+  são as mais lentas, várias tentativas). Por isso a pré-geração em segundo
+  plano no roguelike.
+- **Conferir à mão:** `godot --headless --path . --script res://tools/check_stages.gd -- [semente] [primeira] [última]`
+  lista cada fase, quanto levou, as ferramentas da solução e, se falhou, o
+  motivo de cada tentativa. `tools/debug_stage.gd -- <fase> [semente]`
+  mostra a fase em texto e onde o primeiro boneco vai.
+- **Roguelike:** desenhar e conferir leva de 0,1 a alguns segundos, então a
+  próxima fase é feita **em segundo plano** enquanto a atual é jogada
+  (`RoguelikeStageFactory.prefetch`, pedido pela `RoguelikeStageSession`
+  ao começar). Ao sair da fase, ela espera a próxima terminar
+  (`finish_prefetches`): fechar o jogo com a tarefa rodando travava o Godot
+  (segfault na saída dos testes).
+- **Limite do modelo:** é uma simplificação do jogo e **erra**: nas
+  primeiras partidas do robô no jogo de verdade, 7 das 10 fases da
+  campanha conferidas pelo modelo foram perdidas (quedas e escadas
+  diagonais calculadas diferente; os tijolos de verdade não ficam
+  alinhados à coluna). Erros já corrigidos no modelo: a Ponte só procura
+  a beirada no plano (qualquer degrau antes, até de rampa, e não há ponte,
+  como em `SkillBridge._find_floor_edge`); buracos de 1 bloco de largura e
+  de fundo entre dois chãos são tapados (a rampa só cabia de um lado e o
+  boneco virava na outra beira); cada rampa usa só a coluna do degrau.
+  **No roguelike a fase só é conferida pelo modelo** (não dá para jogar o
+  robô durante a partida); a campanha é conferida pelo robô (abaixo).
+
+## Visual das fases geradas em todo lugar (3 de novembro de 2026)
+
+O usuário: "o editor tem que ter tudo". `StageDressing`
+(`scripts/level/stage_dressing.gd`) junta o que uma fase gerada tem além
+dos blocos (peles, fundo, parede de caverna, árvores de enfeite, salas da
+nave, borda inquebrável, rampas) num Dictionary que vai junto para todo
+lado:
+- `MazeStageData.paint_onto` usa `StageDressing.apply`;
+- o desenho do editor guarda em `LevelDrawing.dressing` (mais os itens, a
+  solução, o nome e o tempo da fase); abrir, gerar e salvar mantêm tudo;
+  **Jogar** no editor também (`EditorPlaySession.build(..., dressing)`);
+- uma fase do roguelike salva pelo editor mantém os itens e a solução que o
+  gerador fez (`override_maze`);
+- uma fase da campanha guarda em `LevelData.dressing` e
+  `LevelData.solution`; o `LevelManager` aplica ao começar.
+
+## Campanha de 30 fases geradas (3 de novembro de 2026)
+
+O usuário: "sim, gerar as novas fases... pode ter 30 fases também agora".
+- `Campaign.LEVEL_COUNT = 30`: as mesmas 10 paisagens do roguelike, 3 fases
+  cada, na mesma ordem, de uma semente própria (`CAMPAIGN_SEED = 2026`).
+- Feitas por `CAMPAIGN_SPEED_UP=8 godot --headless --path . res://tools/build_generated_campaign.tscn -- [primeira] [última]` (cena, não `--script`: as cenas das fases precisam dos autoloads).
+  **Cada fase é jogada pelo robô no jogo de verdade** com a solução gravada
+  (`tests/test_campaign_level.tscn -- <fase>`); se ele perde, a fase é
+  desenhada de novo com outra semente (até 10 vezes). Cada tentativa
+  guarda um backup da anterior em `user://campaign_backups/`.
+  (`CampaignLevelStore.create_generated`): cena e `LevelData` com nome da
+  fase, tempo do gerador, 10 bonecos, as ferramentas da solução **na
+  quantidade exata** e meta de 30% (10% se a solução usa Paraquedas: só
+  quem o recebe sobrevive àquela queda). A meta nunca foi medida jogando.
+- **As 15 fases feitas à mão foram substituídas**: estão no histórico do git
+  (commit `a8d72f4`) e nos backups do editor (`user://campaign_backups/`).
+  O teste do editor com duas entradas usa uma cópia da antiga fase 12
+  (`tests/fixtures/two_entrances_level*`). Os testes delas
+  (`test_campaign_NN` e `_naive`) saíram; agora
+  `test_campaign_01, 04, 07... 28` jogam a primeira fase de cada paisagem
+  com a solução gravada (`play_recorded_solution` em
+  `tests/campaign_playthrough_test.gd`, rodam no `run_tests.bat completo`).
+- A tela de Fases mostra 10 colunas de 3.
 
 ## Editor: coleções de fases e gerador (2 de novembro de 2026)
 

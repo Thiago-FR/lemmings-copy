@@ -1,8 +1,8 @@
 extends StageBiome
 ## A spaceship in the void: a long hull with the engines at the left and
 ## the bridge in the nose at the right; inside, decks one above the other,
-## bulkheads with doors, shafts between the decks (some with a ladder up,
-## the rest to climb or build); hatches in the roof to walk out on the hull.
+## bulkheads with doors, shafts between the decks with a ladder up, and
+## hatches in the roof (a ladder up each) to walk out on the hull.
 ## Asteroids drift around it. A fall outside is a fall into space.
 
 
@@ -14,6 +14,7 @@ func _init() -> void:
 	stages.assign(["Estação", "Cinturão de Asteroides", "Última Doca"])
 	shapes.assign([Shape.WIDE, Shape.BOTH, Shape.BOTH])
 	routes.assign([Route.TRAVERSE, Route.ASCEND, Route.TRAVERSE])
+	floating_ground = true
 	# Open space all round: no border, falling off is falling away.
 	walled = false
 	# The ship paints its own inside; outside is the void.
@@ -66,12 +67,12 @@ func build(g: BiomeStageGenerator) -> void:
 			var at := g.rng.randi_range(from + 4, (left + right) / 2 + 6)
 			g.set_cell_kind(at, deck, EMPTY)
 			g.set_cell_kind(at + 1, deck, EMPTY)
-			if g.rng.randf() < 0.5:
-				for row in range(deck - 1, deck + 6):
-					if g.cell_kind(at, row) == EMPTY:
-						g.ladder_cells.append(Vector2i(at, row))
-			else:
-				g.add_need(["ladder_vertical", "builder"][g.rng.randi_range(0, 1)], at)
+			# Every shaft has its ladder (no tool goes up through a hole in a
+			# ceiling), its top rung level with the deck, so the climber
+			# steps off onto the deck beside the hole.
+			for row in range(deck, deck + 6):
+				if g.cell_kind(at, row) == EMPTY:
+					g.ladder_cells.append(Vector2i(at, row))
 	# Bulkheads with a door on every deck, now and then one shut (to bash).
 	var bulkheads: Array[int] = []
 	var bulkhead := left + g.rng.randi_range(10, 14)
@@ -98,7 +99,13 @@ func build(g: BiomeStageGenerator) -> void:
 		g.set_cell_kind(at + 1, tops[at] + 1, EMPTY)
 		g.set_cell_kind(at, tops[at], EMPTY)
 		g.set_cell_kind(at + 1, tops[at], EMPTY)
-		g.add_need("ladder_vertical", at)
+		# A ladder up through the hatch from the top deck's floor: there is
+		# no wall under a hatch for a ladder to go up.
+		var row := tops[at]
+		while row < bottoms[at] and g.cell_kind(at, row + 1) == EMPTY:
+			g.ladder_cells.append(Vector2i(at, row))
+			row += 1
+		g.ladder_cells.append(Vector2i(at, row))
 	# The bridge: a window band in the nose.
 	for row in range(centre - 1, centre + 1):
 		g.set_cell_kind(right - 1, row, EMPTY)
@@ -123,7 +130,7 @@ func build(g: BiomeStageGenerator) -> void:
 		g.exit_cell = Vector2i(top_column, tops[top_column])
 	else:
 		g.exit_cell = Vector2i(right - 4, bottoms[right - 4] - 1)
-	_furnish_ship(g, left, right, tops, deck_rows, bulkheads, centre)
+	_furnish_ship(g, left, right, tops, bottoms, deck_rows, bulkheads, centre)
 	g.scatter_bonus(3)
 
 
@@ -131,7 +138,7 @@ func build(g: BiomeStageGenerator) -> void:
 ## decks) a use: the engine room at the back, the bridge in the nose at the
 ## window's height, the rest of the ship's rooms mixed in between. A cargo
 ## hold gets crates on its floor, low enough to step over, that can be dug.
-func _furnish_ship(g: BiomeStageGenerator, left: int, right: int, tops: PackedInt32Array, deck_rows: Array[int], bulkheads: Array[int], centre: int) -> void:
+func _furnish_ship(g: BiomeStageGenerator, left: int, right: int, tops: PackedInt32Array, bottoms: PackedInt32Array, deck_rows: Array[int], bulkheads: Array[int], centre: int) -> void:
 	var walls: Array[int] = [left + 1]
 	walls.append_array(bulkheads)
 	walls.append(right - 1)
@@ -152,6 +159,9 @@ func _furnish_ship(g: BiomeStageGenerator, left: int, right: int, tops: PackedIn
 				bottom = ceiling + 1
 				while bottom < g.stage_rows and g.cell_kind(from, bottom) == EMPTY:
 					bottom += 1
+				# Only the hull's floor: past it is space (an asteroid).
+				if bottom > bottoms[from]:
+					continue
 			var rect := _room_rect(g, from, walls[index + 1] - 1, ceiling + 1, bottom)
 			ceiling = floor_row
 			if rect.size.x < 4 or rect.size.y < 3:

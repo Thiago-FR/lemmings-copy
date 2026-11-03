@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="LevelData" format=3]
+
+[ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_cx4m1"]
+
+[resource]
+script = ExtResource("1_cx4m1")
+level_name = "Duas Bocas"
+spawn_rate = 3.0
+total_lemmings = 20
+required_percentage = 0.8
+time_limit_seconds = 200
+available_skills = Array[String](["ladder_vertical", "miner", "bridge", "climber", "block"])
+skill_counts = {
+"block": 1,
+"bridge": 1,
+"climber": 2,
+"ladder_vertical": 1,
+"miner": 1
+}
+scene_path = "res://tests/fixtures/two_entrances_level.tscn"
+environment_kind = 4

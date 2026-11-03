@@ -1,8 +1,7 @@
 extends "res://tests/campaign_playthrough_test.gd"
-## Plays campaign level 1, "Terra Fofa", with a scripted solution. Run via:
+## Plays campaign level 1, the first of its biome, with the solution the
+## generator recorded for it. Run via:
 ##   godot --headless res://tests/test_campaign_01.tscn
-##
-## The first lemming to walk over the middle of the meadow digs down into the hollow.
 
 
 func _get_level_number() -> int:
@@ -10,4 +9,4 @@ func _get_level_number() -> int:
 
 
 func _play_frame() -> void:
-	give_once("dig through the meadow", "digger", walking_in(18, 24, 0, 20))
+	play_recorded_solution()

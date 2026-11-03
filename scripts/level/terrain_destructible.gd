@@ -62,6 +62,8 @@ const DUG_FROM_RIGHT := TileSetAtlasSource.TRANSFORM_TRANSPOSE | TileSetAtlasSou
 ## visual, at the same index.
 var _bricks: Array[Rect2] = []
 var _brick_nodes: Array[Array] = []
+## Whether the brick at the same index is a soil ramp (initial_ramps).
+var _brick_soil: Array[bool] = []
 var _brick_body: StaticBody2D = null
 var _edge_overlay: TerrainEdgeOverlay = null
 
@@ -80,6 +82,11 @@ const ATLAS_FILE := "terrain_atlas.png"
 ## the tile data, so a level drawn in the editor keeps them here and they
 ## are laid when the terrain enters the scene.
 @export var initial_bricks: Array[Rect2] = []
+## Bricks drawn as soil instead of planks, laid with
+## initial_bricks: the low steps a generated hill has on each side of a
+## one-block rise, so the troop walks up it (a full block is a wall to a
+## walking lemming). Solid, dug and carved like any brick.
+@export var initial_ramps: Array[Rect2] = []
 ## Cells that stay solid but are not drawn: something else paints them (a
 ## tree's crown, see TerrainSkin). cell -> true.
 var hidden_cells: Dictionary = {}
@@ -109,6 +116,8 @@ func _ready() -> void:
 	add_child(_brick_body)
 	for brick in initial_bricks:
 		place_brick(brick)
+	for ramp in initial_ramps:
+		place_brick(ramp, true)
 
 
 ## The folder the block art is read from (atlas and edge strips).
@@ -141,7 +150,7 @@ func _apply_art_theme() -> void:
 ## Lays a solid brick covering world_rect. Refused (returns false) if the
 ## space is already taken by terrain or another brick, so a staircase stops
 ## at a wall instead of being pushed into it.
-func place_brick(world_rect: Rect2) -> bool:
+func place_brick(world_rect: Rect2, soil: bool = false) -> bool:
 	const OVERLAP_TOLERANCE := 0.5
 	if is_solid_in_rect(world_rect.grow(-OVERLAP_TOLERANCE)):
 		return false
@@ -155,6 +164,13 @@ func place_brick(world_rect: Rect2) -> bool:
 	collision.position = local_rect.get_center()
 	_brick_body.add_child(collision)
 
+	if soil:
+		var piece := _soil_piece(local_rect)
+		add_child(piece)
+		_bricks.append(world_rect)
+		_brick_nodes.append([collision, piece])
+		_brick_soil.append(true)
+		return true
 	# Drawn as a plank whose two ends keep their shape while only the middle
 	# stretches or shrinks: a short step cut against a wall reads as a short
 	# plank, not as a squashed or chopped one (prints/bug8.png).
@@ -170,11 +186,84 @@ func place_brick(world_rect: Rect2) -> bool:
 
 	_bricks.append(world_rect)
 	_brick_nodes.append([collision, visual])
+	_brick_soil.append(false)
 	return true
 
 
+## A soil brick's look, the same as a block's: the earth texture where the
+## brick sits in its block (so it carries on the blocks beside it), the
+## ground's top edge (grass, sand, snow...) and, on a side open to the air,
+## the block's side edge with its corner.
+func _soil_piece(local_rect: Rect2) -> Control:
+	var tile := get_cell_size()
+	var offset := Vector2(fposmod(local_rect.position.x, tile.x), fposmod(local_rect.position.y, tile.y))
+	var piece := TextureRect.new()
+	piece.texture = _cut((tile_set.get_source(TERRAIN_SOURCE_ID) as TileSetAtlasSource).texture, Rect2(offset, local_rect.size.min(tile - offset)))
+	piece.stretch_mode = TextureRect.STRETCH_TILE
+	piece.position = local_rect.position
+	piece.size = local_rect.size
+	piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var directory := get_art_directory()
+	var world_rect := Rect2(to_global(local_rect.position), local_rect.size)
+	for side in [-1, 1]:
+		var beside := Vector2(world_rect.position.x - 1.0 if side < 0 else world_rect.end.x + 1.0, world_rect.get_center().y)
+		if is_solid_at(beside):
+			continue
+		var wall := _art(directory, "earth_wall_left" if side < 0 else "earth_wall_right")
+		if wall != null:
+			var width := float(wall.get_width())
+			_add_strip(piece, _cut(wall, Rect2(0.0, tile.y - local_rect.size.y, width, local_rect.size.y)), Vector2(0.0 if side < 0 else local_rect.size.x - width, 0.0), Vector2(width, local_rect.size.y))
+	var top := _art(directory, "earth_floor")
+	if top != null:
+		_add_strip(piece, _cut(top, Rect2(offset.x, 0.0, minf(local_rect.size.x, top.get_width() - offset.x), top.get_height())), Vector2.ZERO, Vector2(local_rect.size.x, minf(top.get_height(), local_rect.size.y)))
+	for side in [-1, 1]:
+		var beside := Vector2(world_rect.position.x - 1.0 if side < 0 else world_rect.end.x + 1.0, world_rect.position.y + 1.0)
+		if is_solid_at(beside):
+			continue
+		var corner := _art(directory, "earth_corner_left" if side < 0 else "earth_corner_right")
+		if corner != null:
+			_add_strip(piece, corner, Vector2(0.0 if side < 0 else local_rect.size.x - corner.get_width(), 0.0), corner.get_size())
+	return piece
+
+
+func _art(directory: String, piece_name: String) -> Texture2D:
+	var path := directory + piece_name + ".png"
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
+func _cut(texture: Texture2D, region: Rect2) -> AtlasTexture:
+	var cut := AtlasTexture.new()
+	cut.atlas = texture
+	cut.region = region
+	return cut
+
+
+func _add_strip(piece: Control, texture: Texture2D, position: Vector2, size: Vector2) -> void:
+	var strip := TextureRect.new()
+	strip.texture = texture
+	strip.stretch_mode = TextureRect.STRETCH_TILE
+	strip.position = position
+	strip.size = size
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	piece.add_child(strip)
+
+
+## The bricks laid by tools or drawn in a level (soil ramps not included).
 func get_bricks() -> Array[Rect2]:
-	return _bricks.duplicate()
+	var bricks: Array[Rect2] = []
+	for index in _bricks.size():
+		if not _brick_soil[index]:
+			bricks.append(_bricks[index])
+	return bricks
+
+
+## The soil ramps still standing.
+func get_ramps() -> Array[Rect2]:
+	var ramps: Array[Rect2] = []
+	for index in _bricks.size():
+		if _brick_soil[index]:
+			ramps.append(_bricks[index])
+	return ramps
 
 
 ## Whether a brick laid at exactly this rect is still there.
@@ -250,6 +339,7 @@ func _remove_brick(index: int) -> void:
 		node.queue_free()
 	_bricks.remove_at(index)
 	_brick_nodes.remove_at(index)
+	_brick_soil.remove_at(index)
 
 
 ## How many stages a cell goes through before it is gone, read from the

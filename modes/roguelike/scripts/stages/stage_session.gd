@@ -52,6 +52,7 @@ var _finished := false
 func _ready() -> void:
 	assert(state != null and not state.troop.is_empty(), "A stage session needs a run state with a troop")
 	definition = state.get_stage_definition()
+	state.prefetch_next_stage()
 	if relics != null:
 		relics.apply_templates(state.relic_levels)
 
@@ -90,6 +91,9 @@ func _children_of_type(type: Variant) -> Array:
 
 
 func _exit_tree() -> void:
+	# A stage being made on another thread must be done before the game
+	# can close (it crashed at exit otherwise).
+	RoguelikeStageFactory.finish_prefetches()
 	if SkillManager.skill_assigned.is_connected(_on_skill_assigned):
 		SkillManager.skill_assigned.disconnect(_on_skill_assigned)
 	if SkillManager.skill_selected.is_connected(_on_skill_selected):

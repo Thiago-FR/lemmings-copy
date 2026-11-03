@@ -1,8 +1,8 @@
 class_name CampaignSelectScreen
 extends Control
-## The campaign's level select: the 15 levels as numbered buttons in five
-## columns, one per setting (meadow, desert, crystal cave, snowfield,
-## volcano), each column topped by a strip in that setting's colours. A won
+## The campaign's level select: the levels as numbered buttons, a column
+## of three per setting (the biomes' order), each column topped by a strip
+## in that setting's colours. A won
 ## level shows a star, the first one not won yet is green, the ones after it
 ## are locked. The level's name is in the tooltip, and pointing at a button
 ## turns the background into that level's setting: little text, as the user

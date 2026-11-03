@@ -89,6 +89,13 @@ func get_stage_definition() -> RoguelikeStageDefinition:
 	return stage_definitions[stage_index]
 
 
+## Starts making the next stage in the background (drawing a stage and
+## checking it can be won takes a while), while this one is played.
+func prefetch_next_stage() -> void:
+	if stage_index + 1 < stage_count() and not (use_handmade_stages and stage_index + 1 < RoguelikeHandmadeStages.STAGE_COUNT):
+		RoguelikeStageFactory.prefetch(seed_value, stage_index + 1)
+
+
 ## Switches between generated and hand-made stages; stages already made are
 ## dropped so the next one comes from the new source.
 func set_handmade_stages(enabled: bool) -> void:

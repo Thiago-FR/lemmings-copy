@@ -4,11 +4,12 @@ extends Node
 ## Exits 0 when every check passes, 1 otherwise.
 ##
 ## Checked (each level being winnable is tests/test_campaign_<nn>):
-##   - all 15 levels load, with a scene, tools, a goal, a time limit, the
-##     standard size, and one setting per group of three;
+##   - all the levels load, with a scene, tools, a goal, a time limit, at
+##     least the generator's smallest size, and one setting per group of
+##     three;
 ##   - progress: only the first level is open at first; a win clears a level,
 ##     opens the next and keeps the best percentage;
-##   - the level select shows the 15 buttons: won ones with a star, the
+##   - the level select shows a button per level: won ones with a star, the
 ##     next one open, the rest locked;
 ##   - winning a campaign level records the win and offers the next level;
 ##     losing does not;
@@ -21,8 +22,8 @@ extends Node
 
 const TEST_SAVE_PATH := "user://test_campaign.cfg"
 const MAIN_MENU_SCENE_PATH := "res://scenes/main/main_menu.tscn"
-const MIN_COLUMNS := 80
-const MIN_ROWS := 45
+const MIN_COLUMNS := BiomeStageGenerator.MIN_SIZE.x - 2
+const MIN_ROWS := BiomeStageGenerator.MIN_SIZE.y - 2
 
 var _failures: Array[String] = []
 
@@ -76,7 +77,10 @@ func _check_levels() -> void:
 		_check_entrances(index, data, root)
 		var terrain := root.get_node("Terrain") as TileMapLayer
 		var used := terrain.get_used_rect()
-		if used.size.x < MIN_COLUMNS or used.size.y < MIN_ROWS:
+		# A generated level is its stage's size (space has no border: the
+		# ship's cells cover less than that).
+		var area: Rect2i = data.dressing.get("area", Rect2i(0, 0, MIN_COLUMNS, MIN_ROWS))
+		if area.size.x < MIN_COLUMNS or area.size.y < MIN_ROWS or used.size.x <= 0:
 			_fail("level %d is %dx%d blocks, smaller than the standard" % [index + 1, used.size.x, used.size.y])
 		root.free()
 

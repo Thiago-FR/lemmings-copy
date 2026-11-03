@@ -22,9 +22,41 @@ const BONUS_TOOLS: Array[String] = ["digger", "ladder_vertical", "bridge", "mine
 const MAX_TOOL_KINDS := RoguelikeToolInventory.DEFAULT_MAX_SLOTS
 
 
+## Stages being made in the background: "seed:index" -> {"task", "maze"}.
+static var _prefetched: Dictionary = {}
+
+
+## Starts making a stage on another thread, so procedural() finds it ready.
+static func prefetch(run_seed: int, stage_index: int) -> void:
+	var key := "%d:%d" % [run_seed, stage_index]
+	if _prefetched.has(key) or FileAccess.file_exists(STAGE_COLLECTION.stage_path(stage_index)):
+		return
+	BiomeStageGenerator.biomes()
+	var entry := {"maze": null}
+	entry["task"] = WorkerThreadPool.add_task(func() -> void:
+		entry["maze"] = BiomeStageGenerator.generate(run_seed, stage_index))
+	_prefetched[key] = entry
+
+
+## Waits for every stage still being made (before the game closes).
+static func finish_prefetches() -> void:
+	for key: String in _prefetched:
+		var entry: Dictionary = _prefetched[key]
+		if not entry.get("waited", false):
+			WorkerThreadPool.wait_for_task_completion(entry.task)
+			entry["waited"] = true
+
+
 static func procedural(run_seed: int, stage_index: int) -> RoguelikeStageDefinition:
 	# A stage drawn in the editor for this place takes the generated one's.
 	var maze: MazeStageData = STAGE_COLLECTION.override_maze(stage_index)
+	var key := "%d:%d" % [run_seed, stage_index]
+	if maze == null and _prefetched.has(key):
+		var entry: Dictionary = _prefetched[key]
+		if not entry.get("waited", false):
+			WorkerThreadPool.wait_for_task_completion(entry.task)
+		_prefetched.erase(key)
+		maze = entry.maze
 	if maze == null:
 		maze = BiomeStageGenerator.generate(run_seed, stage_index)
 	var rng := RandomNumberGenerator.new()

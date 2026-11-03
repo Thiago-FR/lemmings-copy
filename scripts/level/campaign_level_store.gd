@@ -21,8 +21,18 @@ extends RefCounted
 const BACKUP_DIRECTORY := "user://campaign_backups/"
 ## Tests point it elsewhere.
 static var backup_directory := BACKUP_DIRECTORY
-## The campaign levels' drawing size, in cells (tools/build_campaign_levels.gd).
+## The hand-made campaign levels' drawing size, in cells; a generated one
+## keeps its own (in its dressing's area).
 const CAMPAIGN_SIZE := Vector2i(80, 45)
+## Where a generated level's scene goes.
+const SCENE_PATTERN := "res://scenes/levels/campaign/campaign_%02d.tscn"
+## A generated level: lemmings, seconds between them, and the share to save
+## (lower when the way needs a parachute: only the lemming given it lives
+## through that fall).
+const GENERATED_LEMMINGS := 10
+const GENERATED_SPAWN_SECONDS := 1.5
+const GENERATED_GOAL := 0.3
+const GENERATED_GOAL_WITH_FLOATER := 0.1
 const BACKUP_SCENE_FILE := "scene.tscn"
 const BACKUP_DATA_FILE := "data.tres"
 const LEVEL_MANAGER_SCRIPT := preload("res://scripts/level/level_manager.gd")
@@ -82,6 +92,8 @@ static func write(index: int, drawing: Dictionary) -> String:
 	packed.take_over_path(old_data.scene_path)
 	var data := old_data.duplicate() as LevelData
 	data.total_lemmings = drawing.total_lemmings
+	data.dressing = drawing.get("dressing", {}).duplicate()
+	data.solution.assign(data.dressing.get("solution", []))
 	var offered: Array[String] = []
 	var counts := {}
 	for tool_id in drawing.skill_counts:
@@ -108,7 +120,10 @@ static func _read_files(scene_path: String, data: LevelData) -> Dictionary:
 		"skill_counts": data.skill_counts.duplicate(),
 		"environment_kind": data.environment_kind,
 		"size": CAMPAIGN_SIZE,
+		"dressing": data.dressing.duplicate(),
 	}
+	if data.dressing.has("area"):
+		drawing.size = (data.dressing.area as Rect2i).size
 	for child in scene.get_children():
 		if child is TileMapLayer:
 			drawing.tile_map_data = (child as TileMapLayer).tile_map_data
@@ -151,6 +166,51 @@ static func _build_scene(index: int, drawing: Dictionary) -> Node2D:
 	return root
 
 
+## A level made by the stage generator, over the level at that index (its
+## files backed up first, if there are any). The tools its solution uses
+## are offered, as many as it uses. Returns false if writing failed.
+static func create_generated(index: int, maze: MazeStageData) -> bool:
+	var data_path := Campaign.level_path(index)
+	if ResourceLoader.exists(data_path):
+		var old_data := _load_fresh(data_path) as LevelData
+		if old_data != null and _back_up(index, old_data) == "":
+			return false
+	var drawing := LevelDrawing.dictionary_from_maze(maze)
+	drawing.total_lemmings = GENERATED_LEMMINGS
+	var scene_path := SCENE_PATTERN % (index + 1)
+	var packed := PackedScene.new()
+	var root := _build_scene(index, drawing)
+	var error := packed.pack(root)
+	root.free()
+	if error != OK or ResourceSaver.save(packed, scene_path) != OK:
+		push_error("Could not write %s" % scene_path)
+		return false
+	packed.take_over_path(scene_path)
+	var data := LevelData.new()
+	data.level_name = maze.stage_name
+	data.instructions = ""
+	data.spawn_rate = GENERATED_SPAWN_SECONDS
+	data.total_lemmings = GENERATED_LEMMINGS
+	data.time_limit_seconds = maze.suggested_time_seconds
+	data.scene_path = scene_path
+	data.environment_kind = maze.environment_kind
+	var counts := {}
+	for step in maze.solution:
+		counts[step.tool] = int(counts.get(step.tool, 0)) + 1
+	var offered: Array[String] = []
+	offered.assign(counts.keys())
+	data.available_skills = offered
+	data.skill_counts = counts
+	data.required_percentage = GENERATED_GOAL_WITH_FLOATER if counts.has("floater") else GENERATED_GOAL
+	data.dressing = drawing.dressing
+	data.solution = maze.solution.duplicate(true)
+	if ResourceSaver.save(data, data_path) != OK:
+		push_error("Could not write %s" % data_path)
+		return false
+	data.take_over_path(data_path)
+	return true
+
+
 ## The troop split as evenly as possible, the first entrances taking the
 ## remainder.
 static func _share(total: int, parts: int, part: int) -> int:
@@ -168,6 +228,8 @@ static func _back_up(index: int, data: LevelData) -> String:
 	if DirAccess.make_dir_recursive_absolute(folder) != OK:
 		push_error("Could not make %s" % folder)
 		return ""
+	if not FileAccess.file_exists(data.scene_path):
+		return folder
 	var copied_scene := DirAccess.copy_absolute(data.scene_path, folder.path_join(BACKUP_SCENE_FILE))
 	var copied_data := DirAccess.copy_absolute(Campaign.level_path(index), folder.path_join(BACKUP_DATA_FILE))
 	if copied_scene != OK or copied_data != OK:

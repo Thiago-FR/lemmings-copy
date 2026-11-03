@@ -4,10 +4,12 @@ extends RefCounted
 ## through them, saved in user://campaign.cfg. The first level is always
 ## open; winning a level clears it and opens the next one.
 ##
-## The levels are built by tools/build_campaign_levels.gd, numbered from 1;
-## everything here takes a zero-based index.
+## The levels are made by the stage generator (tools/build_generated_campaign.gd:
+## one per stage of every biome, in the biomes' order), numbered from 1;
+## everything here takes a zero-based index. The 15 hand-made levels they
+## replaced are in git history (commit a8d72f4) and in the backups.
 
-const LEVEL_COUNT := 15
+const LEVEL_COUNT := 30
 const LEVEL_DATA_PATH := "res://resources/levels/campaign/campaign_%02d_data.tres"
 const SAVE_PATH := "user://campaign.cfg"
 ## The level select screen.
@@ -19,8 +21,8 @@ const SECTION := "cleared"
 ## (the stars stay true to what was really won).
 const DEVELOPER_SECTION := "developer"
 const ALL_UNLOCKED_KEY := "all_unlocked"
-## Levels per setting (meadow, desert, crystal cave, snowfield, volcano):
-## the level select screen groups them this way.
+## Levels per setting (each biome has three): the level select screen
+## groups them this way.
 const LEVELS_PER_WORLD := 3
 
 ## Where progress is read and written. Tests point it elsewhere so they never

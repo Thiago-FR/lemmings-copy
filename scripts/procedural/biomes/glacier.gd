@@ -11,6 +11,7 @@ func _init() -> void:
 	stages.assign(["Fenda de Gelo", "Paredão Gelado", "O Cume"])
 	shapes.assign([Shape.BOTH, Shape.TALL, Shape.TALL])
 	routes.assign([Route.ASCEND, Route.ASCEND, Route.ASCEND])
+	solution_tools.assign(["digger", "builder", "bridge", "basher", "ladder_vertical", "floater", "climber"])
 	inside_wall = TerrainSkin.ICE_WALL
 
 
