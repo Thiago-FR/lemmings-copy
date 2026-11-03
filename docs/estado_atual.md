@@ -1249,9 +1249,14 @@ incluir o ambiente novo sem mais nada.
   (`_bottom_chamber`). As paredes de caverna e os troncos ficam numa camada
   própria atrás dos portais (z -2): antes cobriam o portal de saída, que é
   desenhado logo atrás do terreno (z -1), e a saída "sumia".
-- **Copas com silhueta de árvore** (como o carvalho dos jogos de blocos):
-  estreitas em cima, mais largas no meio, um pouco para dentro embaixo, às
-  vezes sem uma ponta; o usuário reprovou as copas retangulares.
+- **Copas com silhueta de árvore**: topo arredondado alargando até as
+  linhas mais largas **embaixo**, iguais dos dois lados (larguras por linha,
+  de cima: 1,2,2 ou 1,2,3,3 meias-larguras). O usuário reprovou as copas
+  retangulares, as que encolhem na base e as com pontas cortadas ao acaso
+  (ficavam tortas).
+- **Nuvens com volume**: cada uma é desenhada em três camadas (sombra
+  cinza-azulada um pouco abaixo, corpo branco, bolinhas de luz em cima à
+  esquerda); antes eram chapadas e acinzentadas.
 - **Fundo de caverna segue os blocos** (`TerrainSkin.inside_wall`, calculado
   do terreno, não pintado pelo gerador). Um ar ganha a parede quando tem
   **teto** e não há céu aberto a até 2 blocos (a boca da caverna mostra um
@@ -1281,7 +1286,12 @@ incluir o ambiente novo sem mais nada.
   sob luz violeta), **porão de carga** (estantes, barris e **caixotes de
   verdade** no chão, 1 bloco, dá para subir ou cavar: `TerrainSkin.CRATE`) e
   **enfermaria** (cama, monitor cardíaco, armário com cruz). Lâmpadas no
-  teto de todas. `MazeStageData.rooms` leva as salas para a fase.
+  teto de todas. Cada sala tem **parede de fundo própria** (o cinza único da
+  nave foi reprovado): placas de aço na de máquinas, painéis azul-marinho na
+  ponte, madeira embaixo e creme em cima no refeitório, papel listrado azul
+  no dormitório, azulejos claros no laboratório e verde-água na enfermaria,
+  vidraças com trepadeiras na estufa, chapa ondulada no porão.
+  `MazeStageData.rooms` leva as salas para a fase.
 - (Substituído pela nave) **Módulos do espaço** viraram salas (8 blocos de altura, portinhola de 3
   em cada lado, parede interna atrás), em fileiras que não se sobrepõem e
   com alturas variando.

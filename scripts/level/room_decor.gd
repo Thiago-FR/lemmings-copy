@@ -57,6 +57,7 @@ func _draw() -> void:
 	for room in rooms:
 		var rect: Rect2i = room.rect
 		var area := Rect2(Vector2(rect.position) * _cell, Vector2(rect.size) * _cell)
+		_back_wall(area, room.kind)
 		match room.kind:
 			ENGINE:
 				_engine_room(area)
@@ -75,6 +76,68 @@ func _draw() -> void:
 			SICK_BAY:
 				_sick_bay(area)
 		_ceiling_lamps(area, room.kind == GREENHOUSE)
+
+
+# --- Back walls ---------------------------------------------------------------
+
+## Each room has a wall of its own behind the furniture, so the rooms read
+## apart even before the furniture: steel plates in the engine room, navy
+## panels on the bridge, wood and cream in the mess, striped wallpaper in
+## the quarters, tiles in the lab and the sick bay, glass panes in the
+## greenhouse, ribbed metal in the hold.
+func _back_wall(area: Rect2, kind: StringName) -> void:
+	match kind:
+		ENGINE:
+			_panels(area, Color(0.17, 0.18, 0.21), Color(0.11, 0.12, 0.14), 64.0, 48.0)
+			for x in range(int(area.position.x) + 16, int(area.end.x), 64):
+				for y in range(int(area.position.y) + 12, int(area.end.y), 48):
+					draw_rect(Rect2(x, y, 3, 3), Color(0.30, 0.31, 0.35))
+		BRIDGE:
+			_panels(area, Color(0.10, 0.14, 0.26), Color(0.07, 0.10, 0.19), 40.0, 0.0)
+			draw_rect(Rect2(area.position.x, area.end.y - 10, area.size.x, 3), Color(GLOW, 0.6))
+		MESS:
+			var dado := area.end.y - area.size.y * 0.4
+			draw_rect(Rect2(area.position, Vector2(area.size.x, dado - area.position.y)), Color(0.66, 0.58, 0.46))
+			_panels(Rect2(area.position.x, dado, area.size.x, area.end.y - dado), Color(0.42, 0.28, 0.17), Color(0.32, 0.21, 0.12), 16.0, 0.0)
+			draw_rect(Rect2(area.position.x, dado - 2, area.size.x, 4), Color(0.30, 0.19, 0.10))
+		QUARTERS:
+			draw_rect(area, Color(0.34, 0.40, 0.54))
+			for x in range(int(area.position.x), int(area.end.x), 24):
+				draw_rect(Rect2(x, area.position.y, 8, area.size.y), Color(0.38, 0.44, 0.58))
+			draw_rect(Rect2(area.position.x, area.end.y - 8, area.size.x, 8), Color(0.24, 0.28, 0.38))
+		LAB:
+			_panels(area, Color(0.66, 0.72, 0.75), Color(0.54, 0.60, 0.64), 20.0, 20.0)
+		GREENHOUSE:
+			_panels(area, Color(0.16, 0.30, 0.26), Color(0.30, 0.40, 0.34), 36.0, 36.0)
+			for vine in int(area.size.x / 50.0):
+				var x := area.position.x + 20 + vine * 50
+				var length := 18.0 + float((vine * 37) % 30)
+				draw_rect(Rect2(x, area.position.y, 3, length), PLANT_DARK)
+				draw_rect(Rect2(x - 3, area.position.y + length - 6, 9, 6), PLANT)
+		CARGO:
+			draw_rect(area, Color(0.33, 0.31, 0.24))
+			for x in range(int(area.position.x), int(area.end.x), 12):
+				draw_rect(Rect2(x, area.position.y, 4, area.size.y), Color(0.27, 0.25, 0.19))
+			draw_rect(Rect2(area.position.x, area.end.y - 8, area.size.x, 8), HAZARD.darkened(0.3))
+		SICK_BAY:
+			_panels(area, Color(0.62, 0.80, 0.76), Color(0.52, 0.70, 0.66), 24.0, 24.0)
+			draw_rect(Rect2(area.position.x, area.end.y - 24, area.size.x, 4), Color(0.86, 0.30, 0.30))
+
+
+## A wall of panels: one colour with seams every width (and every height,
+## if not 0) in another.
+func _panels(area: Rect2, colour: Color, seam: Color, width: float, height: float) -> void:
+	draw_rect(area, colour)
+	var x := area.position.x + width
+	while x < area.end.x:
+		draw_rect(Rect2(x, area.position.y, 2, area.size.y), seam)
+		x += width
+	if height <= 0.0:
+		return
+	var y := area.position.y + height
+	while y < area.end.y:
+		draw_rect(Rect2(area.position.x, y, area.size.x, 2), seam)
+		y += height
 
 
 # --- Shared parts ------------------------------------------------------------

@@ -172,9 +172,10 @@ func _draw_sun(size: Vector2) -> void:
 
 
 ## Soft clouds drifting left to right at their own pace and coming back
-## round. Each is a few discs over a flat base, painted in one colour (the
-## cloud mixed with the sky behind it) so the discs merge into one shape
-## instead of showing their overlaps.
+## round. Each is drawn three times, so it looks round rather than flat: a
+## grey-blue shadow a little lower, the white body over it, and lit puffs
+## higher up and to the left, where the sun catches it. Every layer is one
+## colour, so its discs merge into one shape instead of showing overlaps.
 func _draw_clouds(size: Vector2) -> void:
 	var width := size.x * CLOUD_WIDTH_SHARE
 	for index in environment.cloud_count:
@@ -185,19 +186,31 @@ func _draw_clouds(size: Vector2) -> void:
 		var x := fposmod(_hash01(index, 43) * span + speed * _time, span) - cloud_width
 		var y := size.y * (0.08 + 0.26 * _hash01(index, 47))
 		var sky := environment.sky_top.lerp(environment.sky_bottom, clampf(y / size.y, 0.0, 1.0))
-		var colour := sky.lerp(Color(environment.cloud_colour, 1.0), environment.cloud_colour.a)
-		# A flat bottom with rounded ends (a rectangle with a disc at each
-		# end), inside the puffs' reach so no square corner pokes out.
-		var base_half_height := cloud_width * 0.08
-		var base_left := x - cloud_width * 0.34
-		var base_right := x + cloud_width * 0.34
-		_canvas.draw_rect(Rect2(base_left, y - base_half_height, base_right - base_left, base_half_height * 2.0), colour)
-		_canvas.draw_circle(Vector2(base_left, y), base_half_height, colour)
-		_canvas.draw_circle(Vector2(base_right, y), base_half_height, colour)
-		for puff in 4:
-			var radius := cloud_width * (0.13 + 0.06 * float(puff % 2))
-			var centre := Vector2(x + (float(puff) - 1.5) * cloud_width * 0.24, y - radius * 0.35)
-			_canvas.draw_circle(centre, radius, colour)
+		# Whiter than the sky mix alone, so it reads as a cloud.
+		var body := sky.lerp(Color(environment.cloud_colour, 1.0), minf(1.0, environment.cloud_colour.a + 0.25))
+		var shadow := body.lerp(sky.darkened(0.25), 0.45)
+		var light := body.lerp(Color.WHITE, 0.7)
+		_cloud_shape(Vector2(x, y + cloud_width * 0.05), cloud_width, 1.0, shadow)
+		_cloud_shape(Vector2(x, y), cloud_width, 0.94, body)
+		for puff in 3:
+			var radius := cloud_width * (0.07 + 0.03 * float(puff % 2))
+			var centre := Vector2(x + (float(puff) - 1.6) * cloud_width * 0.2, y - cloud_width * (0.09 + 0.03 * float(puff % 2)))
+			_canvas.draw_circle(centre, radius, light)
+
+
+## One layer of a cloud: a flat bottom with rounded ends and four puffs on
+## top, shrink times its full size.
+func _cloud_shape(at: Vector2, cloud_width: float, shrink: float, colour: Color) -> void:
+	var base_half_height := cloud_width * 0.08 * shrink
+	var base_left := at.x - cloud_width * 0.34 * shrink
+	var base_right := at.x + cloud_width * 0.34 * shrink
+	_canvas.draw_rect(Rect2(base_left, at.y - base_half_height, base_right - base_left, base_half_height * 2.0), colour)
+	_canvas.draw_circle(Vector2(base_left, at.y), base_half_height, colour)
+	_canvas.draw_circle(Vector2(base_right, at.y), base_half_height, colour)
+	for puff in 4:
+		var radius := cloud_width * (0.13 + 0.06 * float(puff % 2)) * shrink
+		var centre := Vector2(at.x + (float(puff) - 1.5) * cloud_width * 0.24 * shrink, at.y - radius * 0.35)
+		_canvas.draw_circle(centre, radius, colour)
 
 
 ## Small birds: two wing strokes flapping, flying across in a loose line and

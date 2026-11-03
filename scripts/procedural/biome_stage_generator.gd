@@ -439,25 +439,23 @@ func plant_climb_trees(heights: PackedInt32Array, count: int, with_items: bool, 
 			continue
 		var trunk := rng.randi_range(3, 4) + (rng.randi_range(2, 5) if tall else 0)
 		var crown_bottom := ground - trunk - 1
-		# The crown's outline, row by row from the top (half widths): narrow
-		# on top, widest in the middle, a little in again at the bottom, like
-		# a block-game oak; the widest rows lose an end now and then.
+		# The crown's outline, row by row from the top (half widths): a
+		# rounded top widening down to its widest rows at the bottom, even on
+		# both sides (the user turned down crowns that tuck in at the base
+		# or lose an end at random).
 		var shape: Array[int] = []
-		shape.assign([1, half, half, half - 1] if half == 2 else [1, half - 1, half, half, half - 1])
+		if half <= 2:
+			shape.assign([1, half, half])
+		elif half == 3:
+			shape.assign([1, 2, 3, 3])
+		else:
+			shape.assign([half - 2, half - 1, half, half])
 		var crown_top := crown_bottom - shape.size() + 1
 		if crown_top < 3:
 			continue
 		for index in shape.size():
 			var row := crown_top + index
-			var reach: int = shape[index]
-			var left_end := column - reach
-			var right_end := column + reach
-			if reach == half and index > 0:
-				if rng.randf() < 0.35:
-					left_end += 1
-				if rng.randf() < 0.35:
-					right_end -= 1
-			for x in range(left_end, right_end + 1):
+			for x in range(column - shape[index], column + shape[index] + 1):
 				if cell_kind(x, row) == EMPTY:
 					set_cell_kind(x, row, EARTH)
 					cell_skins[Vector2i(x, row)] = TerrainSkin.LEAVES
