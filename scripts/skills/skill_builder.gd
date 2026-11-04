@@ -18,9 +18,9 @@ extends SkillBase
 ## block per step and teleported the lemming a whole tile up and forward
 ## each time, which looked nothing like climbing.
 ##
-## Bricks are not on the tile grid (see TerrainDestructible.place_brick), so
-## the staircase starts exactly at the lemming's feet wherever it stands.
-## Other lemmings walk up it like any low step.
+## Bricks are not tiles (see TerrainDestructible.place_brick), but on open
+## ground the staircase starts on the next column line (see _set_origin), so
+## its steps lie on the columns. Other lemmings walk up it like any low step.
 ##
 ## When the first brick has no room (the lemming is part-way up a staircase,
 ## the next step already there, or faces a wall), the lemming keeps the tool
@@ -106,17 +106,25 @@ func start_while_walking(lemming: LemmingController) -> void:
 	lemming.state_machine.change_state(LemmingStateMachine.State.BUILDING)
 
 
-## Where the first brick goes. On open ground, right at the leading edge, so
-## the lemming steps onto it straight away wherever it stands. Standing on a
-## brick (the top step of a staircase), at that brick's far end, one step
-## up: the new staircase carries straight on from the old one. Starting at
-## the leading edge there stacked the first brick on top of the last step,
+## Where the first brick goes. On open ground, on the line between the
+## column the lemming stands in and the next one, so every step lies on a
+## column and the last one meets a wall whole: started at the leading edge,
+## wherever that happened to be, the last step came out cut against the wall
+## and 8px higher than the stage generator's solver expects, enough to walk
+## up a one-block wall it counted on stopping the lemming (campaign level 3).
+## The first brick lies on the ground, so a body overlapping it a little or
+## a short stretch of ground before it changes nothing. Standing on a brick
+## (the top step of a staircase), at that brick's far end, one step up: the
+## new staircase carries straight on from the old one. Starting at the
+## leading edge there stacked the first brick on top of the last step,
 ## half-way along it (prints/bug6.png).
 func _set_origin(lemming: LemmingController) -> void:
 	var body := lemming.get_body_rect()
 	_floor_y = roundf(body.end.y)
-	_origin_x = roundf(_front_edge(body, lemming.direction))
-	var under_front := Vector2(_origin_x - lemming.direction * BRICK_CLEARANCE * 2.0, body.end.y + BRICK_CLEARANCE)
+	var column := lemming.terrain.cell_rect_at(body.get_center())
+	_origin_x = column.end.x if lemming.direction > 0 else column.position.x
+	var front := roundf(_front_edge(body, lemming.direction))
+	var under_front := Vector2(front - lemming.direction * BRICK_CLEARANCE * 2.0, body.end.y + BRICK_CLEARANCE)
 	var brick := lemming.terrain.brick_at(under_front)
 	if brick.has_area():
 		_floor_y = brick.position.y

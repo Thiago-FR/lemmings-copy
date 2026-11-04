@@ -91,6 +91,19 @@ func _ready() -> void:
 
 	AudioManager.play_music_track(&"level_theme")
 	_set_up_view()
+	_add_solution_overlay()
+
+
+## In developer mode, the recorded solution can be shown over the level, to
+## tell an impossible stage from a tool given in the wrong place.
+func _add_solution_overlay() -> void:
+	if not GameManager.developer_mode or level_data.solution.is_empty():
+		return
+	var overlay := SolutionOverlay.new()
+	overlay.name = "SolutionOverlay"
+	overlay.steps = level_data.solution
+	overlay.caption = level_data.solution_note
+	add_child(overlay)
 
 
 ## A tool bit into the border, which nothing breaks: it blows up in a small

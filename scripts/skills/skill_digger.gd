@@ -80,11 +80,14 @@ func _dig_next_stage(lemming: LemmingController) -> bool:
 
 
 ## Distance down to solid ground just under the feet, looking no further
-## than a brick's thickness and a bit; zero if there is none that close.
+## than the thickest brick (a soil ramp's half block) and a stage more;
+## zero if there is none that close. Looking only two stages down missed the
+## ground under a 16px soil ramp by a pixel: the shovel stopped there and the
+## charge was wasted.
 func _drop_to_ground_below(lemming: LemmingController) -> float:
 	const PROBE_INSET := 0.5
 	var body := lemming.get_body_rect()
-	var reach := int(lemming.terrain.get_dig_stage_height() * 2.0)
+	var reach := int(lemming.terrain.get_cell_size().y / 2.0 + lemming.terrain.get_dig_stage_height())
 	for depth in range(reach):
 		if lemming.terrain.is_solid_at(Vector2(body.get_center().x, body.end.y + depth + PROBE_INSET)):
 			return float(depth)

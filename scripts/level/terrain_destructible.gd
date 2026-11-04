@@ -213,16 +213,20 @@ func _soil_piece(local_rect: Rect2) -> Control:
 		if wall != null:
 			var width := float(wall.get_width())
 			_add_strip(piece, _cut(wall, Rect2(0.0, tile.y - local_rect.size.y, width, local_rect.size.y)), Vector2(0.0 if side < 0 else local_rect.size.x - width, 0.0), Vector2(width, local_rect.size.y))
+	# The floor strip and its corners start above the piece, as on a whole
+	# block (TerrainEdgeOverlay.FLOOR_OVERHANG): drawn from the piece's top,
+	# the grass sat a few pixels low with bare soil over it (prints/art7.png).
+	var strip_top := -float(TerrainEdgeOverlay.FLOOR_OVERHANG)
 	var top := _art(directory, "earth_floor")
 	if top != null:
-		_add_strip(piece, _cut(top, Rect2(offset.x, 0.0, minf(local_rect.size.x, top.get_width() - offset.x), top.get_height())), Vector2.ZERO, Vector2(local_rect.size.x, minf(top.get_height(), local_rect.size.y)))
+		_add_strip(piece, _cut(top, Rect2(offset.x, 0.0, minf(local_rect.size.x, top.get_width() - offset.x), top.get_height())), Vector2(0.0, strip_top), Vector2(local_rect.size.x, top.get_height()))
 	for side in [-1, 1]:
 		var beside := Vector2(world_rect.position.x - 1.0 if side < 0 else world_rect.end.x + 1.0, world_rect.position.y + 1.0)
 		if is_solid_at(beside):
 			continue
 		var corner := _art(directory, "earth_corner_left" if side < 0 else "earth_corner_right")
 		if corner != null:
-			_add_strip(piece, corner, Vector2(0.0 if side < 0 else local_rect.size.x - corner.get_width(), 0.0), corner.get_size())
+			_add_strip(piece, corner, Vector2(0.0 if side < 0 else local_rect.size.x - corner.get_width(), strip_top), corner.get_size())
 	return piece
 
 

@@ -188,6 +188,17 @@ static func _generate_solved(seed_value: int, biome: StageBiome, tier: int, size
 		data = generator._generate(easy_seed, biome, tier, size, difficulty)
 		if generator._solve_and_place_items(data):
 			return data
+	# Better a smaller stage than one with no way out: the solver's search
+	# runs out on the biggest ones (a 122x66 stage, and a 45x101 crater).
+	for shrink in LAST_RESORT_SHRINKS:
+		var smaller := Vector2i(maxi(roundi(size.x * shrink), MIN_SIZE.x), maxi(roundi(size.y * shrink), MIN_SIZE.y))
+		for attempt in LAST_RESORT_ATTEMPTS:
+			var generator := BiomeStageGenerator.new()
+			generator.allow_easy = true
+			data = generator._generate(hash("%d:small:%f:%d" % [seed_value, shrink, attempt]), biome, tier, smaller, difficulty)
+			if generator._solve_and_place_items(data):
+				last_report.append("made smaller (%dx%d) as a last resort" % [smaller.x, smaller.y])
+				return data
 	push_warning("No winnable %s stage %d in %d tries" % [biome.id, tier + 1, MAX_ATTEMPTS])
 	return data
 
@@ -218,6 +229,10 @@ func _generate(seed_value: int, biome: StageBiome, tier: int, size: Vector2i, di
 
 ## A stage drawn is thrown away and drawn again at most this many times.
 const MAX_ATTEMPTS := 8
+## When no try could be won: sizes (a share of the stage's own) to try it
+## at instead, and tries at each.
+const LAST_RESORT_SHRINKS: Array[float] = [0.75, 0.55]
+const LAST_RESORT_ATTEMPTS := 4
 ## A solution uses at most this many kinds of tool (a tool bar has four
 ## places).
 const MAX_TOOL_KINDS := 4

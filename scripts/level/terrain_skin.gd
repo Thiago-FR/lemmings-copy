@@ -67,8 +67,11 @@ const MAX_CEILING := 8
 ## This much rock above makes any air underground.
 const DEEP_ROCK := 6
 enum Ceiling { NONE, CLOSE, DEEP }
-## How far to each side a cave's walls may be.
+## How far around a change the walls are worked out again (a roof found
+## further than this from a cell is still found, see MAX_ROOF_SPAN).
 const SIDE_REACH := 10
+## The widest cave whose roof is followed to its walls.
+const MAX_ROOF_SPAN := 60
 ## Recomputed this far around a change (a change above can uncover cells
 ## below it in the same column; the margin reaches sideways).
 const INSIDE_REACH := SIDE_REACH + 1
@@ -165,14 +168,22 @@ func _find_inside(from: int, to: int) -> void:
 				_inside[cell] = true
 
 
-## Rock to the left and to the right, not too far, in the cell's row: a
-## cave has walls; the air under an island in the sky does not.
+## Rock to the left and to the right in the cell's row, with a ceiling over
+## all the air on the way: a cave has walls and a roof all across, however
+## wide; the air under an island in the sky reaches open sky along its row.
+## (Rock within SIDE_REACH on both sides used to be required, so a hall
+## wider than that got its wall only down the middle.)
 func _walled_sideways(cell: Vector2i) -> bool:
 	for step in [-1, 1]:
 		var found := false
-		for offset in range(1, SIDE_REACH + 1):
-			if _is_rock(cell + Vector2i(step * offset, 0)):
+		for offset in range(1, MAX_ROOF_SPAN + 1):
+			var beside := cell + Vector2i(step * offset, 0)
+			if not area.has_point(beside):
+				break
+			if _is_rock(beside):
 				found = true
+				break
+			if _ceiling_over(beside) == Ceiling.NONE:
 				break
 		if not found:
 			return false
@@ -204,8 +215,25 @@ func _open_sky_near(cell: Vector2i) -> bool:
 			var near := cell + Vector2i(dx, dy)
 			if not area.has_point(near):
 				continue
-			if not _is_rock(near) and _terrain.get_cell_source_id(near) == -1 and not _is_covered(near):
+			if not _is_rock(near) and _terrain.get_cell_source_id(near) == -1 and not _is_covered(near) \
+					and not _rock_between(near, cell):
 				return true
+	return false
+
+
+## Rock between the sky cell and the cell (in the sky cell's column, or in
+## the cell's row): sky over a roof or behind a wall is not a cave mouth (a
+## passage under one block of turf showed a slit of sky, and so did a room
+## next to a ravine).
+func _rock_between(near: Vector2i, cell: Vector2i) -> bool:
+	for row in range(mini(near.y, cell.y) + 1, maxi(near.y, cell.y)):
+		if _is_rock(Vector2i(near.x, row)):
+			return true
+	for column in range(mini(near.x, cell.x) + 1, maxi(near.x, cell.x)):
+		if _is_rock(Vector2i(column, cell.y)):
+			return true
+	if near.x != cell.x and near.y != cell.y and _is_rock(Vector2i(near.x, cell.y)):
+		return true
 	return false
 
 

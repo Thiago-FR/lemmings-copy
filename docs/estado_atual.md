@@ -1,12 +1,13 @@
-# Estado Atual — 2 de novembro de 2026
+# Estado Atual — 3 de novembro de 2026
 
 Registro de onde o projeto está, o que foi decidido e por quê. Convenções de
 código em [CLAUDE.md](../CLAUDE.md), mecânicas em [game_design.md](game_design.md),
 geração de imagens em [art_pipeline.md](art_pipeline.md), ideias ainda não
 decididas em [ideias_futuras.md](ideias_futuras.md).
 
-O projeto estava parado desde 1º de agosto de 2026 porque as habilidades não
-funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
+Para saber o que falta, vá direto para "O que falta fazer" no fim (dividido
+em parte técnica e parte de produto). As seções do meio contam o que foi
+feito e por quê, em ordem de assunto.
 
 ## O que está pronto
 
@@ -30,7 +31,9 @@ funcionavam de forma confiável. Esta sessão achou a causa e fechou a primeira.
 | Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
 | Animação de paraquedas | ✅ `float`, no estado FLOATING |
 | Som e música | ✅ gerados em código (`tools/build_audio.py`), botão Som / tecla M |
-| Campanha "Fases" | ✅ 5 fases que ensinam e 10 quebra-cabeças (labirinto, rotas, espera, relógio, duas entradas...), seleção, progresso, Parabéns e créditos; robô de teste em cada uma e solução ingênua que perde em 7 (ver "Campanha (Fases)") |
+| Campanha "Fases" | ⚠️ ainda as 30 fases geradas do commit `e6f9df0` (o robô vence 15); decidido trocar por 3 tutoriais + as 30 de ambientes (ver "Campanha: tutorial + as fases de ambientes"). Seleção, progresso, Parabéns e créditos prontos |
+| Modo roguelike | ✅ personagens, habilidades, cartas com nível, loja, cofre, ranking, compêndio (ver "Modo roguelike") |
+| Gerador por ambientes | ✅ 10 ambientes, verificador de solução; ⚠️ o modelo erra no jogo real (ver "Fases que dão para vencer") |
 | Cenários novos | ✅ deserto, caverna de cristal, campo de neve, vulcão: fundo, blocos, entrada e saída de cada um |
 
 ## A causa raiz (o que travava tudo)
@@ -157,6 +160,7 @@ Cada peça é independente e só fala por sinais ou parâmetros. O
 | Regerar a arte do terreno | `python tools/build_terrain_art.py`, depois `godot --headless --path . --import` |
 | Regerar o terreno (TileSet) | `godot --headless --script res://tools/build_terrain_tileset.gd` |
 | Imagem de amostra do terreno | `godot --path . --resolution 800x450 --script res://tools/capture_terrain_preview.gd -- saida.png` (sem `--headless`) |
+| Ver os degraus de rampa de perto | `godot --path . --windowed --resolution 1280x720 res://tools/capture_soil_steps.tscn -- <pasta> <fases da campanha>` (sem `--headless`; salva `soil_NN.png` com zoom 4x num degrau de cada fase) |
 | Regerar as fases | `godot --headless --script res://tools/build_test_levels.gd` (regera todas; descarte com `git checkout` as que não mudaram de propósito, porque o Godot reescreve os ids internos) |
 | Regerar a animação de escavar | `python tools/build_dig_frames.py` |
 | Regerar a animação de morte | `python tools/build_death_frames.py` |
@@ -1017,6 +1021,10 @@ seguinte. `test_tool_ladder_vertical` mede o maior movimento por quadro.
 
 ## Campanha (Fases)
 
+> **Histórico:** esta seção descreve as 15 fases feitas à mão, que foram
+> substituídas pelas 30 geradas (ver "Campanha de 30 fases geradas"). A
+> seleção, o progresso, o fim de fase e os créditos continuam valendo.
+
 Botão **"Fases"** no menu principal (depois do Tutorial). Faz parte do
 núcleo, não é um modo em `modes/`.
 
@@ -1176,7 +1184,7 @@ núcleo, não é um modo em `modes/`.
   para onde os bonecos saem (a seta amarela mostra) e o botão direito numa
   entrada a remove (enquanto sobrar outra). Várias entradas dividem os
   bonecos.
-- **Modo dev: abrir e salvar as 15 fases da campanha** (botões do pergaminho
+- **Modo dev: abrir e salvar as fases da campanha** (hoje 30) (botões do pergaminho
   e do baú na barra de cima). Abrir traz terreno, tijolos, entradas (com o
   lado), saída, bonecos e ferramentas. Salvar escolhe qualquer uma das 15 e
   pede confirmação; **antes de substituir, a versão antiga vai para um
@@ -1334,7 +1342,10 @@ da entrada").
   bloco** (16 px de altura e de largura) encostado nela (`_ramp_up_to`),
   desenhado como um bloco: a textura de terra no lugar certo do bloco, a
   borda de cima do chão do tema e, no lado aberto, a lateral e o canto do
-  bloco (`TerrainDestructible._soil_piece`). São tijolos (`initial_ramps`,
+  bloco (`TerrainDestructible._soil_piece`). A faixa de cima (grama, areia, neve) e os cantos
+  começam `TerrainEdgeOverlay.FLOOR_OVERHANG` px acima do degrau, como no
+  bloco inteiro; antes começavam no topo do degrau e aparecia terra acima
+  da grama (`prints/art7.png`, corrigido em 3 de novembro de 2026). São tijolos (`initial_ramps`,
   `place_brick(rect, true)`) e cavam como qualquer tijolo. **O relevo anda
   em patamares**: uma mudança suave de altura só a cada 3 colunas
   (`MIN_PLATEAU`), então um morro são poucos degraus largos e não uma
@@ -1432,6 +1443,9 @@ lado:
 
 ## Campanha de 30 fases geradas (3 de novembro de 2026)
 
+> **Substituída:** o usuário reprovou as fases geradas; a campanha está
+> sendo refeita à mão (ver "Campanha feita à mão").
+
 O usuário: "sim, gerar as novas fases... pode ter 30 fases também agora".
 - `Campaign.LEVEL_COUNT = 30`: as mesmas 10 paisagens do roguelike, 3 fases
   cada, na mesma ordem, de uma semente própria (`CAMPAIGN_SEED = 2026`).
@@ -1454,36 +1468,169 @@ O usuário: "sim, gerar as novas fases... pode ter 30 fases também agora".
   `tests/campaign_playthrough_test.gd`, rodam no `run_tests.bat completo`).
 - A tela de Fases mostra 10 colunas de 3.
 
-## Situação no fim de 3 de novembro de 2026 (ler antes de continuar)
+## Caça às fases impossíveis (3 e 4 de novembro de 2026)
 
-- **Campanha: 15 das 30 fases vencidas pelo robô no jogo de verdade** (1-6,
-  8, 9, 11, 12, 19, 22, 23, 25, 26). As outras 15 (7, 10, 13-18, 20, 21, 24,
-  27-30) perderam nas 10 tentativas da montagem e ficaram com a última
-  tentativa, **sem garantia de que dá para vencer**. São as maiores e as
-  de subida (cristal, geleira, vulcão, espaço). Para refazer só elas:
-  `CAMPAIGN_SPEED_UP=8 godot --headless --path . res://tools/build_generated_campaign.tscn -- <primeira> <última>`
-  (cada tentativa joga a fase inteira; uma hora e pouco por fase difícil).
-- **Por que perdem:** o modelo do verificador (`CellStageSolver`) erra no
-  jogo real. Visto nas partidas: a Escada diagonal de verdade começa na
-  frente do corpo, não no começo da coluna, então os tijolos ficam
-  deslocados e às vezes prendem o boneco num vão ou batem no morro; quedas
-  e o Paraquedas dado só ao primeiro boneco também diferem. Próximo passo:
-  trazer o modelo da Escada diagonal (e das quedas) para meio bloco,
-  conferindo cada caso com `tests/test_campaign_level.tscn -- <fase>` e
-  `CAMPAIGN_TRACE=1` (posição do primeiro boneco a cada 2 s).
-- **Roguelike:** a fase só é conferida pelo modelo; o
-  `test_procedural_stages` ainda falha em 1 de 60 fases (semente 136066,
-  fase 21, A Cratera): nenhuma das 8 tentativas deu certo e a fase saiu
-  sem solução. Falta um último recurso melhor que "fase sem solução".
-- **Testes que passam** (rodados no fim): campanha, editor, editor das
-  fases com duas entradas, estado e fluxo da partida do roguelike, relíquias,
-  cliques reais com janela, e o resto da bateria rápida.
+O usuário ficou preso na 2ª fase do roguelike (`prints/bug18.png`) e pediu
+para matar os débitos técnicos antes de qualquer coisa nova. O que mudou:
+
+**Ferramentas para investigar**
+- **Ver a solução no modo dev** (`SolutionOverlay`, núcleo): com o modo dev
+  ligado, toda fase com solução gravada (campanha e roguelike) tem um botão
+  no canto de cima à esquerda e a tecla **V**. Desenha, para cada passo, uma
+  faixa no chão onde dar a ferramenta, o ícone dela numerado, a seta da
+  direção e um anel nos itens a pegar antes. Ao lado, a semente e a fase.
+  Captura: `tools/capture_solution.tscn`.
+- **Semente da run**: aparece no modo dev do roguelike (estado da run e campo
+  **Semente** + **Usar**, que faz a run jogar outra semente) e vai para o
+  log a cada fase (`Roguelike: semente N · fase M`), em
+  `%APPDATA%\Godot\app_userdata\Lemmings-copy\logs\`. Com a semente e o
+  número, `tools/check_stages.gd -- <semente> <fase> <fase>` refaz a fase.
+- **Comparar o verificador com o jogo** (`CAMPAIGN_COMPARE=1` no
+  `tests/test_campaign_level.tscn`): `CellStageSolver.follow` diz por onde o
+  verificador espera que o boneco ande com a solução gravada; o teste
+  confere quadro a quadro e imprime o **primeiro lugar onde o boneco do jogo
+  sai do caminho previsto** (coluna, altura, direção e o caminho esperado em
+  volta). Foi assim que cada erro abaixo apareceu.
+- `tools/print_campaign_level.gd -- <fase> [coluna1 coluna2 linha1 linha2]`
+  mostra um pedaço do mapa com rampas, tijolos, escadas e onde cada passo da
+  solução é dado. `CAMPAIGN_TRACE_PERIOD=<s>` muda o intervalo do rastro.
+
+**Defeitos do jogo corrigidos** (eram bugs de verdade, não só do verificador)
+- **Pá em cima de degrau de rampa**: tirava o degrau (16 px), procurava chão
+  só até 15 px abaixo e desistia; a carga se perdia
+  (`SkillDigger._drop_to_ground_below`).
+- **Duas Britadeiras/Picaretas no mesmo túnel**: cavavam o mesmo bloco, ele
+  sumia antes da hora e as duas paravam no meio da parede. Agora quem
+  encontra o bloco já cavado pelo outro anda até o fim dele e continua
+  (`SkillSideDigger`).
+- **Túnel que fura para um vão**: a Britadeira parava assim que o centro do
+  boneco passava sobre o vão, com meio bloco ainda na frente; ele ficava na
+  quina e dava meia-volta. Agora termina o bloco começado.
+- **Ferramenta que termina sobre o vazio**: o boneco dava meia-volta numa
+  parede logo à frente antes de cair (o jogo ainda achava que havia chão) e
+  caía virado para trás. Agora cai de frente
+  (`LemmingController._has_terrain_under_body`).
+- **Escada diagonal alinhada às colunas**: o primeiro degrau começava na
+  frente do corpo, em qualquer ponto; o último degrau saía cortado contra a
+  parede, 8 px mais alto, e uma parede de 1 bloco virava degrau. Agora a
+  escada começa na linha da próxima coluna (o primeiro degrau fica no chão,
+  então não há vão) e termina com degrau inteiro numa parede da grade. A
+  continuação de uma escada pronta não mudou.
+
+**Erros do verificador corrigidos** (`CellStageSolver`)
+- O boneco sai da entrada um bloco acima do chão e cai: num degrau de rampa
+  na mesma coluna ele pousa mais alto (fase 15 da campanha).
+- Depois da Ponte o boneco está do outro lado, não na beira (a próxima
+  ferramenta era dada antes da hora e cancelava a Ponte).
+- Um boneco segura uma ferramenta por vez: o verificador dava a Pá a quem
+  ainda carregava a Britadeira e contava com as duas.
+
+**Robô de teste**: dá todos os passos ao mesmo boneco (o verificador segue
+um só) e não entrega uma ferramenta segurada a quem ainda carrega outra sem
+usar. **Meta 10%** também quando a solução usa Garras (só quem as recebe
+sobe; fases 16 e 17).
+
+- O verificador também passou a saber que a **Ponte não passa por cima de
+  escada** (como no jogo: na nave ela não construía nada), que ao **subir um
+  degrau a cabeça tem que caber também sobre a coluna que fica para trás**
+  (o corpo tem 26 px) e que **dentro de um túnel recém-cavado o boneco está
+  ocupado**: não se dá ferramenta ali, só na saída do túnel.
+
+**Último recurso do gerador**: quando nenhuma das tentativas tem solução, a
+fase é feita menor (75%, depois 55% do tamanho) até ter. Conferido nas 3
+fases que falhavam no `test_procedural_stages` (semente 31337 fase 20,
+136066 fases 21 e 27); **o teste inteiro das 60 fases ainda não foi rodado
+de novo** depois das últimas mudanças do verificador.
+
+**Teste que falhava às vezes**: `test_relic_effects` contava as cargas da
+Ponte do zero numa fase de semente sorteada; agora a semente é fixa e conta
+a partir do que já havia.
+
+**Campanha gerada: descartada.** Com tudo isso o robô passou a vencer as 30
+fases geradas, mas o usuário olhou a 14 e a 15 e reprovou: mapa gigante,
+entrada e saída no mesmo chão, "anda reto e Britadeira nas paredes", sem
+buraco nem morte, as duas iguais. Decisão do usuário (4 de novembro de
+2026): **a campanha é feita à mão**, fase por fase (ver "Campanha feita à
+mão"). O gerador continua só no roguelike e no botão Gerar do editor.
+
+**Parede de caverna** (`TerrainSkin`): um salão com mais de uns 10 blocos de
+largura só ganhava a parede no meio (mostrava o céu e as montanhas por
+dentro da terra), e uma passagem logo abaixo da grama mostrava uma fresta de
+céu. Agora o ar é "de dentro" quando tem teto até bater em rocha dos dois
+lados da linha (até 60 blocos), e o céu só conta como boca de caverna se não
+houver rocha entre ele e o ar.
+
+## Campanha: tutorial + as fases de ambientes (decisão de 4 de novembro de 2026)
+
+**Registrado, ainda não feito** (o usuário: "apenas registre, não vamos
+mexer em mais nada por agora"). Substitui o plano de refazer as fases 4 a
+30 à mão, que o usuário reprovou.
+
+- **33 fases**: as 3 feitas à mão (Campo Aberto, Colinas Verdes, Vale dos
+  Ventos, em `tools/campaign/`) viram o **tutorial**, antes da fase 1 dos
+  ambientes. Depois vêm **as 30 fases que estão em `prints/ambientes/`,
+  exatamente aqueles mapas** ("eu aprovei aquela e vai utilizar aquela"):
+  não é para redesenhar nem fazer "no estilo".
+  - Os prints foram tirados no commit `e6f9df0` com
+    `modes/roguelike/tools/capture_stages.tscn` e a semente padrão (1). O
+    gerador mudou depois (verificador, último recurso), então aqueles mapas
+    têm de ser **congelados** a partir daquele commit, não gerados de novo.
+- **Ferramentas por itens, com sorte (como no roguelike)**: cada fase começa
+  com **a ferramenta necessária para sair do lugar** (normalmente uma Pá ou
+  uma Picareta); **o resto vem sorteado**. Os itens **saltam conforme os
+  bonecos cavam ou quebram blocos** (o plano "Itens ao cavar"), e **alguns
+  itens também ficam visíveis no mapa** desde o começo. É preciso **aumentar a chance de sair ferramenta**:
+  "vai da sorte de sair o que precisa".
+- **Itens no núcleo**: o item no mapa, os tipos de item, a barra que ganha
+  espaço ao pegar ferramenta (`RoguelikePickup`, `RoguelikePickupSpec`,
+  `RoguelikeToolInventory`) e o sorteio saem do roguelike para o núcleo,
+  "para sempre serem utilizados em qualquer modo que seja criado". O
+  roguelike passa a usar os do núcleo.
+
+## Campanha feita à mão (4 de novembro de 2026)
+
+Pedido do usuário, depois de reprovar as fases geradas: "as fases devem ser
+geradas manualmente pela IA... capricho... cada fase tem que ser criada
+cuidadosamente". Fases top, desafiadoras e divertidas, com buracos e mortes;
+**14 e 15 no mínimo de médio para difícil**; saída longe da entrada; fases
+irmãs diferentes.
+
+- **Uma fase por arquivo**: `tools/campaign/level_NN.gd` (estende
+  `HandmadeLevel`, `tools/campaign/handmade_level.gd`). O mapa é texto,
+  uma linha por fileira de blocos: `#` terra, `%` concreto, `.` ar, `S`
+  entrada, `E` saída, `H` escada, `r`/`l` degrau de rampa encostado à
+  direita/esquerda; poço aberto até a última fileira é queda no vazio. A
+  fase diz também paisagem (`biome_id`), bonecos, ritmo, meta, tempo,
+  ferramentas, árvores de enfeite e a **solução do robô**.
+- **Gravar no jogo**: `godot --headless --path . res://tools/build_handmade_campaign.tscn -- <números>`
+  (faz backup da fase substituída). Usa o visual da paisagem: fundo,
+  blocos, borda inquebrável, parede de caverna e árvores.
+  `CampaignLevelStore.create_level` grava cena e `LevelData`.
+- **Conferir cada fase**: o robô joga a solução
+  (`tests/test_campaign_level.tscn -- <n>`, com `CAMPAIGN_COMPARE=1` se
+  quiser comparar com o verificador) e eu **olho o print inteiro**
+  (`tools/capture_solution.tscn`, em `prints/campanha/`).
+- O gerador de fases e o `build_generated_campaign` ficam para o roguelike;
+  a campanha não usa mais.
+
+| # | Nome | Ferramentas | Meta | A ideia | Estado |
+|---|---|---|---|---|---|
+| T1 | Campo Aberto | Pá 2 | 70% | eles andam para um abismo; sob o campo, um salão fundo e uma passagem sob uma camada fina de grama: cavar sobre a passagem (queda de 2) salva; sobre o salão ou sobre a sala da saída, a queda mata | feita, robô 100% |
+| T2 | Colinas Verdes | Ponte 3 | 40% | vão de 10 e vão de 18 partido por um pilar: a 2ª ponte termina no pilar e a 3ª sai dele; quem vem atrás cai da ponta da ponte inacabada | feita, robô 50% |
+| T3 | Vale dos Ventos | Escada vertical 2, Ponte 1 | 50% | subida: penhasco de 6, abismo no terraço e paredão de 9 nascendo do fundo dele; a ponte encosta no paredão e a 2ª escada sobe dali; a escada dada antes da ponte vai para o abismo | feita, robô 70% |
+
+Estas 3 viram o **tutorial** (ver a decisão acima). Os arquivos estão em
+`tools/campaign/`, mas **não estão gravados no jogo**: a pedido do usuário as
+fases da campanha voltaram às do último commit (`e6f9df0`) até a troca. Para
+gravá-las de novo: `build_handmade_campaign.tscn -- 1 2 3` (escreve por cima
+das fases 1 a 3; ajustar para os lugares do tutorial quando a campanha tiver
+33). "Robô X%" na tabela foi medido quando estavam gravadas.
 
 ## Editor: coleções de fases e gerador (2 de novembro de 2026)
 
 - **Abrir** e **Salvar** (pergaminho e baú, para todos) pedem primeiro o
   **modelo** (`LevelCollection.all()`): **Modo livre** (desenhos do
-  jogador em `user://free_levels/`, sempre), e no modo dev **Fases** (as 15
+  jogador em `user://free_levels/`, sempre), e no modo dev **Fases** (as 30
   da campanha, `CampaignLevelCollection`) e **Roguelike** (as 30 fases,
   `modes/roguelike/level_collection.gd`). Um modo novo aparece sozinho se
   tiver `res://modes/<modo>/level_collection.gd` estendendo
@@ -1513,115 +1660,146 @@ O usuário: "sim, gerar as novas fases... pode ter 30 fases também agora".
   e Menu. Ao abrir, só aparecem os espaços com fase; um modelo sem nada
   salvo fica apagado.
 
-## Situação do repositório (2 de novembro de 2026)
+## Situação do repositório (3 de novembro de 2026)
 
-- No GitHub (`Thiago-FR/lemmings-copy`, branch `main`) está **tudo do
-  núcleo**: ferramentas, tela cheia, câmera, configurações, editor, áudio,
-  arte de terreno/UI/entrada/saída, documentação.
-- **Ainda sem commit, esperando o usuário testar:** o modo roguelike
-  (`modes/`), o gerador de labirinto (`scripts/procedural/`,
-  `tests/test_maze_generator.*`), a arte só do roguelike (cartas em
-  `assets/sprites/ui/cards/`, personagens em
-  `assets/sprites/characters/{miner,engineer,scout,tinkerer}/` e
-  `resources/sprite_frames/`). Os geradores dessa arte
-  (`tools/build_card_art.py`, `tools/build_character_variants.py`) já
-  entraram no commit do núcleo.
+- Tudo está no GitHub (`Thiago-FR/lemmings-copy`, branch `main`): núcleo,
+  modo roguelike, gerador por ambientes, campanha de 30 fases e arte.
+  Último commit: `e6f9df0` (campanha de 30 fases geradas).
 - Os testes do roguelike ficam em `modes/roguelike/tests/` e não são rodados
   pelo `run_tests.bat` (só `tests/`). Para rodar tudo:
   `for t in tests/test_*.tscn modes/roguelike/tests/test_*.tscn` com
   `timeout 400 <godot> --headless --path . res://$t`.
 
-## O que falta fazer (pendências conhecidas)
+## O que falta fazer
 
-**Aprovado em 2 de novembro de 2026, a implementar (roguelike, depois que o
-agente das habilidades terminar):**
-- **Itens ao cavar** (ideia do usuário, estilo Bomberman):
-  - as ferramentas que a fase exige continuam visíveis e garantidas pelo
-    gerador; o que sai dos blocos é sempre extra;
-  - cavar não se paga sozinho: carga de ferramenta é rara e nunca da
-    ferramenta que cavou;
-  - meio-termo visível/escondido: **veios** com brilho de minério sempre
-    soltam algo; terra comum solta em 4%, concreto (Britadeira) em 12%;
-  - raridade do que sai: moeda 60%, carga de ferramenta da barra 22%,
-    ampulheta 10%, bolsa 6%, pena da fênix 2%; a Ganância aumenta moedas e
-    uma carta nova (Garimpeiro) aumenta a chance;
-  - a tabela de raridade fica no compêndio do modo dev e **é editável pelo
-    modo dev**;
-  - itens bônus soltos só onde dá para chegar e voltar para a rota com as
-    ferramentas da fase (conferido pelo solucionador): o usuário ficava
-    preso indo atrás de item.
-- **Pena da fênix com animação** quando traz alguém de volta (carta ou fim
-  da fase): hoje a carta age em silêncio. **Animação, não mensagem.** A pena
-  vale para qualquer fase: traz o último perdido, mesmo de uma fase
-  anterior.
+Revisado em 3 de novembro de 2026. Dividido em duas partes:
+- **Técnico:** coisa quebrada ou não garantida; o jogo já devia fazer certo.
+- **Produto:** o que o jogo ainda não tem ou que precisa da decisão do
+  usuário.
 
+Sugestões novas para encorpar o jogo (progressão, XP, mecânicas por
+ambiente, cartas e habilidades durante a run...) ficam em
+[ideias_futuras.md](ideias_futuras.md), seções 10 e 11.
 
-Roguelike e procedural (o usuário vai testar bastante o procedural):
-- **Testar e ajustar o gerador de labirinto**: as fases ficam "em caixas"
-  (só tetos e materiais variam); fossos e escadas aparecem pouco nas rotas
-  do solver; Garras, Paraquedas, Escada diagonal e explosivos ainda não são
-  usados como obstáculos. 34 linhas de 32px dão 1088px, 8px a mais que Full
-  HD (a câmera rola 8px).
-- **Tempo da fase chutado**: `_time_limit` soma 40s + 22s por sala da rota +
-  um extra por ferramenta, vezes uma folga (1,8x a 1,4x), entre 3 e 8 min.
-  Os números nunca foram medidos e não contam a distância real nem o tempo
-  de cavar para baixo, então uma rota com muita escavação pode ficar sem
-  tempo. Corrigir cronometrando o robô dos testes em cada tipo de ligação.
+### Parte técnica (problemas)
 
-Plano aprovado pelo usuário em 2 de novembro de 2026 (nesta ordem):
-1. ~~HUD com ícones, botões do editor, Encerrar fase e Sacrificar~~: feito.
-2. ~~Escolher o personagem no início da run, cofre, fim de run~~: feito.
-3. ~~Habilidade especial por personagem, num slot próprio com poucas
-   cargas por fase, recarga que pode cair no mapa~~: feito (Teleporte,
-   Quebra-concreto, Plataforma, Salto, Repetir; relíquia Dom ampliado).
-   Falta o usuário jogar e dizer se as cargas (2/2/2/3/1) estão boas.
-4. **Moedas e recargas espalhadas pelo mapa.** Moedas e a Recarga da
-   habilidade já caem nos lugares de bônus; falta decidir se deve haver
-   mais (hoje só nos lugares de bônus do gerador).
-5. Carta **"passo acelerado"** (bonecos andam mais rápido).
-6. ~~Compêndio para o jogador~~: feito (botão de livro na escolha de
-   personagem, entradas liberadas ao descobrir).
-7. **Arte**: os 4 personagens novos desenhados do zero (o usuário rejeitou o
-   mago recolorido; o Mago não é humanoide, os outros podem ser) e a arte da
-   loja.
-8. Medir o tempo das fases (item acima).
-- Botão **"Gerar fase" no editor** (o `MazeStageData.paint_onto` já existe).
-- **Profundidade da Pá** ainda em aberto (um boneco cavou até o concreto e
-  o usuário esperou 3 minutos; Encerrar fase resolve a espera, a carta de
-  passo acelerado o ritmo).
-- Bug relatado e **não reproduzido**: Picareta que quebrou um bloco e parou
-  (`prints/bug9.png`). Pedido ao usuário para reproduzir com o modo dev.
-- Câmera: talvez uma opção para desligar a rolagem pela borda do mouse (o
-  usuário não tem certeza de que é boa experiência).
-- Loja e telas entre fases ainda com visual simples (lista); cartas já têm
-  arte.
+Em ordem de prioridade.
 
-Núcleo:
-- **Salvar/carregar cenários no editor.**
-- **Tutorial** (o usuário quer que o jogo ensine as ferramentas, sem texto
-  explicando a fase).
-- Animações que faltam: montar a escada vertical, a diagonal e a ponte
-  (usam animações provisórias); pedrinhas da britadeira já existem.
-- Fases de teste antigas são pequenas (800x450); o padrão novo é tela
-  inteira.
-- Ideias em [ideias_futuras.md](ideias_futuras.md) (roguelike completo,
-  um boneco/uma ferramenta reutilizável, terreno que nada quebra).
+1. **Preso na 2ª fase do roguelike** (`prints/bug18.png`): a fase não pôde
+   ser refeita (a semente não era guardada). Agora dá: a semente aparece no
+   modo dev e no log, e a tecla V mostra a solução. Se acontecer de novo,
+   anotar a semente e o número da fase.
+2. **No roguelike a fase só é conferida pelo verificador**, que ficou bem
+   mais fiel ao jogo (ver "Caça às fases impossíveis"), mas continua sendo
+   um modelo. Falta rodar de novo o `test_procedural_stages` (60 fases) e o
+   `test_maze_generator` depois das últimas mudanças.
+3. **Campanha: ainda as 30 fases geradas do commit `e6f9df0`** (o robô
+   vence 15; a 14 e a 15 foram reprovadas); serão trocadas pelas 30 de
+   ambientes. Atenção: elas usaram outra semente e **não são os mapas de
+   `prints/ambientes/`** (semente 1).
+4. **Processos do Godot** de uma verificação interrompida podem ter ficado
+   rodando até o tempo limite (o assistente não tem permissão para
+   encerrá-los).
+5. **Geração lenta nas fases grandes de subida** (até ~60 s). A
+   pré-geração em segundo plano esconde isso durante a run, mas não na
+   primeira fase nem no botão Gerar do editor.
+6. **Tempo das fases nunca medido com gente jogando**: o gerador calcula
+   caminhada × 1,6 + 8 s por ferramenta + 40 s. Só o robô confere, e o robô
+   não hesita.
+7. **Bug não reproduzido**: a Picareta quebrou um bloco e parou
+   (`prints/bug9.png`). Pedir para reproduzir com o modo dev.
+8. **Fases de teste antigas pequenas** (800x450): as das ferramentas. O
+   padrão novo é no mínimo 80 x 45 blocos.
+9. **Detalhes de arte do terreno**:
+   - o interior do bloco se repete a cada 32 px;
+   - a grama segue a regra "aberto quando a fase começou", então um bloco
+     que fica exposto depois aparece com terra crua;
+   - o tronco na animação da Pá ficou mais liso e escuro que nas outras.
 
-## Pendências de arte
+### Parte de produto (o que o jogo ainda não tem)
 
-- **Terreno com arte de verdade** (feito): blocos de terra e concreto,
-  bordas de chão/parede/teto/canto decididas pelos vizinhos, escada de
-  madeira e tábua para ponte e escada diagonal. Limites conhecidos: o fundo
-  continua a cor cinza padrão do Godot; uma escada que atravessa rocha
-  mostra o fundo cinza atrás dela (não há "parede de fundo" de túnel); o
-  tile interior ainda se repete a cada 32px (as pedras sorteadas por célula
-  disfarçam); a grama segue a regra "aberto quando a fase começou", então um
-  bloco soterrado que fica exposto depois aparece com terra crua.
+Decisões que esperam o usuário jogar:
+- **Cargas das habilidades** (Mago 2, Mineiro 2, Engenheiro 2, Batedor 3,
+  Inventor 1): estão boas?
+- **Meta da campanha** (30%, ou 10% com Paraquedas) e o tempo de cada fase.
+- **Profundidade da Pá**: um boneco cavou até o concreto e o usuário esperou
+  3 minutos. Hoje Encerrar fase e Acelerar resolvem a espera. Limitar a
+  profundidade?
+- **Rolagem da câmera pela borda**: ter a opção de desligar?
+- **Mais moedas e recargas pelo mapa**: hoje só nos lugares de bônus.
 
-- A pá é desenhada por código na mesma grade de ~7 px da arte do mago
-  (`tools/wizard_art.py`). Na escala do jogo as mãos ficam com ~1 px.
-- A animação de escavar está pronta, mas o **tronco ficou mais liso e escuro**
-  que as demais, porque tirar a mochila deixou uma área vazia. Dá para
-  acrescentar uma dobra de manto usando o sombreado do quadro de andar.
-- Falta decidir se a vista **de costas que já existe** (quadros de escalada)
-  serve para a escada vertical ou se é preciso uma animação nova.
+**Campanha de 33 fases** (ver "Campanha: tutorial + as fases de
+ambientes"), nesta ordem:
+1. Levar itens, tipos de item, barra de ferramentas e sorteio para o
+   núcleo; o roguelike passa a usá-los.
+2. Itens saltando ao cavar e quebrar blocos (plano "Itens ao cavar") e mais
+   chance de sair ferramenta.
+3. Congelar os 30 mapas de `prints/ambientes/` (commit `e6f9df0`, semente
+   1) e montar a campanha: 3 tutoriais + 30, cada fase começando com a
+   ferramenta de sair do lugar.
+4. Tela de Fases com 33 (o tutorial antes) e progresso refeito.
+
+Aprovado, a fazer:
+- **Itens ao cavar** (roguelike, estilo Bomberman):
+  - as ferramentas que a fase exige continuam visíveis e garantidas; o que
+    sai dos blocos é sempre extra, e nunca carga da ferramenta que cavou;
+  - **veios** com brilho de minério sempre soltam algo; terra comum solta
+    em 4%, concreto (Britadeira) em 12%;
+  - o que sai: moeda 60%, carga de ferramenta da barra 22%, ampulheta 10%,
+    bolsa 6%, pena da fênix 2%. A Ganância aumenta as moedas, e uma carta
+    nova (Garimpeiro) aumenta a chance;
+  - a tabela de raridade aparece no compêndio do modo dev e é editável ali;
+  - item solto só onde dá para ir e voltar para a rota (conferido pelo
+    solucionador).
+
+Ideias que o usuário gostou (3 de novembro de 2026), a planejar. Detalhes em
+[ideias_futuras.md](ideias_futuras.md):
+- **Mecânica própria por ambiente** (10.3): gravidade baixa no Espaço (o
+  usuário adorou), gelo escorregadio na Geleira, lava subindo no Vulcão,
+  portas com botão na Cidade, areia movediça no Deserto...
+- **Campanha** (10.2): 3 estrelas por fase, desafios ("sem a Ponte", "só 3
+  cliques"), as 15 fases feitas à mão de volta como trilha bônus.
+- **Terreno e objetos novos** (10.4): aço, chão frágil, água, trampolim,
+  esteira, teleporte, alavanca e porta, armadilhas.
+- **Cartas e habilidades durante a run, estilo Megabonk** (11): barra de XP
+  que enche na fase (cristais, blocos cavados, salvos) e, cheia, pausa e
+  oferece 3 cartas; raridades; cartas novas para a tropa (Pés de pena,
+  Botas de mola, Ímã, Capacete, Segunda chance, Faro de minério, Fila
+  organizada, Mão rápida, Pioneiro); evolução de cada ferramenta no nível
+  III; cartas de risco (Pacto, Pressa, Vidro, Herói solitário); evolução
+  da habilidade especial; personagens novos (Alquimista, Guardião,
+  Astronauta, Domador); baú de cartas no mapa.
+- **"Chefe" sem confronto** (11.6): um perigo da paisagem (incêndio, verme
+  da areia, Golem, avalanche, lava, prédio caindo, conveses perdendo ar). O
+  usuário quer pensar mais no que seria o chefe.
+
+A decidir: minimapa; quantas fases por paisagem na run (2 em vez de 3?);
+XP com patentes (seriam precisas muitas para 30 fases; "ficar mais forte"
+ainda precisa de análise).
+
+Falta fazer:
+- **Tutorial** que ensine as ferramentas sem texto explicando a fase.
+- **Loja e telas entre fases** com cara de jogo: a loja ainda é uma lista
+  simples (as cartas já têm arte).
+- **Animações**: montar a Escada vertical (tirar da mochila), a Escada
+  diagonal e a Ponte (hoje usam andar ou a vista de costas).
+- **Terreno que nada quebra** como material de fase (só existe na borda).
+- Mais ideias em [ideias_futuras.md](ideias_futuras.md): Escada vertical
+  começando no clique (1), modo fácil/difícil com reuso da ferramenta (2),
+  mapa de caminhos com elite/loja/evento/descanso e níveis de dificuldade
+  (3), cartas que caem durante a fase (9) e as sugestões das seções 10 e 11.
+
+### Já feito (estava na lista antiga)
+
+Degrau de meio bloco com terra acima da grama (`prints/art7.png`,
+3 de novembro de 2026: a faixa de cima do degrau agora começa acima dele,
+como no bloco; conferido de perto nas 8 paisagens que têm degrau com
+`tools/capture_soil_steps.tscn`).
+
+HUD com ícones e Sacrificar; escolha de personagem, cofre e fim de run;
+habilidade por personagem e recargas; carta Passo acelerado; compêndio do
+jogador; arte dos 4 personagens novos; animação da pena da fênix; botão
+Gerar e coleções (abrir/salvar) no editor; terreno com arte de verdade e
+parede de caverna no fundo; gerador por ambientes no lugar do labirinto de
+salas (os itens "fases em caixas" e "tempo chutado por sala" sumiram com
+ele).

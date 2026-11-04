@@ -39,6 +39,8 @@ func _ready() -> void:
 	Campaign.save_path = TEST_SAVE_PATH
 	super._ready()
 	print("  %d lemmings, %d%% needed, %ds, tools %s" % [level_data.total_lemmings, roundi(level_data.required_percentage * 100.0), level_data.time_limit_seconds, level_data.skill_counts])
+	if OS.has_environment("CAMPAIGN_COMPARE"):
+		_start_comparing()
 
 
 func _get_level_data_path() -> String:
@@ -65,13 +67,15 @@ var _next_trace := 0.0
 
 func _physics_process(delta: float) -> void:
 	_watch_deaths()
-	# CAMPAIGN_TRACE=1 prints where the first lemming is every 2 seconds.
+	_compare_with_solver()
+	# CAMPAIGN_TRACE=1 prints where the first lemming is every 2 seconds
+	# (CAMPAIGN_TRACE_PERIOD=<seconds> for another period).
 	if OS.has_environment("CAMPAIGN_TRACE") and elapsed >= _next_trace:
-		_next_trace = elapsed + 2.0
+		_next_trace = elapsed + (float(OS.get_environment("CAMPAIGN_TRACE_PERIOD")) if OS.has_environment("CAMPAIGN_TRACE_PERIOD") else 2.0)
 		var lemmings := get_lemmings()
 		if not lemmings.is_empty():
 			var body := lemmings[0].get_body_rect()
-			print("  trace t=%.0fs column %d, feet %.1f rows, %s, facing %d" % [elapsed, int(body.get_center().x / TILE), body.end.y / TILE, LemmingStateMachine.State.keys()[lemmings[0].state_machine.current_state], lemmings[0].direction])
+			print("  trace t=%.1fs x %.0f (column %d), feet %.2f rows, %s, facing %d" % [elapsed, body.get_center().x, int(body.get_center().x / TILE), body.end.y / TILE, LemmingStateMachine.State.keys()[lemmings[0].state_machine.current_state], lemmings[0].direction])
 	super._physics_process(delta)
 
 
@@ -113,13 +117,111 @@ func give_each(tool_id: String, condition: Callable) -> void:
 ## Plays a generated level's recorded solution (LevelData.solution), one
 ## step after another: each tool to the first lemming walking at its
 ## column, its way, on its floor.
+##
+## The solver follows one lemming, so every step goes to the same one (the
+## first to take a tool) while it is still in the level, and only once it
+## carries no unused tool from the step before: handed out to whoever was
+## nearest, a second lemming took a jackhammer into the first one's tunnel
+## and handed over a second carried tool replaced the first.
 func play_recorded_solution() -> void:
 	var steps := level_data.solution
 	var next := _done_steps.size()
 	if next >= steps.size():
 		return
 	var step: Dictionary = steps[next]
-	give_once("step %d (%s)" % [next + 1, step.tool], step.tool, near_floor(walking_in(step.from_column, step.to_column, step.direction), step.row))
+	var condition := near_floor(walking_in(step.from_column, step.to_column, step.direction), step.row)
+	if is_instance_valid(_pioneer) and not _pioneer.is_entering_exit:
+		var pioneer := _pioneer
+		# Climber and floater stay with a carried tool; a held tool would
+		# replace it.
+		var held := SkillManager.create_skill(step.tool).is_held_tool()
+		var carries_unused: bool = held and _pioneer.pending_wall_tool != null
+		condition = both(condition, func(lemming: LemmingController) -> bool: return lemming == pioneer and not carries_unused)
+	var step_name := "step %d (%s)" % [next + 1, step.tool]
+	for lemming in get_lemmings():
+		if not is_done(step_name) and condition.call(lemming) and not lemming.is_entering_exit and give_tool(step.tool, lemming, step_name):
+			_done_steps[step_name] = elapsed
+			if not is_instance_valid(_pioneer):
+				_pioneer = lemming
+				_pioneer_chosen = true
+			return
+
+
+## The lemming the recorded solution is played with (see play_recorded_solution).
+var _pioneer: LemmingController = null
+var _pioneer_chosen := false
+
+# --- Comparing with the solver ------------------------------------------------
+# CAMPAIGN_COMPARE=1: where the solver expected the lemming playing the
+# recorded solution to walk (CellStageSolver.follow), checked against where
+# it walks in the game; the first place it walks that the solver never
+# expected is printed once, with the expected walk around it. That is where
+# the solver's model and the game part ways.
+
+const UNIT := 8.0
+var _expected: Dictionary = {}
+var _expected_path: Array[Vector3i] = []
+var _last_matched := -1
+var _diverged := false
+var _mismatched_frames := 0
+const MISMATCH_FRAMES_TO_REPORT := 30
+
+
+func _start_comparing() -> void:
+	var maze := LevelDrawing.maze_from_dictionary(CampaignLevelStore.read(_get_level_number() - 1))
+	var followed := CellStageSolver.follow(maze, level_data.solution)
+	_expected_path = followed.path
+	for index in _expected_path.size():
+		var point := _expected_path[index]
+		if not _expected.has(point):
+			_expected[point] = index
+	print("  solver: %d points, %d of %d steps used, ends '%s'" % [_expected_path.size(), followed.steps_used, level_data.solution.size(), followed.end])
+	# CAMPAIGN_COMPARE=2 also prints the whole expected walk.
+	if OS.get_environment("CAMPAIGN_COMPARE") == "2":
+		var walk := PackedStringArray()
+		for point in _expected_path:
+			walk.append("%d,%.2f%s" % [point.x, point.y / 4.0, ">" if point.z > 0 else "<"])
+		print("  solver walk: ", " ".join(walk))
+
+
+func _compare_with_solver() -> void:
+	if _diverged or _expected_path.is_empty():
+		return
+	var lemming: LemmingController = _pioneer
+	if _pioneer_chosen and (not is_instance_valid(lemming) or lemming.is_entering_exit):
+		return
+	if not is_instance_valid(lemming):
+		var lemmings := get_lemmings()
+		if lemmings.is_empty():
+			return
+		lemming = lemmings[0]
+	if not is_walking(lemming):
+		return
+	var body := lemming.get_body_rect()
+	var feet := body.end.y / UNIT
+	if absf(feet - roundf(feet)) > 0.2:
+		return
+	var key := Vector2i(int(floor(body.get_center().x / TILE)), roundi(feet))
+	# The game moves pixel by pixel, the solver by half blocks: a column or
+	# a quarter block either way is the same place.
+	for column_offset in [0, -1, 1]:
+		for feet_offset in [0, -1, 1, -2, 2]:
+			var point := Vector3i(key.x + column_offset, key.y + feet_offset, lemming.direction)
+			if _expected.has(point):
+				_last_matched = maxi(_last_matched, int(_expected[point]))
+				_mismatched_frames = 0
+				return
+	# A frame or two off the expected walk happens at a ladder's top or a
+	# ramp; a real parting of ways lasts.
+	_mismatched_frames += 1
+	if _mismatched_frames < MISMATCH_FRAMES_TO_REPORT:
+		return
+	_diverged = true
+	var around := PackedStringArray()
+	for index in range(maxi(_last_matched - 3, 0), mini(_last_matched + 6, _expected_path.size())):
+		var point := _expected_path[index]
+		around.append("%s%d,%.2f%s" % ["*" if index == _last_matched else "", point.x, point.y / 4.0, ">" if point.z > 0 else "<"])
+	print("  DIVERGED t=%.1fs: walking at column %d, feet %.2f rows, facing %d; solver expected next: %s" % [elapsed, key.x, key.y / 4.0, lemming.direction, " ".join(around)])
 
 
 ## Also standing within half a block of the top of that floor row (on a

@@ -18,3 +18,6 @@ extends Resource
 ## A generated level's recorded solution (MazeStageData.solution), which
 ## the tests play; empty when there is none.
 @export var solution: Array[Dictionary] = []
+## Where the solution comes from (a run's seed and stage, say), shown with
+## it in the developer's solution view (SolutionOverlay).
+@export var solution_note: String = ""

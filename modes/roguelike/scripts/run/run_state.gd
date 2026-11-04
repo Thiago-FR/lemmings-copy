@@ -104,6 +104,13 @@ func set_handmade_stages(enabled: bool) -> void:
 	stage_definitions.clear()
 
 
+## Plays the run's stages from another seed (the developer screen, to make
+## again a stage someone reported); stages already made are dropped.
+func set_seed(new_seed: int) -> void:
+	seed_value = new_seed
+	stage_definitions.clear()
+
+
 func is_over() -> bool:
 	return troop.is_empty()
 

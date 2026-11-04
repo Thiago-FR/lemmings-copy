@@ -13,7 +13,9 @@ extends Node
 ##   - the Compendium opens with an entry for every character;
 ##   - choosing a stage reports that stage;
 ##   - "Prontas" / "Procedurais" switch the run between the hand-made and the
-##     generated stages.
+##     generated stages;
+##   - the Seed field shows the run's seed, and Usar makes the run play
+##     another one (a number only).
 
 const PROFILE_PATH := "user://test_dev_screen_profile.cfg"
 
@@ -84,6 +86,16 @@ func _ready() -> void:
 	screen.stage_chosen.connect(func(index: int) -> void: chosen[0] = index)
 	_press(screen, "Stage_4")
 	_expect(chosen[0] == 3, "choosing stage 4 reported index %d" % chosen[0])
+
+	var seed_field := screen.find_child("Seed", true, false) as LineEdit
+	_expect(seed_field != null and seed_field.text == str(state.seed_value), "the Seed field does not show the run's seed")
+	if seed_field != null:
+		seed_field.text = "136066"
+		_press(screen, "UseSeed")
+		_expect(state.seed_value == 136066 and state.stage_definitions.is_empty(), "Usar did not switch the run to seed 136066 (seed %d)" % state.seed_value)
+		seed_field.text = "not a number"
+		_press(screen, "UseSeed")
+		_expect(state.seed_value == 136066 and seed_field.text == "136066", "a seed that is not a number changed the run")
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PROFILE_PATH))
 	if _failures.is_empty():

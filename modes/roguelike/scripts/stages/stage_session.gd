@@ -118,7 +118,19 @@ func _make_level_data() -> LevelData:
 	level_data.time_limit_seconds = definition.time_limit_seconds + RoguelikeRelics.SECONDS_PER_LEVEL * state.get_relic_level(RoguelikeRelics.HOURGLASS)
 	level_data.available_skills = SkillManager.get_skill_ids()
 	level_data.skill_counts = state.inventory.to_counts()
+	level_data.solution = definition.get_solution()
+	level_data.solution_note = _stage_note()
+	# In the log too: a stage someone got stuck in can be made again from
+	# its seed and number (tools/debug_stage.gd, check_stages.gd).
+	print("Roguelike: %s, '%s'" % [level_data.solution_note, definition.stage_name])
 	return level_data
+
+
+## The run's seed and the stage's number, enough to make the stage again.
+func _stage_note() -> String:
+	if not definition.is_procedural:
+		return "fase pronta %d" % (state.stage_index + 1)
+	return "semente %d · fase %d" % [state.seed_value, state.stage_index + 1]
 
 
 ## The ability's own charges, plus the relic's.

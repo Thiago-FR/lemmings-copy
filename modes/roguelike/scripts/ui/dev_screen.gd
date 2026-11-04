@@ -32,6 +32,7 @@ var _character_buttons: Dictionary = {}
 var _relic_buttons: Dictionary = {}
 var _source_buttons: Dictionary = {}
 var _amount_field: SpinBox
+var _seed_field: LineEdit
 var _removing := false
 
 
@@ -136,6 +137,27 @@ func _build_stage_section(parent: VBoxContainer) -> void:
 		button.button_group = group
 		row.add_child(button)
 		_source_buttons[entry[1]] = button
+	# The run's seed: every generated stage comes from it and its number, so
+	# typing a reported seed makes the same stages again.
+	var seed_row := _add_row(parent)
+	var label := Label.new()
+	label.text = "Semente"
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	seed_row.add_child(label)
+	_seed_field = LineEdit.new()
+	_seed_field.name = "Seed"
+	_seed_field.custom_minimum_size.x = 140.0
+	seed_row.add_child(_seed_field)
+	seed_row.add_child(_make_text_button("Usar", "UseSeed", _use_typed_seed))
+
+
+func _use_typed_seed() -> void:
+	var text := _seed_field.text.strip_edges()
+	if not text.is_valid_int():
+		_seed_field.text = str(_state.seed_value)
+		return
+	_state.set_seed(int(text))
+	_refresh()
 
 
 func _build_tool_section(parent: VBoxContainer) -> void:
@@ -259,6 +281,7 @@ func _refresh() -> void:
 	for relic_id in _relic_buttons:
 		(_relic_buttons[relic_id] as Button).self_modulate = OWNED_TINT if _state.relics.has(relic_id) else NOT_OWNED_TINT
 	(_source_buttons[_state.use_handmade_stages] as Button).set_pressed_no_signal(true)
+	_seed_field.text = str(_state.seed_value)
 	_rebuild_state_panel()
 
 
@@ -275,7 +298,7 @@ func _rebuild_state_panel() -> void:
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_state_panel.add_child(portrait)
 	_add_state_line("hud_troop", "%s x%d" % [RoguelikeCharacters.get_display_name(_state.character_id), _state.troop.size()])
-	_add_state_line("give_up", "Fase %d (%s)" % [_state.stage_index + 1, "pronta" if _state.use_handmade_stages else "procedural"])
+	_add_state_line("give_up", "Fase %d (%s)" % [_state.stage_index + 1, "pronta" if _state.use_handmade_stages else "procedural, semente %d" % _state.seed_value])
 	var tools: Array[String] = []
 	for tool_id in _state.inventory.get_tool_ids():
 		tools.append("%s x%d" % [SkillManager.get_display_name(tool_id), _state.inventory.get_charges(tool_id)])

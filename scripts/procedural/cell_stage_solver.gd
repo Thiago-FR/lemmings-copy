@@ -88,6 +88,61 @@ static func solve_unlimited(data: MazeStageData, tools: Array[String], hints: Ar
 	return solver._search()
 
 
+## Where the solver expects the lemming to walk when it is handed a
+## recorded solution (MazeStageData.solution): each step is used at the
+## first point of the walk matching its column range, floor and way. For
+## comparing with a lemming in the game (tests/campaign_playthrough_test).
+## Returns {"path": [Vector3i(column, feet unit, direction)], "steps_used",
+## "end"}.
+static func follow(data: MazeStageData, steps: Array[Dictionary]) -> Dictionary:
+	var solver := CellStageSolver.new()
+	solver._load(data, [])
+	solver._unlimited = true
+	solver._allowed.assign(TOOLS)
+	var state := solver._start_state()
+	var path: Array[Vector3i] = []
+	var used := 0
+	var end := ""
+	while true:
+		var walked := solver._copy(state)
+		var walk := solver._walk(walked)
+		var points: Array = walk.points
+		var node := state.duplicate()
+		node.walk = walk
+		node.after = walked
+		# The first point matching the step where the tool does something
+		# (one carried earlier on the walk must have been used by then).
+		var at := -1
+		var child := {}
+		var matched := false
+		if used < steps.size():
+			var step: Dictionary = steps[used]
+			var direction := int(step.get("direction", 0))
+			for index in points.size():
+				var point: Dictionary = points[index]
+				if point.get("busy", false):
+					continue
+				if int(point.column) < int(step.from_column) or int(point.column) > int(step.to_column) \
+						or absi(int(point.feet) - int(step.row) * UNITS_PER_CELL) > UNITS_PER_CELL / 2 \
+						or (direction != 0 and int(point.direction) != direction):
+					continue
+				matched = true
+				child = solver._state_at(node, index)
+				if solver._apply(child, str(step.tool)):
+					at = index
+					break
+		var until := points.size() - 1 if at < 0 else at
+		for index in until + 1:
+			var point: Dictionary = points[index]
+			path.append(Vector3i(point.column, point.feet, point.direction))
+		if at < 0:
+			end = "step %d does nothing where it is due" % (used + 1) if matched else walk.end
+			break
+		used += 1
+		state = child
+	return {"path": path, "steps_used": used, "end": end}
+
+
 # --- The grid -------------------------------------------------------------------
 
 func _load(data: MazeStageData, hints: Array[int]) -> void:
@@ -218,7 +273,17 @@ func _walk(state: Dictionary) -> Dictionary:
 		# Items are picked up as soon as the lemming is there: one at a point
 		# can be used at that point.
 		_collect(state)
-		points.append({"column": column, "feet": feet, "direction": state.direction, "collected": state.collected})
+		# Walking through a tunnel just dug, the lemming is still digging in
+		# the game: busy, no tool is handed to it there. Out of the tunnel
+		# is where the next one can be (a segment start).
+		var busy := false
+		if state.busy_until >= 0:
+			if (column - int(state.busy_until)) * int(state.direction) <= 0:
+				busy = true
+			else:
+				state.busy_until = -1
+				events[points.size() - 1] = true
+		points.append({"column": column, "feet": feet, "direction": state.direction, "collected": state.collected, "busy": busy})
 		if column == _exit.x and absi(feet - _exit.y * UNITS_PER_CELL) <= 1:
 			return {"end": "exit", "points": points, "events": events}
 		var ahead: int = column + state.direction
@@ -255,6 +320,12 @@ func _rise(state: Dictionary, column: int, feet: int, direction: int) -> int:
 			return -1
 		top -= rise
 	if _body_blocked(state, column, top):
+		return -1
+	# Stepping up, the body still reaches back over the column it leaves
+	# (it is 26px wide), and the game turns it if its head would hit
+	# something there (LemmingController._is_head_blocked_ahead): a stair
+	# under a ceiling that slopes with it is a wall (campaign level 27).
+	if top < feet and _body_blocked(state, column - direction, top):
 		return -1
 	return feet - top
 
@@ -330,7 +401,10 @@ func _use_carried_tool(state: Dictionary, wall_column: int) -> bool:
 	var used := false
 	match carried:
 		"basher", "miner":
-			used = _tunnel(state, wall_column, carried == "basher")
+			var last_dug := _tunnel(state, wall_column, carried == "basher")
+			used = last_dug >= 0
+			if used:
+				state.busy_until = last_dug
 		"ladder_vertical":
 			used = _ladder_up(state, wall_column)
 	if used:
@@ -342,22 +416,25 @@ func _breakable(value: int, concrete_too: bool) -> bool:
 	return value == Unit.EARTH or value == Unit.BRICK or concrete_too and value == Unit.CONCRETE
 
 
-func _tunnel(state: Dictionary, wall_column: int, concrete_too: bool) -> bool:
+## Digs the tunnel; the last column dug, or -1 if the wall does not break.
+func _tunnel(state: Dictionary, wall_column: int, concrete_too: bool) -> int:
 	var body_row: int = state.feet / UNITS_PER_CELL - 1
 	var direction: int = state.direction
 	if not _breakable(_unit(state, wall_column, body_row * UNITS_PER_CELL), concrete_too):
-		return false
+		return -1
 	var column := wall_column
+	var last_dug := wall_column
 	while column >= 0 and column < _columns:
 		var value := _unit(state, column, body_row * UNITS_PER_CELL)
 		if value == Unit.AIR or not _breakable(value, concrete_too):
 			break
 		for unit in UNITS_PER_CELL:
 			_set_unit(state, column, body_row * UNITS_PER_CELL + unit, Unit.AIR)
+		last_dug = column
 		if _unit(state, column, state.feet) == Unit.AIR:
 			break
 		column += direction
-	return true
+	return last_dug
 
 
 func _ladder_up(state: Dictionary, wall_column: int) -> bool:
@@ -444,11 +521,18 @@ func _build_bridge(state: Dictionary) -> bool:
 		var at := column + direction * (piece + 1)
 		if _unit(state, at, feet) != Unit.AIR or _body_blocked(state, at, feet):
 			break
+		# A bridge stops at a ladder (SkillBridge._overlaps_ladder): over a
+		# ship's shaft, whose ladder comes up to the deck, it laid nothing
+		# (campaign level 30).
+		if _is_ladder(state, at, feet / UNITS_PER_CELL):
+			break
 		_set_unit(state, at, feet, Unit.BRICK)
 		placed += 1
 	if placed == 0:
 		return false
-	state.column = column
+	# The builder walks out to the last piece as it lays them, so it is
+	# there, not at the edge, when it can take another tool.
+	state.column = column + placed * direction
 	state.feet = feet
 	return true
 
@@ -461,9 +545,13 @@ func _apply(state: Dictionary, tool: String) -> bool:
 			return false
 		state.traits[tool] = true
 		return true
+	# A lemming holds one tool: in the game a new one replaces a carried tool
+	# not used yet, so the solver never hands one over on top of another
+	# (campaign level 14 was solved with a shovel dug while a jackhammer
+	# was still carried to the next wall).
+	if state.carried != "":
+		return false
 	if tool in CARRIED and tool != "bridge":
-		if state.carried != "":
-			return false
 		state.carried = tool
 		return true
 	match tool:
@@ -478,10 +566,14 @@ func _apply(state: Dictionary, tool: String) -> bool:
 
 # --- Search ---------------------------------------------------------------------
 
+## The lemming comes out of the entrance a block above its floor and falls:
+## onto a soil ramp in the same column it lands higher, which can put it on
+## top of a block beside it (campaign level 15 began that way in the game
+## while the solver walked it from the floor).
 func _start_state() -> Dictionary:
-	return {"column": _spawn.x, "feet": _spawn.y * UNITS_PER_CELL, "direction": _spawn_direction,
+	return {"column": _spawn.x, "feet": (_spawn.y - 1) * UNITS_PER_CELL, "direction": _spawn_direction,
 		"changes": {}, "ladders": {}, "traits": {}, "carried": "", "collected": 0, "inventory": {},
-		"walked": 0, "tools_used": 0, "parent": -1, "move": {}, "carried_used_at": -1}
+		"walked": 0, "tools_used": 0, "parent": -1, "move": {}, "carried_used_at": -1, "busy_until": -1}
 
 
 func _copy(state: Dictionary) -> Dictionary:
@@ -627,6 +719,8 @@ func _children(node: Dictionary) -> Array[Dictionary]:
 		segment_starts[event_index + 1] = true
 	for index in points.size():
 		var point: Dictionary = points[index]
+		if point.get("busy", false):
+			continue
 		var at_segment_start := segment_starts.has(index)
 		var near_event := false
 		for ahead in range(index, mini(index + 3, points.size())):
@@ -693,6 +787,8 @@ func _state_at(node: Dictionary, index: int) -> Dictionary:
 	child.inventory = _inventory_at(node, int(point.collected))
 	child.walked = int(node.walked) + index
 	child.carried_used_at = -1
+	# Handed a tool here, it is not inside a tunnel (busy points get none).
+	child.busy_until = -1
 	# A tool carried to a wall earlier on this walk has been used by then.
 	var used_at: int = node.after.carried_used_at
 	if used_at >= 0 and index >= used_at:

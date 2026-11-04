@@ -530,8 +530,28 @@ func _process_skill(delta: float) -> void:
 	var still_active := current_skill.physics_process(self, delta)
 	if not still_active:
 		current_skill = null
-		if state_machine.is_alive():
+		if not state_machine.is_alive():
+			return
+		# A tool that ends over open space (a tunnel breaking out above a
+		# pit) drops the lemming facing on. Handed back to walking, the
+		# physics' floor flag from the last frame was still set, a wall
+		# just ahead turned it round first, and it fell facing back the way
+		# it came (campaign level 10).
+		if _has_terrain_under_body():
 			state_machine.change_state(LemmingStateMachine.State.WALKING)
+		else:
+			_start_falling()
+
+
+## Terrain or a brick right under any part of the body's bottom edge.
+func _has_terrain_under_body() -> bool:
+	const PROBE_INSET := 0.5
+	var body := get_body_rect()
+	var below := body.end.y + PROBE_INSET
+	for x in [body.position.x + PROBE_INSET, body.get_center().x, body.end.x - PROBE_INSET]:
+		if terrain.is_solid_at(Vector2(x, below)):
+			return true
+	return false
 
 
 ## Any walking or falling lemming whose body centre reaches a ladder takes

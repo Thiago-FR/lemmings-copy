@@ -13,6 +13,8 @@ extends Node
 ##   - the relic bar shows a slot per relic, with its level.
 
 const TROOP_SIZE := 3
+## The run seed the stage comes from.
+const TEST_SEED := 2026
 ## Long enough for three lemmings (one every 1.5 s).
 const WAIT_FOR_THREE_SECONDS := 3.6
 
@@ -21,6 +23,8 @@ var _failures: Array[String] = []
 
 func _ready() -> void:
 	var state := RoguelikeRunState.new_run()
+	# A fixed stage: with a random one the outcome changed from run to run.
+	state.set_seed(TEST_SEED)
 	for _recruit in TROOP_SIZE - 1:
 		state.recruit(RoguelikeCharacters.WIZARD)
 	state.add_relic(RoguelikeRelics.QUICK_STEP)
@@ -49,9 +53,13 @@ func _ready() -> void:
 		_expect(with_parachute == 2, "%d lemmings have a parachute, expected the first 2" % with_parachute)
 
 		var lemming := lemmings[0] as LemmingController
+		# Counted from what the bar already holds: the lemmings may have
+		# picked up the stage's own items in the first seconds.
+		var bridges_before := state.inventory.get_charges("bridge")
 		var tool_item := _pickup(RoguelikePickupSpec.Kind.TOOL, 1, "bridge")
 		session._on_pickup_collected(tool_item, lemming)
-		_expect(state.inventory.get_charges("bridge") == 2, "a bridge item gave %d charges, expected 1 + 1 (Collector I)" % state.inventory.get_charges("bridge"))
+		var gained := state.inventory.get_charges("bridge") - bridges_before
+		_expect(gained == 2, "a bridge item gave %d charges, expected 1 + 1 (Collector I)" % gained)
 		var coins_before := state.coins
 		session._on_pickup_collected(_pickup(RoguelikePickupSpec.Kind.COINS, 2), lemming)
 		_expect(state.coins == coins_before + 4, "a coin item gave %d coins, expected 2 + 2 (Greed II)" % (state.coins - coins_before))

@@ -38,6 +38,8 @@ const RESTING_TOLERANCE := 1.5
 ## A smooth step-up moves well under a pixel per frame; the old teleport moved
 ## 32px. Anything above this is a jump.
 const MAX_FRAME_MOVE := 2.0
+## Half the lemming's body width (26px).
+const BODY_HALF_WIDTH := 13.0
 
 const TILE_SET_PATH := "res://resources/tilesets/terrain_tileset.tres"
 const LEMMING_SCENE_PATH := "res://scenes/characters/lemming.tscn"
@@ -221,9 +223,14 @@ func _evaluate() -> void:
 		return
 
 	if scenario.expect == "blocked":
-		# Whole steps, plus one cut to the room left against the wall.
+		# The staircase starts on the column line ahead of the body's centre
+		# (SkillBuilder._set_origin): whole steps from there, plus one cut to
+		# the room left against the wall.
 		var step_width := TILE * _tool.step_width_fraction_of_tile
-		var distance: float = scenario.distance
+		var wall_x := float(PLATFORM_FIRST_COLUMN * TILE)
+		var centre: float = wall_x - scenario.distance - BODY_HALF_WIDTH
+		var origin := (floorf(centre / TILE) + 1.0) * TILE
+		var distance := wall_x - origin
 		var whole_steps := int(distance / step_width)
 		var room_left := distance - whole_steps * step_width
 		var expected_bricks := whole_steps + (1 if room_left >= SkillBuilder.MIN_STEP_WIDTH else 0)

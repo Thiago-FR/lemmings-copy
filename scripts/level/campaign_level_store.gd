@@ -27,12 +27,14 @@ const CAMPAIGN_SIZE := Vector2i(80, 45)
 ## Where a generated level's scene goes.
 const SCENE_PATTERN := "res://scenes/levels/campaign/campaign_%02d.tscn"
 ## A generated level: lemmings, seconds between them, and the share to save
-## (lower when the way needs a parachute: only the lemming given it lives
-## through that fall).
+## (lower when the way needs a parachute or the climbing claws: only the
+## lemming given one lives through that fall or gets up that wall).
 const GENERATED_LEMMINGS := 10
 const GENERATED_SPAWN_SECONDS := 1.5
 const GENERATED_GOAL := 0.3
-const GENERATED_GOAL_WITH_FLOATER := 0.1
+const GENERATED_GOAL_ONE_LEMMING := 0.1
+## Tools that work for the one lemming given them, not for those following.
+const PERSONAL_TOOLS: Array[String] = ["floater", "climber"]
 const BACKUP_SCENE_FILE := "scene.tscn"
 const BACKUP_DATA_FILE := "data.tres"
 const LEVEL_MANAGER_SCRIPT := preload("res://scripts/level/level_manager.gd")
@@ -170,13 +172,25 @@ static func _build_scene(index: int, drawing: Dictionary) -> Node2D:
 ## files backed up first, if there are any). The tools its solution uses
 ## are offered, as many as it uses. Returns false if writing failed.
 static func create_generated(index: int, maze: MazeStageData) -> bool:
+	var counts := {}
+	for step in maze.solution:
+		counts[step.tool] = int(counts.get(step.tool, 0)) + 1
+	var goal := GENERATED_GOAL_ONE_LEMMING if PERSONAL_TOOLS.any(func(tool: String) -> bool: return counts.has(tool)) else GENERATED_GOAL
+	return create_level(index, maze, GENERATED_LEMMINGS, GENERATED_SPAWN_SECONDS, counts, goal)
+
+
+## Writes campaign level `index` (scene and LevelData) from stage data, with
+## its own troop, release pace, tools and share to save, backing up the
+## level it replaces. Used for the hand-made levels (tools/campaign/) and
+## the generated ones.
+static func create_level(index: int, maze: MazeStageData, lemmings: int, spawn_seconds: float, counts: Dictionary, goal: float) -> bool:
 	var data_path := Campaign.level_path(index)
 	if ResourceLoader.exists(data_path):
 		var old_data := _load_fresh(data_path) as LevelData
 		if old_data != null and _back_up(index, old_data) == "":
 			return false
 	var drawing := LevelDrawing.dictionary_from_maze(maze)
-	drawing.total_lemmings = GENERATED_LEMMINGS
+	drawing.total_lemmings = lemmings
 	var scene_path := SCENE_PATTERN % (index + 1)
 	var packed := PackedScene.new()
 	var root := _build_scene(index, drawing)
@@ -189,19 +203,16 @@ static func create_generated(index: int, maze: MazeStageData) -> bool:
 	var data := LevelData.new()
 	data.level_name = maze.stage_name
 	data.instructions = ""
-	data.spawn_rate = GENERATED_SPAWN_SECONDS
-	data.total_lemmings = GENERATED_LEMMINGS
+	data.spawn_rate = spawn_seconds
+	data.total_lemmings = lemmings
 	data.time_limit_seconds = maze.suggested_time_seconds
 	data.scene_path = scene_path
 	data.environment_kind = maze.environment_kind
-	var counts := {}
-	for step in maze.solution:
-		counts[step.tool] = int(counts.get(step.tool, 0)) + 1
 	var offered: Array[String] = []
 	offered.assign(counts.keys())
 	data.available_skills = offered
-	data.skill_counts = counts
-	data.required_percentage = GENERATED_GOAL_WITH_FLOATER if counts.has("floater") else GENERATED_GOAL
+	data.skill_counts = counts.duplicate()
+	data.required_percentage = goal
 	data.dressing = drawing.dressing
 	data.solution = maze.solution.duplicate(true)
 	if ResourceSaver.save(data, data_path) != OK:
