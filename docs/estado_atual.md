@@ -1788,10 +1788,15 @@ Em ordem de prioridade.
    mais fiel ao jogo (ver "Caça às fases impossíveis"), mas continua sendo
    um modelo. Falta rodar de novo o `test_procedural_stages` (60 fases) e o
    `test_maze_generator` depois das últimas mudanças.
-3. **Campanha: 10 dos 30 mapas da pasta sem saída** segundo o verificador
-   de hoje (05, 06, 07, 08, 19, 20, 22, 27, 28, 29), e a fase 5 só salva
-   o primeiro boneco no robô. Ver "Campanha: 3 tutoriais + os mapas da
-   pasta".
+3. **Campanha: o robô perde em 17 das 30 fases dos mapas da pasta** (5,
+   7, 9, 10, 11, 20, 21, 23 a 27, 29 a 33), várias com o grupo parado até
+   o tempo acabar. Ver "Entrada no alto, bonecos e metas" em "Campanha: 3
+   tutoriais + os mapas da pasta".
+3a. **Pendência do usuário: subir/descer andares com o grupo** (cavernas
+   com entrada e saída na mesma altura). Nenhuma ferramenta abre caminho
+   para cima na rocha, e o poço da Pá mata quem vem atrás. Escada que cava,
+   corda e corrente de bonecos ficam para depois, cada uma com fases
+   próprias de teste. Ver ideia 12 em [ideias_futuras.md](ideias_futuras.md).
 4. **Processos do Godot** de uma verificação interrompida podem ter ficado
    rodando até o tempo limite (o assistente não tem permissão para
    encerrá-los).

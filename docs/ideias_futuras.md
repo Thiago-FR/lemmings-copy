@@ -459,3 +459,25 @@ cartas novas de 11.2 e 11.4: é o que dá a sensação de Megabonk e reaproveita
 a tela de cartas, as raridades e as relíquias que já existem. Depois, as
 evoluções de ferramenta (11.3) e os perigos de paisagem (11.6) junto com as
 mecânicas por ambiente (10.3).
+
+## 12. Corda e corrente de bonecos (ideia do usuário, 5 de novembro de 2026)
+
+Para o grupo descer (ou subir) andares sem morrer da queda, o que hoje
+nenhuma ferramenta faz para o grupo inteiro:
+- **Corda:** um boneco prende e joga a corda num buraco ou beirada, e os
+  outros descem por ela.
+- **Corrente de bonecos:** os próprios bonecos se seguram uns nos outros e
+  formam uma corrente por onde o resto passa.
+
+Ligado ao problema das cavernas: com entrada embaixo a saída não pode subir
+(nada abre caminho para cima na rocha), e com entrada no alto só o primeiro
+sobrevive ao poço da Pá. Ver "Entrada no alto, bonecos e metas" em
+[estado_atual.md](estado_atual.md). Anotado para explorar depois.
+
+**Pendência (5 de novembro de 2026, decisão do usuário):** subir pela rocha
+continua sem solução e fica para depois, junto com a corda e a corrente.
+Candidatos: escada que cava degraus para cima na terra, corda com gancho,
+corrente de bonecos. Cuidado já conhecido: cavar na diagonal já deu
+problema antes (bonecos travando, buraco grande demais). Qualquer uma delas
+precisa de fases próprias de teste da ferramenta, como as outras (ver
+seção 10 de [game_design.md](game_design.md)), antes de entrar nas fases.
