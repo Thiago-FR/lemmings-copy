@@ -56,12 +56,12 @@ func _ready() -> void:
 		# Counted from what the bar already holds: the lemmings may have
 		# picked up the stage's own items in the first seconds.
 		var bridges_before := state.inventory.get_charges("bridge")
-		var tool_item := _pickup(RoguelikePickupSpec.Kind.TOOL, 1, "bridge")
+		var tool_item := _pickup(ItemSpec.Kind.TOOL, 1, "bridge")
 		session._on_pickup_collected(tool_item, lemming)
 		var gained := state.inventory.get_charges("bridge") - bridges_before
 		_expect(gained == 2, "a bridge item gave %d charges, expected 1 + 1 (Collector I)" % gained)
 		var coins_before := state.coins
-		session._on_pickup_collected(_pickup(RoguelikePickupSpec.Kind.COINS, 2), lemming)
+		session._on_pickup_collected(_pickup(ItemSpec.Kind.COINS, 2), lemming)
 		_expect(state.coins == coins_before + 4, "a coin item gave %d coins, expected 2 + 2 (Greed II)" % (state.coins - coins_before))
 
 	var bar := get_tree().root.find_child("RoguelikeRelicBar", true, false)
@@ -79,12 +79,12 @@ func _ready() -> void:
 	get_tree().quit(1)
 
 
-func _pickup(kind: RoguelikePickupSpec.Kind, amount: int, tool_id: String = "") -> RoguelikePickup:
-	var spec := RoguelikePickupSpec.new()
+func _pickup(kind: ItemSpec.Kind, amount: int, tool_id: String = "") -> ItemPickup:
+	var spec := ItemSpec.new()
 	spec.kind = kind
 	spec.amount = amount
 	spec.tool_id = tool_id
-	var pickup := RoguelikePickup.new()
+	var pickup := ItemPickup.new()
 	pickup.spec = spec
 	return pickup
 

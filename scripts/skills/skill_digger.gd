@@ -61,6 +61,14 @@ func _dig_next_stage(lemming: LemmingController) -> bool:
 	var body := lemming.get_body_rect()
 	var feet := lemming.get_feet_position()
 	var slice := Rect2(body.position.x, feet.y, body.size.x, 1.0)
+	# Centred on its column on a staircase, the lemming can end up a few
+	# pixels above the next step down: it settles onto it and digs from
+	# there, instead of finding nothing under its feet and giving up.
+	if not lemming.terrain.is_solid_in_rect(slice):
+		var settle := _drop_to_ground_below(lemming)
+		if settle > 0.0:
+			_descent_remaining = settle
+			return true
 	# Standing on a brick (a diagonal ladder or bridge piece): it goes in one
 	# go, being one stage thick. The shovel used to find no earth there, stop
 	# at once and waste the charge. The lemming sinks onto whatever was right
@@ -88,7 +96,13 @@ func _drop_to_ground_below(lemming: LemmingController) -> float:
 	const PROBE_INSET := 0.5
 	var body := lemming.get_body_rect()
 	var reach := int(lemming.terrain.get_cell_size().y / 2.0 + lemming.terrain.get_dig_stage_height())
+	# Across the whole body, not only under its middle: on a staircase the
+	# next step down sits under one edge of the body, and with the middle
+	# alone the shovel found nothing, stopped, and the lemming just stood on
+	# that step with the charge spent.
+	var probe_xs := [body.position.x + PROBE_INSET, body.get_center().x, body.end.x - PROBE_INSET]
 	for depth in range(reach):
-		if lemming.terrain.is_solid_at(Vector2(body.get_center().x, body.end.y + depth + PROBE_INSET)):
-			return float(depth)
+		for x in probe_xs:
+			if lemming.terrain.is_solid_at(Vector2(x, body.end.y + depth + PROBE_INSET)):
+				return float(depth)
 	return 0.0

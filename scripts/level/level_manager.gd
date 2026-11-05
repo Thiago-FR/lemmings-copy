@@ -92,6 +92,17 @@ func _ready() -> void:
 	AudioManager.play_music_track(&"level_theme")
 	_set_up_view()
 	_add_solution_overlay()
+	_add_item_collector()
+
+
+## A level whose tools come from items gets its items, its tool bar and
+## the bookkeeping between them (ItemCollector).
+func _add_item_collector() -> void:
+	if not level_data.tools_from_items:
+		return
+	var collector := ItemCollector.new(self)
+	collector.name = "ItemCollector"
+	add_child(collector)
 
 
 ## In developer mode, the recorded solution can be shown over the level, to

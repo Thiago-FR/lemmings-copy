@@ -1,8 +1,9 @@
-class_name RoguelikeToolInventory
+class_name ToolInventory
 extends RefCounted
-## The run's tool bar: which tools the troop carries and how many charges of
-## each. It starts empty and gains a slot for every new tool picked up, up to
-## max_slots.
+## A tool bar filled by items: which tools the troop carries and how many
+## charges of each. It starts empty (or with a level's starting tools) and
+## gains a slot for every new tool picked up, up to max_slots. The roguelike
+## keeps one for the whole run; a campaign level has one of its own.
 ##
 ## When a new tool arrives with every slot taken, one slot makes room for it:
 ## first a slot with no charges left, otherwise the tool touched (picked up

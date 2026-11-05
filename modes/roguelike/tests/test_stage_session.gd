@@ -110,7 +110,7 @@ func _test_wizard_pickup_and_spending() -> void:
 	_check(picked, "walking into the shovel item puts the shovel in the bar")
 	_check(state.inventory.get_charges("digger") == 1, "an item gives one charge (got %d)" % state.inventory.get_charges("digger"))
 	_check(SkillManager.get_remaining_count("digger") == 1, "SkillManager follows the bar")
-	var pickups_left := get_tree().get_nodes_in_group("roguelike_pickups").filter(func(node: Node) -> bool: return not node.is_queued_for_deletion()).size()
+	var pickups_left := get_tree().get_nodes_in_group("item_pickups").filter(func(node: Node) -> bool: return not node.is_queued_for_deletion()).size()
 	_check(pickups_left == 2, "the item is gone once collected (%d left)" % pickups_left)
 	var lemming := _first_lemming()
 	await _wait_for(func() -> bool: return lemming.state_machine.current_state == LemmingStateMachine.State.WALKING)

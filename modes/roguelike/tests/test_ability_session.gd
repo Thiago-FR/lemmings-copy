@@ -66,7 +66,7 @@ func _ready() -> void:
 		_expect(not profile.is_discovered(RoguelikeDiscovery.ability(RoguelikeAbilities.LEAP)), "a refused leap was recorded as used")
 		_expect(slot.armed, "a refused use disarmed the ability")
 
-		var recharge := _pickup(RoguelikePickupSpec.Kind.ABILITY_CHARGE, 1)
+		var recharge := _pickup(ItemSpec.Kind.ABILITY_CHARGE, 1)
 		session._on_pickup_collected(recharge, lemming)
 		recharge.free()
 		_expect(slot.charges == expected + 1, "a recharge item left %d charges, expected %d" % [slot.charges, expected + 1])
@@ -104,11 +104,11 @@ func _first_lemming() -> LemmingController:
 	return null
 
 
-func _pickup(kind: RoguelikePickupSpec.Kind, amount: int) -> RoguelikePickup:
-	var spec := RoguelikePickupSpec.new()
+func _pickup(kind: ItemSpec.Kind, amount: int) -> ItemPickup:
+	var spec := ItemSpec.new()
 	spec.kind = kind
 	spec.amount = amount
-	var pickup := RoguelikePickup.new()
+	var pickup := ItemPickup.new()
 	pickup.spec = spec
 	return pickup
 

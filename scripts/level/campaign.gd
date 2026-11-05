@@ -4,12 +4,12 @@ extends RefCounted
 ## through them, saved in user://campaign.cfg. The first level is always
 ## open; winning a level clears it and opens the next one.
 ##
-## The levels are made by the stage generator (tools/build_generated_campaign.gd:
-## one per stage of every biome, in the biomes' order), numbered from 1;
-## everything here takes a zero-based index. The 15 hand-made levels they
-## replaced are in git history (commit a8d72f4) and in the backups.
+## Every level is drawn by hand (tools/campaign/level_NN.gd, written into the
+## game by tools/build_handmade_campaign.tscn), numbered from 1; everything
+## here takes a zero-based index. The first three teach and stay in the
+## meadow; then three levels for each landscape, in the biomes' order.
 
-const LEVEL_COUNT := 30
+const LEVEL_COUNT := 33
 const LEVEL_DATA_PATH := "res://resources/levels/campaign/campaign_%02d_data.tres"
 const SAVE_PATH := "user://campaign.cfg"
 ## The level select screen.

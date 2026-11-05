@@ -9,8 +9,8 @@ extends RefCounted
 var stage_name: String = ""
 var time_limit_seconds: int = 300
 var maze: MazeStageData = null
-## RoguelikePickupSpec, each with its column and floor row.
-var pickups: Array[RoguelikePickupSpec] = []
+## ItemSpec, each with its column and floor row.
+var pickups: Array[ItemSpec] = []
 ## Whether it came from the generator (false: one of the hand-made stages).
 var is_procedural := true
 

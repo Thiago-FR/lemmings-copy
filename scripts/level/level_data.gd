@@ -21,3 +21,9 @@ extends Resource
 ## Where the solution comes from (a run's seed and stage, say), shown with
 ## it in the developer's solution view (SolutionOverlay).
 @export var solution_note: String = ""
+## Tools come from items: the bar starts with skill_counts (the tool to get
+## going) and grows with every tool item picked up (ItemCollector). False:
+## the classic fixed bar of available_skills.
+@export var tools_from_items: bool = false
+## Items lying in the level from the start (tools, hourglasses, bags).
+@export var items: Array[ItemSpec] = []

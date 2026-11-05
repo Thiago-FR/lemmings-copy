@@ -10,12 +10,12 @@ extends RefCounted
 ##   - an ability: used once.
 
 const STAGE_ITEM_IDS := {
-	RoguelikePickupSpec.Kind.TOOL: "item_tool",
-	RoguelikePickupSpec.Kind.REVIVE: "item_rescue",
-	RoguelikePickupSpec.Kind.TIME: "item_time",
-	RoguelikePickupSpec.Kind.CHARGE_BAG: "item_bag",
-	RoguelikePickupSpec.Kind.COINS: "item_coins",
-	RoguelikePickupSpec.Kind.ABILITY_CHARGE: "item_ability",
+	ItemSpec.Kind.TOOL: "item_tool",
+	ItemSpec.Kind.REVIVE: "item_rescue",
+	ItemSpec.Kind.TIME: "item_time",
+	ItemSpec.Kind.CHARGE_BAG: "item_bag",
+	ItemSpec.Kind.COINS: "item_coins",
+	ItemSpec.Kind.ABILITY_CHARGE: "item_ability",
 }
 
 
@@ -27,7 +27,7 @@ static func tool(tool_id: String) -> String:
 	return "tool_%s" % tool_id
 
 
-static func stage_item(kind: RoguelikePickupSpec.Kind) -> String:
+static func stage_item(kind: ItemSpec.Kind) -> String:
 	return STAGE_ITEM_IDS[kind]
 
 
@@ -56,8 +56,8 @@ static func for_card(card: RoguelikeCard) -> Array[String]:
 
 
 ## What picking up an item shows: the item, and the tool of a tool item.
-static func for_pickup(spec: RoguelikePickupSpec) -> Array[String]:
+static func for_pickup(spec: ItemSpec) -> Array[String]:
 	var ids: Array[String] = [stage_item(spec.kind)]
-	if spec.kind == RoguelikePickupSpec.Kind.TOOL:
+	if spec.kind == ItemSpec.Kind.TOOL:
 		ids.append(tool(spec.tool_id))
 	return ids

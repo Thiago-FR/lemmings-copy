@@ -1,4 +1,4 @@
-class_name RoguelikeIconPop
+class_name IconPop
 extends Node2D
 ## An icon that pops up where something happened, rises and fades: the
 ## user wants animation, not text messages ("aviso não, animação"). Used
@@ -13,11 +13,11 @@ const POP_SCALE := 1.35
 const POP_SECONDS := 0.15
 
 
-static func spawn(parent: Node, world_position: Vector2, icon_id: String) -> RoguelikeIconPop:
+static func spawn(parent: Node, world_position: Vector2, icon_id: String) -> IconPop:
 	var texture := UiStyle.icon(icon_id)
 	if parent == null or texture == null:
 		return null
-	var pop := RoguelikeIconPop.new()
+	var pop := IconPop.new()
 	pop.z_index = 6
 	pop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	pop.set_meta("texture", texture)

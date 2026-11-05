@@ -68,7 +68,7 @@ func _ready() -> void:
 	# LevelManager's handler, and it must already count as saved by then.
 	for exit_point in _children_of_type(ExitPoint):
 		exit_point.lemming_exited.connect(func(lemming: LemmingController) -> void: _on_lemming_resolved(lemming, true))
-	for pickup in _children_of_type(RoguelikePickup):
+	for pickup in _children_of_type(ItemPickup):
 		pickup.collected.connect(_on_pickup_collected)
 	level_manager.level_completed.connect(_on_level_ended)
 	level_manager.level_failed.connect(_on_level_ended)
@@ -148,7 +148,7 @@ func _discover(entry_ids: Array[String], where: Vector2) -> void:
 	if fresh.is_empty():
 		return
 	profile.discover_all(entry_ids)
-	RoguelikeIconPop.spawn(level_manager, where + DISCOVERY_POP_OFFSET, DISCOVERY_ICON)
+	IconPop.spawn(level_manager, where + DISCOVERY_POP_OFFSET, DISCOVERY_ICON)
 
 
 func _sync_charges() -> void:
@@ -254,12 +254,12 @@ func _on_skill_assigned(lemming: LemmingController, skill_id: String) -> void:
 
 ## What was picked up flies out of the item as icons, one per charge or coin
 ## (up to MAX_POPS): the user wants animation, not text messages.
-func _on_pickup_collected(pickup: RoguelikePickup, lemming: LemmingController) -> void:
+func _on_pickup_collected(pickup: ItemPickup, lemming: LemmingController) -> void:
 	var spec := pickup.spec
 	var where := pickup.global_position
 	_discover(RoguelikeDiscovery.for_pickup(spec), where)
 	match spec.kind:
-		RoguelikePickupSpec.Kind.TOOL:
+		ItemSpec.Kind.TOOL:
 			var amount := spec.amount + state.get_relic_level(RoguelikeRelics.COLLECTOR)
 			var character_trait := RoguelikeCharacters.get_trait(lemming)
 			if character_trait != null:
@@ -268,28 +268,28 @@ func _on_pickup_collected(pickup: RoguelikePickup, lemming: LemmingController) -
 			var evicted := state.inventory.add_charges(spec.tool_id, amount)
 			# A tool pushed out of a full bar drops away, greyed.
 			if evicted != "":
-				var dropped := RoguelikeIconPop.spawn(level_manager, where + Vector2(0, -POP_SPACING), evicted)
+				var dropped := IconPop.spawn(level_manager, where + Vector2(0, -POP_SPACING), evicted)
 				if dropped != null:
 					dropped.modulate = EVICTED_TINT
-		RoguelikePickupSpec.Kind.REVIVE:
+		ItemSpec.Kind.REVIVE:
 			state.revive_tokens += 1
 			_pop_icons(where, "hud_rescue", 1)
-		RoguelikePickupSpec.Kind.TIME:
+		ItemSpec.Kind.TIME:
 			level_manager.time_remaining += spec.amount
 			_pop_icons(where, "hud_clock", 1)
-		RoguelikePickupSpec.Kind.CHARGE_BAG:
+		ItemSpec.Kind.CHARGE_BAG:
 			state.inventory.add_one_to_each()
 			for tool_id in state.inventory.get_tool_ids().slice(0, MAX_POPS):
 				_pop_icons(where + Vector2(0, -POP_SPACING * 0.5), tool_id, 1)
-		RoguelikePickupSpec.Kind.COINS:
+		ItemSpec.Kind.COINS:
 			var coins := spec.amount + state.get_relic_level(RoguelikeRelics.GREED)
 			state.coins += coins
 			_pop_icons(where, "hud_coin", coins)
-		RoguelikePickupSpec.Kind.ABILITY_CHARGE:
+		ItemSpec.Kind.ABILITY_CHARGE:
 			# The crystal itself flies up; the slot in the bar pulses.
 			ability_slot.add_charges(spec.amount)
 			AudioManager.play_sound(&"select_tool")
-			RoguelikeIconPop.spawn(level_manager, pickup.global_position, RoguelikeAbilities.CHARGE_ICON)
+			IconPop.spawn(level_manager, pickup.global_position, RoguelikeAbilities.CHARGE_ICON)
 			return
 	AudioManager.play_sound(&"select_tool")
 
@@ -299,7 +299,7 @@ func _pop_icons(where: Vector2, icon_id: String, count: int) -> void:
 	var shown := clampi(count, 1, MAX_POPS)
 	for index in shown:
 		var offset := (float(index) - (shown - 1) / 2.0) * POP_SPACING
-		RoguelikeIconPop.spawn(level_manager, where + Vector2(offset, 0), icon_id)
+		IconPop.spawn(level_manager, where + Vector2(offset, 0), icon_id)
 
 
 func _on_level_ended(_percentage_saved: float) -> void:

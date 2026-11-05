@@ -12,10 +12,9 @@ const EXIT_POINT_SCENE := preload("res://scenes/level/exit_point.tscn")
 
 ## Heights above the walking surface, matching the hand-made levels: the
 ## entrance releases lemmings a short drop above the ground, the exit stands
-## on it, an item floats at body height.
+## on it (an item's height is ItemPickup's).
 const SPAWN_HEIGHT := 56.0
 const EXIT_HEIGHT := 24.0
-const PICKUP_HEIGHT := 16.0
 
 
 ## The finished level root, ready to be added to the tree once
@@ -40,8 +39,5 @@ func build(definition: RoguelikeStageDefinition) -> LevelManager:
 	exit_point.position = MazeStageData.surface_point(definition.maze.exit_cell) + Vector2.UP * EXIT_HEIGHT
 	level.add_child(exit_point)
 	for spec in definition.pickups:
-		var pickup := RoguelikePickup.new()
-		pickup.spec = spec
-		pickup.position = MazeStageData.surface_point(Vector2i(spec.column, spec.row)) + Vector2.UP * PICKUP_HEIGHT
-		level.add_child(pickup)
+		level.add_child(ItemPickup.make(spec))
 	return level

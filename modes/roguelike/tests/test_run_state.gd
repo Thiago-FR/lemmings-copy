@@ -34,7 +34,7 @@ func _check(condition: bool, description: String) -> void:
 
 
 func _test_inventory_slots() -> void:
-	var inventory := RoguelikeToolInventory.new()
+	var inventory := ToolInventory.new()
 	_check(inventory.get_tool_ids().is_empty(), "the bar starts empty")
 	inventory.add_charges("digger", 2)
 	inventory.add_charges("bridge", 1)
@@ -47,7 +47,7 @@ func _test_inventory_slots() -> void:
 
 
 func _test_inventory_eviction() -> void:
-	var inventory := RoguelikeToolInventory.new()
+	var inventory := ToolInventory.new()
 	for tool_id in ["floater", "climber", "block", "tnt"]:
 		inventory.add_charges(tool_id, 2)
 	_check(inventory.is_full(), "four tools fill the bar")
@@ -66,7 +66,7 @@ func _test_inventory_eviction() -> void:
 
 
 func _test_inventory_empty_slots() -> void:
-	var inventory := RoguelikeToolInventory.new()
+	var inventory := ToolInventory.new()
 	inventory.add_charges("digger", 1)
 	inventory.add_charges("bridge", 1)
 	inventory.spend("digger")
@@ -183,7 +183,7 @@ func _test_relic_levels() -> void:
 				return
 	state.add_relic(RoguelikeRelics.EXTRA_POCKET)
 	state.add_relic(RoguelikeRelics.EXTRA_POCKET)
-	_check(state.inventory.max_slots == RoguelikeToolInventory.DEFAULT_MAX_SLOTS + 2, "Extra pocket II adds two slots (%d)" % state.inventory.max_slots)
+	_check(state.inventory.max_slots == ToolInventory.DEFAULT_MAX_SLOTS + 2, "Extra pocket II adds two slots (%d)" % state.inventory.max_slots)
 	var next := RoguelikeCard.make(RoguelikeCard.Kind.RELIC, RoguelikeRelics.EXTRA_POCKET, 3)
 	_check(next.get_title().ends_with("III") and next.get_price() > RoguelikeCard.make(RoguelikeCard.Kind.RELIC, RoguelikeRelics.EXTRA_POCKET, 1).get_price(), "a level III card says so and costs more")
 

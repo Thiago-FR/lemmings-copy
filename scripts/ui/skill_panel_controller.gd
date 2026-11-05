@@ -21,6 +21,10 @@ var _level_manager: LevelManager
 func _ready() -> void:
 	_level_manager = get_tree().get_first_node_in_group("level_manager")
 	assert(_level_manager != null, "SkillPanelController requires a LevelManager in the 'level_manager' group")
+	# Tools from items: ItemCollector shows its own bar, which grows.
+	if _level_manager.level_data.tools_from_items:
+		visible = false
+		return
 
 	_panel.add_theme_stylebox_override("panel", UiStyle.panel_style())
 	_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

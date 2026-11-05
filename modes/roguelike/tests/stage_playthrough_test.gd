@@ -168,8 +168,8 @@ func _items_left_to_collect(action: Dictionary) -> bool:
 	var wanted: Array = action.get("collect_first", [])
 	if wanted.is_empty():
 		return false
-	for node in get_tree().get_nodes_in_group("roguelike_pickups"):
-		var pickup := node as RoguelikePickup
+	for node in get_tree().get_nodes_in_group("item_pickups"):
+		var pickup := node as ItemPickup
 		if pickup.is_queued_for_deletion():
 			continue
 		if wanted.has(Vector2i(pickup.spec.column, pickup.spec.row)):

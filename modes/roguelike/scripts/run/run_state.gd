@@ -37,7 +37,7 @@ var unlocked_characters: Array[StringName] = []
 var relics: Array[StringName] = []
 var relic_levels: Dictionary = {}
 var revive_tokens := 0
-var inventory := RoguelikeToolInventory.new()
+var inventory := ToolInventory.new()
 ## Index of the stage being played or about to be played.
 var stage_index := 0
 var lemmings_saved_total := 0

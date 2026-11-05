@@ -169,7 +169,10 @@ func _walk(lemming: LemmingController, delta: float) -> void:
 ## The first x ahead of the lemming where nothing is under its walking
 ## surface, searched pixel by pixel from its trailing edge (which is always
 ## over ground for a lemming that is walking). NAN if something at body
-## height (a wall or a step up) comes first.
+## height (a wall or a step up) comes first. A crack narrower than the body
+## is not an edge (the lemming does not fall into it either): the crack
+## between a staircase's last step and the rock it ends against was taken
+## for one, and the bridge ended there before its first piece.
 func _find_floor_edge(lemming: LemmingController, floor_y: float) -> float:
 	var body := lemming.get_body_rect()
 	var direction := lemming.direction
@@ -180,10 +183,22 @@ func _find_floor_edge(lemming: LemmingController, floor_y: float) -> float:
 		var column_x := x + direction * PROBE_INSET
 		if lemming.terrain.is_solid_at(Vector2(column_x, floor_y - PROBE_INSET)):
 			return NAN
-		if not lemming.terrain.is_solid_at(Vector2(column_x, floor_y + PROBE_INSET)):
+		if not _has_floor_at(lemming.terrain, column_x, floor_y) and not _floor_resumes_within(lemming.terrain, column_x, floor_y, direction, body.size.x - 1.0):
 			return x
 		x += direction
 	return NAN
+
+
+func _has_floor_at(terrain: TerrainDestructible, x: float, floor_y: float) -> bool:
+	return terrain.is_solid_at(Vector2(x, floor_y + PROBE_INSET))
+
+
+## Whether the floor goes on again within width past x.
+func _floor_resumes_within(terrain: TerrainDestructible, x: float, floor_y: float, direction: int, width: float) -> bool:
+	for offset in range(1, int(width)):
+		if _has_floor_at(terrain, x + direction * offset, floor_y):
+			return true
+	return false
 
 
 ## Ladder cells have no collision, so place_brick() does not see them; a

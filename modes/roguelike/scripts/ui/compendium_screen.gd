@@ -50,12 +50,12 @@ const TOOL_DESCRIPTIONS := {
 
 ## [kind, name, icon, description] of every item that can lie in a stage.
 const STAGE_ITEMS: Array = [
-	[RoguelikePickupSpec.Kind.TOOL, "Ferramenta", "digger", "+1 carga da ferramenta (entra na barra se for nova)."],
-	[RoguelikePickupSpec.Kind.REVIVE, "Pena da fênix", "hud_rescue", "No fim da fase, traz de volta um boneco perdido."],
-	[RoguelikePickupSpec.Kind.TIME, "Ampulheta", "hud_clock", "Mais tempo na fase."],
-	[RoguelikePickupSpec.Kind.CHARGE_BAG, "Bolsa", "editor_counts", "+1 carga em cada ferramenta da barra."],
-	[RoguelikePickupSpec.Kind.COINS, "Moedas", "hud_coin", "Moedas para a loja (mais com a Ganância)."],
-	[RoguelikePickupSpec.Kind.ABILITY_CHARGE, "Recarga", RoguelikeAbilities.CHARGE_ICON, "+1 carga da habilidade do personagem nesta fase."],
+	[ItemSpec.Kind.TOOL, "Ferramenta", "digger", "+1 carga da ferramenta (entra na barra se for nova)."],
+	[ItemSpec.Kind.REVIVE, "Pena da fênix", "hud_rescue", "No fim da fase, traz de volta um boneco perdido."],
+	[ItemSpec.Kind.TIME, "Ampulheta", "hud_clock", "Mais tempo na fase."],
+	[ItemSpec.Kind.CHARGE_BAG, "Bolsa", "editor_counts", "+1 carga em cada ferramenta da barra."],
+	[ItemSpec.Kind.COINS, "Moedas", "hud_coin", "Moedas para a loja (mais com a Ganância)."],
+	[ItemSpec.Kind.ABILITY_CHARGE, "Recarga", RoguelikeAbilities.CHARGE_ICON, "+1 carga da habilidade do personagem nesta fase."],
 ]
 
 ## Returns whether an entry id (RoguelikeDiscovery) has been discovered;

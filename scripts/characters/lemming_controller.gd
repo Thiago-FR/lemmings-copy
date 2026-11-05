@@ -352,7 +352,13 @@ func _process_floating() -> void:
 		die(DeathCause.VOID)
 
 
+## Out through the bottom of the stage. It used to be any fall longer than
+## VOID_FALL_DISTANCE, which killed a parachutist floating down a tall
+## stage in mid-air; the distance is kept only for a lemming with no
+## terrain to measure the stage by.
 func _fell_into_void() -> bool:
+	if terrain != null:
+		return terrain.is_below_stage(get_body_rect().position)
 	return position.y - _fall_start_y > Constants.VOID_FALL_DISTANCE
 
 
@@ -371,7 +377,7 @@ func _process_climbing(delta: float) -> void:
 	# and step sideways into still-solid rock, getting stuck oscillating.
 	var half := get_half_extents()
 	var head_point := _collision_shape.global_position + Vector2(0, -half.y - Constants.GROUND_PROBE_EPSILON)
-	if terrain.is_solid_at(head_point):
+	if terrain.is_solid_at(head_point) or terrain.is_above_stage(head_point):
 		turn_around()
 		state_machine.change_state(LemmingStateMachine.State.WALKING)
 		return
@@ -582,7 +588,11 @@ func _process_ladder_climbing(delta: float) -> void:
 
 	var body := get_body_rect()
 	var just_above_feet := Vector2(body.get_center().x, body.end.y - Constants.GROUND_PROBE_EPSILON)
-	if not terrain.is_ladder_at(just_above_feet):
+	# The middle of the body too: a lemming that took hold of a ladder from a
+	# staircase step stands with its feet below the ladder's lowest cell, and
+	# was taken for one at the top, pulled down into the steps and held
+	# there for good.
+	if not terrain.is_ladder_at(just_above_feet) and not terrain.is_ladder_at(body.get_center()):
 		# Feet exactly level with the top rung, so stepping sideways lands
 		# the body on the surrounding ground rather than slightly inside it.
 		var top_rung_y := terrain.cell_rect_at(just_above_feet).end.y

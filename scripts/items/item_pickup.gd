@@ -1,14 +1,15 @@
-class_name RoguelikePickup
+class_name ItemPickup
 extends Area2D
-## An item lying in a stage. The first living lemming to walk into it
+## An item lying in a level. The first living lemming to walk into it
 ## collects it: the pickup emits `collected` and disappears. What the item
-## does is up to whoever listens (RoguelikeStageSession); the pickup only
-## knows how to look and when it was taken.
+## does is up to whoever listens (ItemCollector, or a mode of its own); the
+## pickup only knows how to look and when it was taken. Kept in the core so
+## every mode, and the campaign, use the same items.
 ##
 ## Drawn in code: tools show their bar icon on a glowing disc, the other
 ## items a simple shape of their own.
 
-signal collected(pickup: RoguelikePickup, lemming: LemmingController)
+signal collected(pickup: ItemPickup, lemming: LemmingController)
 
 const COLLISION_SIZE := Vector2(20, 28)
 const DISC_RADIUS := 15.0
@@ -20,11 +21,22 @@ const REVIVE_COLOUR := Color(0.95, 0.3, 0.35)
 const TIME_COLOUR := Color(0.95, 0.85, 0.55)
 const BAG_COLOUR := Color(0.6, 0.4, 0.2)
 
-var spec: RoguelikePickupSpec = null
+## Height above the walking surface: an item floats at body height.
+const SURFACE_HEIGHT := 16.0
+
+var spec: ItemSpec = null
 
 var _icon: Texture2D = null
 var _time := 0.0
 var _taken := false
+
+
+## A pickup for spec, placed on its cell.
+static func make(item: ItemSpec) -> ItemPickup:
+	var pickup := ItemPickup.new()
+	pickup.spec = item
+	pickup.position = MazeStageData.surface_point(Vector2i(item.column, item.row)) + Vector2.UP * SURFACE_HEIGHT
+	return pickup
 
 
 func _ready() -> void:
@@ -38,13 +50,13 @@ func _ready() -> void:
 	shape.shape = rectangle
 	add_child(shape)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if spec.kind == RoguelikePickupSpec.Kind.TOOL:
+	if spec.kind == ItemSpec.Kind.TOOL:
 		_icon = UiStyle.icon(spec.tool_id)
-	elif spec.kind == RoguelikePickupSpec.Kind.COINS:
+	elif spec.kind == ItemSpec.Kind.COINS:
 		_icon = UiStyle.icon("hud_coin")
-	elif spec.kind == RoguelikePickupSpec.Kind.ABILITY_CHARGE:
-		_icon = UiStyle.icon(RoguelikeAbilities.CHARGE_ICON)
-	add_to_group("roguelike_pickups")
+	if spec.icon_id != "":
+		_icon = UiStyle.icon(spec.icon_id)
+	add_to_group("item_pickups")
 	body_entered.connect(_on_body_entered)
 
 
@@ -67,14 +79,14 @@ func _draw() -> void:
 	draw_circle(centre, DISC_RADIUS, GLOW_COLOUR)
 	draw_arc(centre, DISC_RADIUS, 0.0, TAU, 24, RIM_COLOUR, 1.5)
 	match spec.kind:
-		RoguelikePickupSpec.Kind.TOOL, RoguelikePickupSpec.Kind.COINS, RoguelikePickupSpec.Kind.ABILITY_CHARGE:
+		ItemSpec.Kind.TOOL, ItemSpec.Kind.COINS, ItemSpec.Kind.ABILITY_CHARGE:
 			if _icon != null:
 				draw_texture_rect(_icon, Rect2(centre - Vector2(12, 12), Vector2(24, 24)), false)
-		RoguelikePickupSpec.Kind.REVIVE:
+		ItemSpec.Kind.REVIVE:
 			_draw_heart(centre)
-		RoguelikePickupSpec.Kind.TIME:
+		ItemSpec.Kind.TIME:
 			_draw_hourglass(centre)
-		RoguelikePickupSpec.Kind.CHARGE_BAG:
+		ItemSpec.Kind.CHARGE_BAG:
 			_draw_bag(centre)
 
 

@@ -65,6 +65,7 @@ var _spawn_direction := 1
 var _exit := Vector2i.ZERO
 var _hints: Array[int] = []
 var _unlimited := false
+var _troop := false
 var _allowed: Array[String] = []
 
 
@@ -72,17 +73,23 @@ var _allowed: Array[String] = []
 ## Returns {"solved", "steps": [{"tool", "column", "row", "direction",
 ## "collect_first"}], "path": [Vector3i(column, feet unit, direction)],
 ## "walk_steps"}.
-static func solve(data: MazeStageData, hints: Array[int] = []) -> Dictionary:
+## With `troop`, a way only counts if the lemmings behind, with no tools,
+## also reach the exit over the ground as the first one leaves it: one
+## lemming surviving a deep shaft it dug is no way for the others, who
+## fall down the open shaft.
+static func solve(data: MazeStageData, hints: Array[int] = [], troop: bool = false) -> Dictionary:
 	var solver := CellStageSolver.new()
 	solver._load(data, hints)
+	solver._troop = troop
 	return solver._search()
 
 
 ## The same with endless tools of the given kinds and no items: whether the
 ## exit can be reached at all, and on which path (items go along it).
-static func solve_unlimited(data: MazeStageData, tools: Array[String], hints: Array[int] = []) -> Dictionary:
+static func solve_unlimited(data: MazeStageData, tools: Array[String], hints: Array[int] = [], troop: bool = false) -> Dictionary:
 	var solver := CellStageSolver.new()
 	solver._load(data, hints)
+	solver._troop = troop
 	solver._unlimited = true
 	solver._allowed = tools
 	return solver._search()
@@ -619,10 +626,22 @@ func _search() -> Dictionary:
 			seen[key] = true
 			nodes.append(child)
 			if child.walk.end == "exit":
-				return _result(nodes, nodes.size() - 1)
+				if not _troop or _troop_reaches_exit(child.after):
+					return _result(nodes, nodes.size() - 1)
+				# The others die on the way: a dead end, not a solution.
+				continue
 			if not child.walk.points.is_empty():
 				open.append(nodes.size() - 1)
 	return _failure(nodes, "exit not reachable")
+
+
+## A lemming with no tools leaving the entrance on the ground the first one
+## left behind (what it dug, built and laid) gets to the exit.
+func _troop_reaches_exit(left_behind: Dictionary) -> bool:
+	var follower := _start_state()
+	follower.changes = left_behind.changes.duplicate()
+	follower.ladders = left_behind.ladders.duplicate()
+	return _walk(follower).end == "exit"
 
 
 ## A search that did not reach the exit: why, and the way to the place

@@ -34,7 +34,8 @@ var trees := 0
 ## The robot's way to win (tests/test_campaign_level.tscn), one hand-out
 ## per entry: {"tool", "from_column", "to_column", "row" (the floor row it
 ## walks on), "direction" (+1 right, -1 left, 0 either)}. Every hand-out goes
-## to the same lemming (the first one given a tool).
+## to the same lemming (the first one given a tool), unless it says "who":
+## "any", "other" (not that lemming) or "each" (everyone passing there).
 var solution: Array[Dictionary] = []
 
 

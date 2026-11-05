@@ -531,6 +531,18 @@ func is_solid_at(world_position: Vector2) -> bool:
 	return world_position.y >= solid.position.y 		and world_position.x >= solid.position.x and world_position.x <= solid.end.x
 
 
+## Whether a point is above the stage's top row: the ceiling of the stage
+## for a climber (the border walls go up to it, and climbing over them
+## walked the lemming out of the stage).
+func is_above_stage(world_position: Vector2) -> bool:
+	return local_to_map(to_local(world_position)).y < get_used_rect().position.y
+
+
+## Whether a point is below the stage's bottom row: fallen into the void.
+func is_below_stage(world_position: Vector2) -> bool:
+	return local_to_map(to_local(world_position)).y >= get_used_rect().end.y
+
+
 func destroy_cell_at(world_position: Vector2) -> bool:
 	var removed_bricks := _remove_bricks_in(cell_rect_at(world_position))
 	var cell := local_to_map(to_local(world_position))

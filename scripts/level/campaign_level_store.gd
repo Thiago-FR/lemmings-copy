@@ -182,8 +182,9 @@ static func create_generated(index: int, maze: MazeStageData) -> bool:
 ## Writes campaign level `index` (scene and LevelData) from stage data, with
 ## its own troop, release pace, tools and share to save, backing up the
 ## level it replaces. Used for the hand-made levels (tools/campaign/) and
-## the generated ones.
-static func create_level(index: int, maze: MazeStageData, lemmings: int, spawn_seconds: float, counts: Dictionary, goal: float) -> bool:
+## the generated ones. With items, the tools come from them
+## (LevelData.tools_from_items) and counts are only the starting tools.
+static func create_level(index: int, maze: MazeStageData, lemmings: int, spawn_seconds: float, counts: Dictionary, goal: float, items: Array[ItemSpec] = []) -> bool:
 	var data_path := Campaign.level_path(index)
 	if ResourceLoader.exists(data_path):
 		var old_data := _load_fresh(data_path) as LevelData
@@ -215,6 +216,8 @@ static func create_level(index: int, maze: MazeStageData, lemmings: int, spawn_s
 	data.required_percentage = goal
 	data.dressing = drawing.dressing
 	data.solution = maze.solution.duplicate(true)
+	data.tools_from_items = not items.is_empty()
+	data.items = items
 	if ResourceSaver.save(data, data_path) != OK:
 		push_error("Could not write %s" % data_path)
 		return false

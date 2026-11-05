@@ -1,4 +1,4 @@
-# Estado Atual — 3 de novembro de 2026
+# Estado Atual — 4 de novembro de 2026
 
 Registro de onde o projeto está, o que foi decidido e por quê. Convenções de
 código em [CLAUDE.md](../CLAUDE.md), mecânicas em [game_design.md](game_design.md),
@@ -31,7 +31,7 @@ feito e por quê, em ordem de assunto.
 | Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
 | Animação de paraquedas | ✅ `float`, no estado FLOATING |
 | Som e música | ✅ gerados em código (`tools/build_audio.py`), botão Som / tecla M |
-| Campanha "Fases" | ⚠️ ainda as 30 fases geradas do commit `e6f9df0` (o robô vence 15); decidido trocar por 3 tutoriais + as 30 de ambientes (ver "Campanha: tutorial + as fases de ambientes"). Seleção, progresso, Parabéns e créditos prontos |
+| Campanha "Fases" | ⚠️ 33 fases: 3 tutoriais + os 30 mapas exatos de `prints/ambientes`, com ferramentas por itens. Sendo conferidas de 3 em 3 pelo usuário: lote 1 (fases 4 a 6) entregue; as fases 7 a 33 estão no jogo sem conferência (ver "Campanha: 3 tutoriais + os mapas da pasta") |
 | Modo roguelike | ✅ personagens, habilidades, cartas com nível, loja, cofre, ranking, compêndio (ver "Modo roguelike") |
 | Gerador por ambientes | ✅ 10 ambientes, verificador de solução; ⚠️ o modelo erra no jogo real (ver "Fases que dão para vencer") |
 | Cenários novos | ✅ deserto, caverna de cristal, campo de neve, vulcão: fundo, blocos, entrada e saída de cada um |
@@ -788,7 +788,7 @@ Itens 3 e 6 do plano aprovado.
   Ferramentas, Itens da fase, Cartas, Relíquias), cada um com
   descobertos/total, e uma grade de fichas (figura + nome); o que cada uma
   faz fica na dica. Descoberta nova na fase: o livro do compêndio salta
-  sobre o lugar (`RoguelikeIconPop`), sem frase. Pegar uma Recarga: o
+  sobre o lugar (`IconPop`), sem frase. Pegar uma Recarga: o
   cristal salta e o slot da habilidade pulsa, sem texto flutuante. Na
   escolha de personagem cada carta mostra o ícone + nome da habilidade e
   só o passivo curto; a descrição inteira está na dica.
@@ -1443,8 +1443,8 @@ lado:
 
 ## Campanha de 30 fases geradas (3 de novembro de 2026)
 
-> **Substituída:** o usuário reprovou as fases geradas; a campanha está
-> sendo refeita à mão (ver "Campanha feita à mão").
+> **Substituída:** o usuário reprovou as fases geradas; a campanha agora
+> usa os mapas da pasta (ver "Campanha: 3 tutoriais + os mapas da pasta").
 
 O usuário: "sim, gerar as novas fases... pode ter 30 fases também agora".
 - `Campaign.LEVEL_COUNT = 30`: as mesmas 10 paisagens do roguelike, 3 fases
@@ -1560,71 +1560,166 @@ céu. Agora o ar é "de dentro" quando tem teto até bater em rocha dos dois
 lados da linha (até 60 blocos), e o céu só conta como boca de caverna se não
 houver rocha entre ele e o ar.
 
-## Campanha: tutorial + as fases de ambientes (decisão de 4 de novembro de 2026)
+## Campanha: 3 tutoriais + os mapas da pasta (4 de novembro de 2026)
 
-**Registrado, ainda não feito** (o usuário: "apenas registre, não vamos
-mexer em mais nada por agora"). Substitui o plano de refazer as fases 4 a
-30 à mão, que o usuário reprovou.
+Decisão final do usuário, depois de reprovar as fases desenhadas à mão
+nesta mesma data ("todas bem facinhas", "parece um eterno tutorial"): as
+**3 primeiras são o tutorial** (Campo Aberto, Colinas Verdes, Vale dos
+Ventos, em `tools/campaign/level_01..03.gd`) e as **fases 4 a 33 são os 30
+mapas exatos de `prints/ambientes/`**, 3 por ambiente. O usuário **avalia
+de 3 em 3**; só depois de aprovar um lote passa-se ao próximo. As 21 fases
+à mão feitas antes (fases 4 a 24) foram descartadas.
 
-- **33 fases**: as 3 feitas à mão (Campo Aberto, Colinas Verdes, Vale dos
-  Ventos, em `tools/campaign/`) viram o **tutorial**, antes da fase 1 dos
-  ambientes. Depois vêm **as 30 fases que estão em `prints/ambientes/`,
-  exatamente aqueles mapas** ("eu aprovei aquela e vai utilizar aquela"):
-  não é para redesenhar nem fazer "no estilo".
-  - Os prints foram tirados no commit `e6f9df0` com
-    `modes/roguelike/tools/capture_stages.tscn` e a semente padrão (1). O
-    gerador mudou depois (verificador, último recurso), então aqueles mapas
-    têm de ser **congelados** a partir daquele commit, não gerados de novo.
-- **Ferramentas por itens, com sorte (como no roguelike)**: cada fase começa
-  com **a ferramenta necessária para sair do lugar** (normalmente uma Pá ou
-  uma Picareta); **o resto vem sorteado**. Os itens **saltam conforme os
-  bonecos cavam ou quebram blocos** (o plano "Itens ao cavar"), e **alguns
-  itens também ficam visíveis no mapa** desde o começo. É preciso **aumentar a chance de sair ferramenta**:
-  "vai da sorte de sair o que precisa".
-- **Itens no núcleo**: o item no mapa, os tipos de item, a barra que ganha
-  espaço ao pegar ferramenta (`RoguelikePickup`, `RoguelikePickupSpec`,
-  `RoguelikeToolInventory`) e o sorteio saem do roguelike para o núcleo,
-  "para sempre serem utilizados em qualquer modo que seja criado". O
-  roguelike passa a usar os do núcleo.
+**Mapas congelados.** O gerador mudou depois do commit `e6f9df0`, então os
+30 mapas foram tirados dele (semente 1) e guardados como texto em
+`tools/campaign/ambientes/ambiente_NN.txt` (todo o `MazeStageData`:
+terreno, aparência, árvores, itens, solução). Nunca mudar esses arquivos
+sem o usuário pedir.
 
-## Campanha feita à mão (4 de novembro de 2026)
+**Gravar no jogo:** `godot --headless --path . res://tools/build_ambient_campaign.tscn -- <mapas 1..30>`
+(mapa N vai para a fase N+3; faz backup da fase substituída).
+- Cada fase **começa com a primeira ferramenta da solução** (a de sair do
+  lugar), tirada do item dessa ferramenta mais perto da entrada; o resto
+  vem dos **itens no mapa**. Os pontos de surpresa (os bônus do roguelike)
+  viram ferramenta em 60%, bolsa em 15% e ampulheta em 25%.
+- 10 bonecos, meta 30% (10% quando a solução usa Paraquedas ou Garras),
+  tempo o do gerador.
+- **Solução recalculada:** se o verificador de hoje não segue a solução
+  gravada até a saída, o construtor resolve de novo o mesmo mapa com os
+  mesmos itens. Correções feitas à mão em `SOLUTION_FIXES` (no próprio
+  construtor), sempre com o porquê.
 
-Pedido do usuário, depois de reprovar as fases geradas: "as fases devem ser
-geradas manualmente pela IA... capricho... cada fase tem que ser criada
-cuidadosamente". Fases top, desafiadoras e divertidas, com buracos e mortes;
-**14 e 15 no mínimo de médio para difícil**; saída longe da entrada; fases
-irmãs diferentes.
+**Lote 1 (fases 4 a 6, Campo):**
 
-- **Uma fase por arquivo**: `tools/campaign/level_NN.gd` (estende
-  `HandmadeLevel`, `tools/campaign/handmade_level.gd`). O mapa é texto,
-  uma linha por fileira de blocos: `#` terra, `%` concreto, `.` ar, `S`
-  entrada, `E` saída, `H` escada, `r`/`l` degrau de rampa encostado à
-  direita/esquerda; poço aberto até a última fileira é queda no vazio. A
-  fase diz também paisagem (`biome_id`), bonecos, ritmo, meta, tempo,
-  ferramentas, árvores de enfeite e a **solução do robô**.
-- **Gravar no jogo**: `godot --headless --path . res://tools/build_handmade_campaign.tscn -- <números>`
-  (faz backup da fase substituída). Usa o visual da paisagem: fundo,
-  blocos, borda inquebrável, parede de caverna e árvores.
-  `CampaignLevelStore.create_level` grava cena e `LevelData`.
-- **Conferir cada fase**: o robô joga a solução
-  (`tests/test_campaign_level.tscn -- <n>`, com `CAMPAIGN_COMPARE=1` se
-  quiser comparar com o verificador) e eu **olho o print inteiro**
-  (`tools/capture_solution.tscn`, em `prints/campanha/`).
-- O gerador de fases e o `build_generated_campaign` ficam para o roguelike;
-  a campanha não usa mais.
+| Fase | Mapa | Robô | Situação |
+|---|---|---|---|
+| 4 | 01 Campo Aberto | 90% | passa |
+| 5 | 02 Colinas Verdes | 10% (meta 30%) | a Pá gravada matava (queda de 2,75 blocos): corrigida para a coluna 52, que cai direto na saída. Mas a 1ª escada diagonal é dada numa descida e os de trás passam por baixo dela, voltam e ficam presos no buraco à esquerda da entrada; começar a escada no plano a faz acabar no ar antes da ponte. Esperando o usuário jogar |
+| 6 | 03 Vale dos Ventos | 40% | a escada vertical do fim estava gravada onde o boneco está montando a ponte; movida para depois da ponte |
 
-| # | Nome | Ferramentas | Meta | A ideia | Estado |
-|---|---|---|---|---|---|
-| T1 | Campo Aberto | Pá 2 | 70% | eles andam para um abismo; sob o campo, um salão fundo e uma passagem sob uma camada fina de grama: cavar sobre a passagem (queda de 2) salva; sobre o salão ou sobre a sala da saída, a queda mata | feita, robô 100% |
-| T2 | Colinas Verdes | Ponte 3 | 40% | vão de 10 e vão de 18 partido por um pilar: a 2ª ponte termina no pilar e a 3ª sai dele; quem vem atrás cai da ponta da ponte inacabada | feita, robô 50% |
-| T3 | Vale dos Ventos | Escada vertical 2, Ponte 1 | 50% | subida: penhasco de 6, abismo no terraço e paredão de 9 nascendo do fundo dele; a ponte encosta no paredão e a 2ª escada sobe dali; a escada dada antes da ponte vai para o abismo | feita, robô 70% |
+**Mapas que o verificador de hoje diz não ter saída com os itens que têm:**
+05, 06, 07, 08, 19, 20, 22, 27 (sem solução desde a origem), 28 e 29.
+Quando chegar a vez de cada um: achar o ponto exato e mostrar ao usuário
+com print antes de qualquer ajuste no mapa.
 
-Estas 3 viram o **tutorial** (ver a decisão acima). Os arquivos estão em
-`tools/campaign/`, mas **não estão gravados no jogo**: a pedido do usuário as
-fases da campanha voltaram às do último commit (`e6f9df0`) até a troca. Para
-gravá-las de novo: `build_handmade_campaign.tscn -- 1 2 3` (escreve por cima
-das fases 1 a 3; ajustar para os lugares do tutorial quando a campanha tiver
-33). "Robô X%" na tabela foi medido quando estavam gravadas.
+**Saídas enterradas (relato do usuário: "a fase 11, 12, 21 não tem saida,
+fase 17 esta no chao a saida").** Seis mapas vieram com a porta da saída
+dentro da terra ou do concreto, às vezes em cima da borda: o portal não
+aparecia (o mesmo defeito já estava nos prints da pasta). Conferir com
+`godot --headless --path . res://tools/check_ambient_exits.tscn -- [mapas]`
+(olha os mapas crus: porta aberta, chão firme, fora da borda, alcançável
+com ferramentas sem fim). O construtor agora corrige na montagem:
+- `_free_exit`: a saída vai para o lugar aberto mais perto (chão firme,
+  2 blocos de ar, fora da borda de baixo) que o verificador alcança; o
+  terreno fica igual. Sem lugar entre os 12 mais perto, a porta é cavada
+  onde estava (só o mapa 27).
+- `_supply_route`: se com a saída nova os itens do mapa não fecham, cada
+  carga que falta do caminho achado é posta no ponto onde é usada.
+
+| Fase | Mapa | Saída | Robô |
+|---|---|---|---|
+| 11 | 08 Ruínas na Areia | (70,40) → (71,33), na caverna da direita | 10% (meta 10%, a solução nova usa ferramenta pessoal) |
+| 12 | 09 A Pirâmide | (56,27) → (56,25), no topo da pirâmide | 100% |
+| 17 | 14 Salões de Cristal | (103,29) → (102,28) | 10% (meta 10%) |
+| 21 | 18 O Cume | (38,53) → (42,59) | 0%: perde, conferir no lote dela |
+| 29 | 26 Crateras | (113,63) → (115,54) | 0%: perde, conferir no lote dela |
+| 30 | 27 Ilhas Flutuantes | porta cavada em (112,65) | 10% (meta 30%): conferir no lote dela |
+
+Mapas que o verificador diz serem inalcançáveis **mesmo com ferramentas
+sem fim** (saída visível, caminho não achado): 05, 20, 28 e 29 (fases 8,
+23, 31 e 32). Pode ser limite do verificador; conferir no lote de cada um.
+
+**Entrada no alto, bonecos e metas (5 de novembro; relato do usuário: "16
+17 e 18 pq as saidas voltaram a ficar todas em baixo pra q um mapa gigante
+e alto e a saida é so ir reto? a quantidade de bonecos tbm.. pq sempre
+10?").** No `build_ambient_campaign.gd`:
+- **A saída não pode subir:** nenhuma ferramenta abre caminho para cima
+  através da rocha (Escada, Escada vertical e Garras só sobem por ar
+  aberto). Por isso o gerador punha a saída na altura da entrada.
+- `_raise_entrance`: quando a saída fica a menos de 1/3 do mapa abaixo da
+  entrada, tenta pôr a entrada no lugar mais alto e longe da saída de onde
+  **o grupo inteiro** desce (até 8 tentativas espaçadas).
+- **Regra do grupo no verificador** (`CellStageSolver.solve(..., troop)` e
+  `solve_unlimited(..., troop)`): um caminho só vale se um boneco sem
+  ferramenta, saindo da entrada pelo terreno que o primeiro deixou, chega
+  à saída. Sem isso, a entrada no alto dava um poço de 14 blocos: o
+  primeiro sobrevivia cavando e os de trás caíam no poço e morriam (fase
+  18, 1 de 50 salvo). Com a regra, a entrada quase nunca sobe nas
+  cavernas (só no mapa 06, 2 blocos): **com as ferramentas de hoje não há
+  como o grupo descer muitos andares.** Opções levadas ao usuário: Picareta
+  descendo em diagonal (como no original), Bloco que segura e depois
+  solta, ou deixar como está.
+- **Bonecos pelo tamanho:** 1 a cada 100 blocos, em múltiplos de 5, de 15
+  a 60; o tempo da fase ganha bonecos × 1,5 s.
+- **Meta com Paraquedas/Garras no caminho:** salvar 1 boneco (só quem
+  recebe passa), não mais 10% do grupo.
+- `_supply_route` (ferramentas que faltam postas onde são usadas) só roda
+  em mapa cuja entrada/saída mudou ou que não fecha com os próprios itens,
+  e nunca nos mapas com correção à mão (`SOLUTION_FIXES`): na fase 6 a
+  correção caía sobre um caminho novo e matava o grupo.
+- Saída enterrada: com a regra do grupo, quase sempre a porta é cavada
+  onde estava (mapas 08, 14, 18, 26, 27); o mapa 09 a leva 2 blocos acima.
+
+**Robô depois disso (5 de novembro):** vencem 4 (93%), 6 (75%), 8 (64%),
+12 (100%), 13/14/15/19 (1 boneco, meta de 1), 16/17/18 (100%), 22 (69%),
+28 (92%). Perdem 5, 7, 9, 10, 11, 20, 21, 23 a 27, 29 a 33 (várias com 0
+salvos e 0 mortos: o tempo acaba com o grupo parado; conferir no lote de
+cada uma).
+
+**Tutorial com o fundo aberto (relato do usuário: "fase1 ja tem um bug, o
+fundo não esta preenchido").** As fases 1, 2 e 3 tinham buracos abertos até
+a última linha, sem a borda de baixo. A última linha dos três mapas
+(`tools/campaign/level_01..03.gd`) agora é toda terra, então a borda fecha
+a tela. A queda continua matando. Robô: 100%, 50% e 70%. Prints em
+`prints/campanha/fase_01..03.png`.
+
+**Prints:** sempre em `prints/campanha/` (`fase_NN.png` no tutorial,
+`solution_NN.png` nas demais), nunca na pasta temporária.
+
+**Retorno do usuário sobre os lotes:** "fases bem desafiadoras... mas esta
+naquele formato q vc resolve com as ferramentas q vc sai, nenhuma delas
+precisou depender da sorte nas escavação para avançar". Os itens que caem
+ao cavar ainda não existem; quando existirem, as fases devem depender
+deles.
+
+## Itens no núcleo (4 de novembro de 2026)
+
+O item no chão, os tipos de item, a barra que ganha espaço ao pegar
+ferramenta e a animação do ícone saíram do roguelike para
+`scripts/items/`: `ItemPickup`, `ItemSpec`, `ToolInventory`, `IconPop`, e
+a barra `ToolInventoryBar` (`scripts/ui/`). O roguelike usa esses; a barra
+dele (`RoguelikeToolBar`) só acrescenta o espaço da habilidade.
+
+- `LevelData.tools_from_items` e `LevelData.items`: numa fase assim o
+  `LevelManager` cria um `ItemCollector`, que espalha os itens, mostra a
+  barra que cresce (a barra fixa some), sincroniza as cargas com o
+  `SkillManager` e aplica ferramenta, ampulheta e bolsa. Outros tipos
+  saem pelo sinal `item_collected` para o modo que os entende.
+- O `ItemSpec` ganhou `icon_id`, para um modo desenhar o próprio ícone (a
+  recarga da habilidade do roguelike).
+
+## Defeitos do jogo corrigidos nesta passada (4 de novembro de 2026)
+
+Achados ao montar fases; todos com os testes da ferramenta passando:
+- **Garras na borda da fase**: o boneco escalava a borda até o topo e saía
+  do mapa. O topo da fase agora é teto (`TerrainDestructible.is_above_stage`).
+- **Queda no vazio**: qualquer queda de mais de 500 px contava como vazio,
+  e o paraquedista morria no ar numa fase alta. Agora é só passar do fundo
+  da fase (`is_below_stage`).
+- **Ponte depois de Escada diagonal**: começava na fresta entre o último
+  degrau e a pedra e terminava antes da 1ª peça, gastando a carga. Fresta
+  mais estreita que o corpo não é beirada.
+- **Escada vertical em cima da diagonal**: quem a pegava de cima de um
+  degrau era puxado para dentro dos degraus e ficava preso subindo.
+- **Pá em cima de escada diagonal**: centralizado na coluna, o boneco
+  ficava uns pixels acima do degrau seguinte e a Pá desistia. Agora assenta
+  no degrau e cava os degraus até o chão.
+
+O robô (`tests/campaign_playthrough_test.gd`) também ganhou: passo com
+`"who"` (`"any"`, `"other"`, `"each"`) para entregar a outros bonecos,
+`CAMPAIGN_TRACE_INDEX` para seguir outro boneco, e no fim lista onde
+ficou cada boneco vivo. `tools/check_handmade_level.gd` confere uma fase
+à mão com o verificador.
 
 ## Editor: coleções de fases e gerador (2 de novembro de 2026)
 
@@ -1693,10 +1788,10 @@ Em ordem de prioridade.
    mais fiel ao jogo (ver "Caça às fases impossíveis"), mas continua sendo
    um modelo. Falta rodar de novo o `test_procedural_stages` (60 fases) e o
    `test_maze_generator` depois das últimas mudanças.
-3. **Campanha: ainda as 30 fases geradas do commit `e6f9df0`** (o robô
-   vence 15; a 14 e a 15 foram reprovadas); serão trocadas pelas 30 de
-   ambientes. Atenção: elas usaram outra semente e **não são os mapas de
-   `prints/ambientes/`** (semente 1).
+3. **Campanha: 10 dos 30 mapas da pasta sem saída** segundo o verificador
+   de hoje (05, 06, 07, 08, 19, 20, 22, 27, 28, 29), e a fase 5 só salva
+   o primeiro boneco no robô. Ver "Campanha: 3 tutoriais + os mapas da
+   pasta".
 4. **Processos do Godot** de uma verificação interrompida podem ter ficado
    rodando até o tempo limite (o assistente não tem permissão para
    encerrá-los).
@@ -1728,16 +1823,13 @@ Decisões que esperam o usuário jogar:
 - **Rolagem da câmera pela borda**: ter a opção de desligar?
 - **Mais moedas e recargas pelo mapa**: hoje só nos lugares de bônus.
 
-**Campanha de 33 fases** (ver "Campanha: tutorial + as fases de
-ambientes"), nesta ordem:
-1. Levar itens, tipos de item, barra de ferramentas e sorteio para o
-   núcleo; o roguelike passa a usá-los.
-2. Itens saltando ao cavar e quebrar blocos (plano "Itens ao cavar") e mais
-   chance de sair ferramenta.
-3. Congelar os 30 mapas de `prints/ambientes/` (commit `e6f9df0`, semente
-   1) e montar a campanha: 3 tutoriais + 30, cada fase começando com a
-   ferramenta de sair do lugar.
-4. Tela de Fases com 33 (o tutorial antes) e progresso refeito.
+**Campanha de 33 fases** (ver "Campanha: 3 tutoriais + os mapas da
+pasta"): o usuário avalia o lote 1 (fases 4 a 6); depois, lote a lote,
+conferir com o robô e com print os mapas 04 a 30.
+
+**Pedido do usuário (4 de novembro de 2026):** no Modo livre, escolher
+**quais itens a fase pode soltar e a porcentagem de cada um**, e carregar
+isso junto ao abrir a fase. Depende de "Itens ao cavar" (abaixo).
 
 Aprovado, a fazer:
 - **Itens ao cavar** (roguelike, estilo Bomberman):

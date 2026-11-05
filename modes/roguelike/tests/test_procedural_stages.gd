@@ -66,10 +66,10 @@ func _check_definition(definition: RoguelikeStageDefinition, name: String, stage
 		var spot: Dictionary = maze.item_spots[index]
 		_check(spec.column == spot.column and spec.row == spot.row, "%s: pickup %d on its spot" % [name, index])
 		if spot.kind == MazeLayout.SpotKind.TOOL:
-			_check(spec.kind == RoguelikePickupSpec.Kind.TOOL and spec.tool_id == spot.tool_id and spec.amount == spot.amount, "%s: tool spot %d becomes that tool" % [name, index])
-		if spec.kind == RoguelikePickupSpec.Kind.TOOL:
+			_check(spec.kind == ItemSpec.Kind.TOOL and spec.tool_id == spot.tool_id and spec.amount == spot.amount, "%s: tool spot %d becomes that tool" % [name, index])
+		if spec.kind == ItemSpec.Kind.TOOL:
 			kinds[spec.tool_id] = true
-	_check(kinds.size() <= RoguelikeToolInventory.DEFAULT_MAX_SLOTS, "%s: at most %d different tools (%s)" % [name, RoguelikeToolInventory.DEFAULT_MAX_SLOTS, kinds.keys()])
+	_check(kinds.size() <= ToolInventory.DEFAULT_MAX_SLOTS, "%s: at most %d different tools (%s)" % [name, ToolInventory.DEFAULT_MAX_SLOTS, kinds.keys()])
 	if maze.layout != null:
 		var cave := stage_index >= MazeStageGenerator.FIRST_CAVE_DIFFICULTY
 		_check(definition.get_environment_kind() == (LevelEnvironment.Kind.CAVE if cave else LevelEnvironment.Kind.SURFACE), "%s: environment follows depth" % name)

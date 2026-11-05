@@ -19,7 +19,7 @@ const BONUS_TOOL_CHARGES := 1
 const BONUS_TOOLS: Array[String] = ["digger", "ladder_vertical", "bridge", "miner", "basher"]
 ## A stage never holds more different tools than the bar has slots, so the
 ## items picked up in it never push each other out of the bar.
-const MAX_TOOL_KINDS := RoguelikeToolInventory.DEFAULT_MAX_SLOTS
+const MAX_TOOL_KINDS := ToolInventory.DEFAULT_MAX_SLOTS
 
 
 ## Stages being made in the background: "seed:index" -> {"task", "maze"}.
@@ -92,7 +92,7 @@ static func _from_maze(maze: MazeStageData, rng: RandomNumberGenerator, name: St
 		if spot.kind == MazeLayout.SpotKind.TOOL and not kinds.has(spot.tool_id):
 			kinds.append(spot.tool_id)
 	for spot in maze.item_spots:
-		var spec: RoguelikePickupSpec
+		var spec: ItemSpec
 		if spot.kind == MazeLayout.SpotKind.TOOL:
 			spec = _tool(spot.tool_id, spot.amount)
 		else:
@@ -103,9 +103,9 @@ static func _from_maze(maze: MazeStageData, rng: RandomNumberGenerator, name: St
 	return definition
 
 
-static func _tool(tool_id: String, amount: int) -> RoguelikePickupSpec:
-	var spec := RoguelikePickupSpec.new()
-	spec.kind = RoguelikePickupSpec.Kind.TOOL
+static func _tool(tool_id: String, amount: int) -> ItemSpec:
+	var spec := ItemSpec.new()
+	spec.kind = ItemSpec.Kind.TOOL
 	spec.tool_id = tool_id
 	spec.amount = amount
 	return spec
@@ -113,24 +113,25 @@ static func _tool(tool_id: String, amount: int) -> RoguelikePickupSpec:
 
 ## What a bonus spot holds. A tool only joins the stage's tools while they
 ## are fewer than the bar's slots.
-static func _bonus(rng: RandomNumberGenerator, kinds: Array[String]) -> RoguelikePickupSpec:
+static func _bonus(rng: RandomNumberGenerator, kinds: Array[String]) -> ItemSpec:
 	var roll := rng.randf()
-	var spec := RoguelikePickupSpec.new()
+	var spec := ItemSpec.new()
 	if roll < 0.15:
-		spec.kind = RoguelikePickupSpec.Kind.REVIVE
+		spec.kind = ItemSpec.Kind.REVIVE
 		spec.amount = 1
 	elif roll < 0.27:
-		spec.kind = RoguelikePickupSpec.Kind.CHARGE_BAG
+		spec.kind = ItemSpec.Kind.CHARGE_BAG
 		spec.amount = 1
 	elif roll < 0.4:
-		spec.kind = RoguelikePickupSpec.Kind.TIME
+		spec.kind = ItemSpec.Kind.TIME
 		spec.amount = TIME_PICKUP_SECONDS
 	elif roll < 0.55:
-		spec.kind = RoguelikePickupSpec.Kind.COINS
+		spec.kind = ItemSpec.Kind.COINS
 		spec.amount = COIN_PICKUP_AMOUNT
 	elif roll < 0.67:
-		spec.kind = RoguelikePickupSpec.Kind.ABILITY_CHARGE
+		spec.kind = ItemSpec.Kind.ABILITY_CHARGE
 		spec.amount = ABILITY_CHARGE_PICKUP_AMOUNT
+		spec.icon_id = RoguelikeAbilities.CHARGE_ICON
 	else:
 		var choices: Array[String] = []
 		choices.assign(BONUS_TOOLS if kinds.size() < MAX_TOOL_KINDS else kinds)

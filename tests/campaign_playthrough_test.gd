@@ -72,10 +72,13 @@ func _physics_process(delta: float) -> void:
 	# (CAMPAIGN_TRACE_PERIOD=<seconds> for another period).
 	if OS.has_environment("CAMPAIGN_TRACE") and elapsed >= _next_trace:
 		_next_trace = elapsed + (float(OS.get_environment("CAMPAIGN_TRACE_PERIOD")) if OS.has_environment("CAMPAIGN_TRACE_PERIOD") else 2.0)
+		# CAMPAIGN_TRACE_INDEX=<n> follows the n-th lemming still out instead.
 		var lemmings := get_lemmings()
-		if not lemmings.is_empty():
-			var body := lemmings[0].get_body_rect()
-			print("  trace t=%.1fs x %.0f (column %d), feet %.2f rows, %s, facing %d" % [elapsed, body.get_center().x, int(body.get_center().x / TILE), body.end.y / TILE, LemmingStateMachine.State.keys()[lemmings[0].state_machine.current_state], lemmings[0].direction])
+		var which := int(OS.get_environment("CAMPAIGN_TRACE_INDEX")) if OS.has_environment("CAMPAIGN_TRACE_INDEX") else 0
+		if lemmings.size() > which:
+			var traced := lemmings[which]
+			var body := traced.get_body_rect()
+			print("  trace t=%.1fs x %.0f (column %d), feet %.2f rows, %s, facing %d" % [elapsed, body.get_center().x, int(body.get_center().x / TILE), body.end.y / TILE, LemmingStateMachine.State.keys()[traced.state_machine.current_state], traced.direction])
 	super._physics_process(delta)
 
 
@@ -123,14 +126,31 @@ func give_each(tool_id: String, condition: Callable) -> void:
 ## carries no unused tool from the step before: handed out to whoever was
 ## nearest, a second lemming took a jackhammer into the first one's tunnel
 ## and handed over a second carried tool replaced the first.
+##
+## A hand-made level's step may say who gets it ("who"): "pioneer" (the
+## default, above), "any" (the first lemming there, whoever it is: a block
+## to hold the troop back) or "each" (every lemming there from then on, while
+## charges last: parachutes for all) or "other" (the first one there that
+## is not the pioneer). An "each" step counts as done once
+## started and keeps handing out while the next steps go on.
 func play_recorded_solution() -> void:
+	for each_step in _each_steps:
+		give_each(str(each_step.tool), near_floor(walking_in(each_step.from_column, each_step.to_column, each_step.direction), each_step.row))
 	var steps := level_data.solution
 	var next := _done_steps.size()
 	if next >= steps.size():
 		return
 	var step: Dictionary = steps[next]
+	var who := str(step.get("who", "pioneer"))
 	var condition := near_floor(walking_in(step.from_column, step.to_column, step.direction), step.row)
-	if is_instance_valid(_pioneer) and not _pioneer.is_entering_exit:
+	if who == "each":
+		_each_steps.append(step)
+		_done_steps["step %d (%s, each)" % [next + 1, step.tool]] = elapsed
+		return
+	if who == "other":
+		var pioneer_now := _pioneer
+		condition = both(condition, func(lemming: LemmingController) -> bool: return lemming != pioneer_now)
+	if who == "pioneer" and is_instance_valid(_pioneer) and not _pioneer.is_entering_exit:
 		var pioneer := _pioneer
 		# Climber and floater stay with a carried tool; a held tool would
 		# replace it.
@@ -141,12 +161,14 @@ func play_recorded_solution() -> void:
 	for lemming in get_lemmings():
 		if not is_done(step_name) and condition.call(lemming) and not lemming.is_entering_exit and give_tool(step.tool, lemming, step_name):
 			_done_steps[step_name] = elapsed
-			if not is_instance_valid(_pioneer):
+			if who == "pioneer" and not is_instance_valid(_pioneer):
 				_pioneer = lemming
 				_pioneer_chosen = true
 			return
 
 
+## The "each" steps already started (see play_recorded_solution).
+var _each_steps: Array[Dictionary] = []
 ## The lemming the recorded solution is played with (see play_recorded_solution).
 var _pioneer: LemmingController = null
 var _pioneer_chosen := false
@@ -285,6 +307,10 @@ func someone_ahead_of(column: int, direction: int) -> Callable:
 
 func _finish(passed: bool) -> void:
 	print("  level time used: %.0fs of %ds" % [level_data.time_limit_seconds - level_manager.time_remaining, level_data.time_limit_seconds])
+	# Where the ones still out ended up: stuck somewhere, or just too slow.
+	for lemming in get_lemmings():
+		var body := lemming.get_body_rect()
+		print("  still out: column %d, feet %.2f rows, %s" % [int(body.get_center().x / TILE), body.end.y / TILE, LemmingStateMachine.State.keys()[lemming.state_machine.current_state]])
 	Engine.time_scale = 1.0
 	if not _expects_win():
 		var lost := _result.begins_with("lost")
