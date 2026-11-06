@@ -1,21 +1,38 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_63427"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_fjspl"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_htp2j"]
 
-[sub_resource type="Resource" id="Resource_fjspl"]
+[sub_resource type="Resource" id="Resource_63427"]
+script = ExtResource("1_63427")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_csb7w"]
 script = ExtResource("1_fjspl")
 column = 10
 row = 15
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_63427"]
+[sub_resource type="Resource" id="Resource_ml8pk"]
 script = ExtResource("1_fjspl")
 column = 44
 row = 13
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_csb7w"]
+[sub_resource type="Resource" id="Resource_8bbyh"]
 script = ExtResource("1_fjspl")
 column = 9
 row = 15
@@ -512,4 +529,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_fjspl")]([SubResource("Resource_fjspl"), SubResource("Resource_63427"), SubResource("Resource_csb7w")])
+items = Array[ExtResource("1_fjspl")]([SubResource("Resource_csb7w"), SubResource("Resource_ml8pk"), SubResource("Resource_8bbyh")])
+dig_drops = SubResource("Resource_63427")

@@ -1,40 +1,57 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_cx4m1"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_tfvjx"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_uruj8"]
 
-[sub_resource type="Resource" id="Resource_uruj8"]
+[sub_resource type="Resource" id="Resource_tfvjx"]
+script = ExtResource("1_tfvjx")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_oqq8y"]
 script = ExtResource("1_uruj8")
 kind = 2
 column = 56
 row = 42
 amount = 60
 
-[sub_resource type="Resource" id="Resource_tfvjx"]
+[sub_resource type="Resource" id="Resource_mx45t"]
 script = ExtResource("1_uruj8")
 column = 24
 row = 41
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_oqq8y"]
+[sub_resource type="Resource" id="Resource_qm1dg"]
 script = ExtResource("1_uruj8")
 column = 39
 row = 41
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_mx45t"]
+[sub_resource type="Resource" id="Resource_1dld0"]
 script = ExtResource("1_uruj8")
 column = 41
 row = 39
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_qm1dg"]
+[sub_resource type="Resource" id="Resource_a4nd8"]
 script = ExtResource("1_uruj8")
 column = 43
 row = 37
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_1dld0"]
+[sub_resource type="Resource" id="Resource_1avr1"]
 script = ExtResource("1_uruj8")
 column = 46
 row = 25
@@ -733,4 +750,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_uruj8")]([SubResource("Resource_uruj8"), SubResource("Resource_tfvjx"), SubResource("Resource_oqq8y"), SubResource("Resource_mx45t"), SubResource("Resource_qm1dg"), SubResource("Resource_1dld0")])
+items = Array[ExtResource("1_uruj8")]([SubResource("Resource_oqq8y"), SubResource("Resource_mx45t"), SubResource("Resource_qm1dg"), SubResource("Resource_1dld0"), SubResource("Resource_a4nd8"), SubResource("Resource_1avr1")])
+dig_drops = SubResource("Resource_tfvjx")

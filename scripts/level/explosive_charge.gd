@@ -29,6 +29,8 @@ var terrain: TerrainDestructible
 var fuse_seconds: float = 3.0
 var blast_radius_tiles: int = 1
 var look: Look = Look.DYNAMITE
+## The tool that laid it (TerrainDestructible.cell_broken's breaker).
+var tool_id: StringName = &""
 
 var _elapsed := 0.0
 
@@ -63,7 +65,7 @@ func _explode() -> void:
 	for cell in get_blast_cells():
 		var centre := terrain.to_global(terrain.map_to_local(cell))
 		blast_rects.append(terrain.cell_rect_at(centre))
-		terrain.destroy_cell_at(centre)
+		terrain.destroy_cell_at(centre, tool_id)
 	_kill_lemmings_in(blast_rects)
 	AudioManager.play_sound(&"explosion")
 	var blast_radius := (blast_radius_tiles + 0.5) * terrain.get_cell_size().x

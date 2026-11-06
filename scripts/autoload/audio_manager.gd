@@ -53,6 +53,7 @@ const SOUND_VOLUMES_DB := {
 	&"place_brick": -4.0,
 	&"place_ladder": -4.0,
 	&"fuse": -6.0,
+	&"item_found": -8.0,
 }
 const MUSIC_VOLUME_DB := -12.0
 

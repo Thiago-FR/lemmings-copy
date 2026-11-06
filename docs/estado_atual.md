@@ -1,4 +1,4 @@
-# Estado Atual — 4 de novembro de 2026
+# Estado Atual — 5 de novembro de 2026
 
 Registro de onde o projeto está, o que foi decidido e por quê. Convenções de
 código em [CLAUDE.md](../CLAUDE.md), mecânicas em [game_design.md](game_design.md),
@@ -35,6 +35,7 @@ feito e por quê, em ordem de assunto.
 | Modo roguelike | ✅ personagens, habilidades, cartas com nível, loja, cofre, ranking, compêndio (ver "Modo roguelike") |
 | Gerador por ambientes | ✅ 10 ambientes, verificador de solução; ⚠️ o modelo erra no jogo real (ver "Fases que dão para vencer") |
 | Cenários novos | ✅ deserto, caverna de cristal, campo de neve, vulcão: fundo, blocos, entrada e saída de cada um |
+| Itens ao cavar | ✅ blocos soltam itens depois de cavados (terra 4%, concreto 12%), na campanha e no roguelike (ver "Itens ao cavar") |
 
 ## A causa raiz (o que travava tudo)
 
@@ -1698,6 +1699,76 @@ dele (`RoguelikeToolBar`) só acrescenta o espaço da habilidade.
 - O `ItemSpec` ganhou `icon_id`, para um modo desenhar o próprio ícone (a
   recarga da habilidade do roguelike).
 
+## Itens ao cavar (5 de novembro de 2026)
+
+Pedido do usuário ("a primeira coisa é fazer isso.. dropar itens ao cavar
+e depois passar os robôs"). Feito no núcleo, então vale na campanha e no
+roguelike.
+
+- **Quando sai:** um bloco quebrado por ferramenta ou explosão (o último
+  estágio dele) pode soltar um item: terra 4%, concreto 12%. **Nada marca
+  o bloco antes**: o item só aparece depois de cavar (decisão do usuário).
+  O pincel do editor não solta nada. O terreno avisa por
+  `TerrainDestructible.cell_broken(cell, material, breaker)`, e `breaker`
+  é a ferramenta que quebrou (Pá, Picareta, Britadeira, Dinamite, TNT).
+- **O que sai** (`DigDropTable`, em `LevelData.dig_drops`; sem tabela, nada
+  sai):
+  - campanha (`DigDropTable.for_campaign()`, fases com itens): carga de
+    uma ferramenta da barra 58%, ampulheta de 30 s 26%, bolsa 16% (a
+    tabela aprovada sem moeda e pena, que a campanha não usa);
+  - roguelike (`RoguelikeDigDrops`): moeda 60% (1 moeda, mais a
+    Ganância), carga 22%, ampulheta 10%, bolsa 6%, pena da fênix 2%.
+  - A carga nunca é da ferramenta que quebrou o bloco (cavar não se
+    paga). Sem ferramenta para dar, sai outra coisa.
+- **Animação:** o item surge do bloco crescendo com um pulinho, cai até o
+  chão e é pego como qualquer item (`ItemPickup.falls`); som `item_found`
+  (duas notas subindo).
+- **Peças:** `DigDropper` (criado pelo `LevelManager` quando a fase tem
+  tabela; `ItemCollector` e a sessão do roguelike dão a barra a ele e
+  pegam os itens pelo sinal `item_dropped`).
+- **Veios: feitos e tirados no mesmo dia.** Eram blocos com pepitas
+  douradas que sempre soltavam item. O usuário viu as pepitas como itens
+  já prontos antes de cavar (`prints/bug20.png`: "os veios são itens
+  diferentões?? ... só deve dropar depois de cavar e não antes") e
+  escolheu tirar: nenhum bloco é especial.
+- **Dois testes falham, e já falhavam no commit `3698df9`** (conferido
+  rodando nele): `test_campaign` (fases 4, 5 e 6 têm o nome dos tutoriais
+  Campo Aberto, Colinas Verdes e Vale dos Ventos) e
+  `test_procedural_play_1` (semente 11, fase 3: o robô fica subindo a
+  escada vertical na coluna 32 até o tempo acabar).
+- **Ainda não:** carta Garimpeiro, tabela editável no compêndio do modo
+  dev, escolher itens e porcentagens no Modo livre, e fases da campanha
+  que **dependam** dos itens que caem.
+
+## Itens do mapa no ar ou dentro do bloco (5 de novembro de 2026)
+
+`prints/bug20.png` (fase 9): uma Britadeira no ar ao lado do paredão e uma
+Escada vertical dentro do bloco do chão. Não eram itens caídos ao cavar:
+estavam assim desde a montagem de 4 de novembro. Conferido no terreno de
+verdade, eram 28 itens em 10 fases (9, 10, 13, 17, 18, 21, 22, 25, 29, 30).
+- **No ar ou enterrado:** o `_supply_route` do construtor punha a carga
+  que faltava no ponto onde o caminho usa a ferramenta, que pode ser no
+  meio de uma queda, na beirada de uma ponte ou num bloco que ainda vai ser
+  cavado. Agora (`_lay_tool_at`) vai para o último ponto **antes** desse,
+  no caminho, onde o boneco pisa no chão do próprio mapa.
+- **Afundado na rampa:** o item é posto no topo do bloco, e a rampa de
+  meio bloco em cima o cobria pela metade. Agora o item sobe para cima da
+  rampa ou da tábua ao entrar na fase (`ItemPickup._stand_on_cover`, até
+  16 px).
+- **Duas cargas no mesmo ponto:** da mesma ferramenta viram um item com
+  mais cargas; de ferramentas diferentes ficam lado a lado
+  (`ItemCollector`, 14 px de distância).
+- **Itens no ar já no mapa congelado** (mapas 11 e 22): descem a coluna até
+  o chão, só se o verificador continuar achando a saída
+  (`_ground_spots`); os arquivos `ambiente_NN.txt` não mudaram.
+- Depois disso nenhum item da campanha fica no ar ou dentro de bloco.
+  Conferir: `godot --headless --path . res://tools/check_campaign_items.tscn`
+  (não imprime nada quando está tudo certo). Print da fase 9 corrigida:
+  `prints/campanha/bug20_fase_09_corrigida.png`.
+- **Robôs depois disso (6 de novembro):** igual a antes. Vencem 1, 2, 3, 4,
+  6, 8, 12 a 19, 22 e 28, com as mesmas porcentagens; perdem as mesmas 17.
+  Caíram itens ao cavar em 13 fases, sem erro de script.
+
 ## Defeitos do jogo corrigidos nesta passada (4 de novembro de 2026)
 
 Achados ao montar fases; todos com os testes da ferramenta passando:
@@ -1767,7 +1838,7 @@ ficou cada boneco vivo. `tools/check_handmade_level.gd` confere uma fase
 
 ## O que falta fazer
 
-Revisado em 3 de novembro de 2026. Dividido em duas partes:
+Revisado em 6 de novembro de 2026. Dividido em duas partes:
 - **Técnico:** coisa quebrada ou não garantida; o jogo já devia fazer certo.
 - **Produto:** o que o jogo ainda não tem ou que precisa da decisão do
   usuário.
@@ -1797,6 +1868,14 @@ Em ordem de prioridade.
    para cima na rocha, e o poço da Pá mata quem vem atrás. Escada que cava,
    corda e corrente de bonecos ficam para depois, cada uma com fases
    próprias de teste. Ver ideia 12 em [ideias_futuras.md](ideias_futuras.md).
+3b. **Itens no ar nas fases geradas do roguelike.** O gerador às vezes põe
+   um ponto de item sem chão embaixo (os mapas 11 e 22 da campanha vieram
+   assim e foram corrigidos na montagem, ver "Itens do mapa no ar ou
+   dentro do bloco"). No roguelike ainda não foi corrigido.
+3c. **Dois testes que já falhavam antes dos itens ao cavar:**
+   `test_campaign` (fases 4, 5 e 6 com o nome dos tutoriais) e
+   `test_procedural_play_1` (semente 11, fase 3: o robô fica subindo a
+   escada vertical na coluna 32 até o tempo acabar).
 4. **Processos do Godot** de uma verificação interrompida podem ter ficado
    rodando até o tempo limite (o assistente não tem permissão para
    encerrá-los).
@@ -1836,18 +1915,20 @@ conferir com o robô e com print os mapas 04 a 30.
 **quais itens a fase pode soltar e a porcentagem de cada um**, e carregar
 isso junto ao abrir a fase. Depende de "Itens ao cavar" (abaixo).
 
-Aprovado, a fazer:
+Aprovado; a queda de itens já está feita (ver "Itens ao
+cavar"). Falta o que está marcado abaixo:
 - **Itens ao cavar** (roguelike, estilo Bomberman):
   - as ferramentas que a fase exige continuam visíveis e garantidas; o que
     sai dos blocos é sempre extra, e nunca carga da ferramenta que cavou;
-  - **veios** com brilho de minério sempre soltam algo; terra comum solta
-    em 4%, concreto (Britadeira) em 12%;
+  - terra comum solta em 4%, concreto (Britadeira) em 12%; os veios com
+    brilho foram feitos e tirados (o usuário: só aparece depois de cavar);
   - o que sai: moeda 60%, carga de ferramenta da barra 22%, ampulheta 10%,
     bolsa 6%, pena da fênix 2%. A Ganância aumenta as moedas, e uma carta
     nova (Garimpeiro) aumenta a chance;
-  - a tabela de raridade aparece no compêndio do modo dev e é editável ali;
-  - item solto só onde dá para ir e voltar para a rota (conferido pelo
-    solucionador).
+  - **falta:** a tabela de raridade aparece no compêndio do modo dev e é
+    editável ali; carta Garimpeiro;
+  - item solto só onde dá para ir e voltar para a rota: o item cai no
+    buraco do próprio bloco, onde está quem cavou.
 
 Ideias que o usuário gostou (3 de novembro de 2026), a planejar. Detalhes em
 [ideias_futuras.md](ideias_futuras.md):

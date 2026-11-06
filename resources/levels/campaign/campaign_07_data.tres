@@ -1,15 +1,32 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_5xkdl"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_bat7x"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_ej0d2"]
 
-[sub_resource type="Resource" id="Resource_5xkdl"]
+[sub_resource type="Resource" id="Resource_bat7x"]
+script = ExtResource("1_bat7x")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_qb0os"]
 script = ExtResource("1_5xkdl")
 column = 18
 row = 22
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_bat7x"]
+[sub_resource type="Resource" id="Resource_qlsjm"]
 script = ExtResource("1_5xkdl")
 column = 7
 row = 19
@@ -526,4 +543,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_5xkdl")]([SubResource("Resource_5xkdl"), SubResource("Resource_bat7x")])
+items = Array[ExtResource("1_5xkdl")]([SubResource("Resource_qb0os"), SubResource("Resource_qlsjm")])
+dig_drops = SubResource("Resource_bat7x")

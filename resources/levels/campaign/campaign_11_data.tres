@@ -2,32 +2,49 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_jdduq"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_pbx1c"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_xeplt"]
 
-[sub_resource type="Resource" id="Resource_jdduq"]
+[sub_resource type="Resource" id="Resource_xeplt"]
+script = ExtResource("1_xeplt")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_lblku"]
 script = ExtResource("1_jdduq")
 column = 57
 row = 40
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_xeplt"]
+[sub_resource type="Resource" id="Resource_a82as"]
 script = ExtResource("1_jdduq")
 column = 12
 row = 23
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_lblku"]
+[sub_resource type="Resource" id="Resource_2br0j"]
 script = ExtResource("1_jdduq")
 column = 29
 row = 29
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_a82as"]
+[sub_resource type="Resource" id="Resource_ek1h6"]
 script = ExtResource("1_jdduq")
 column = 15
 row = 24
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_2br0j"]
+[sub_resource type="Resource" id="Resource_hspjs"]
 script = ExtResource("1_jdduq")
 column = 21
 row = 26
@@ -680,4 +697,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_jdduq")]([SubResource("Resource_jdduq"), SubResource("Resource_xeplt"), SubResource("Resource_lblku"), SubResource("Resource_a82as"), SubResource("Resource_2br0j")])
+items = Array[ExtResource("1_jdduq")]([SubResource("Resource_lblku"), SubResource("Resource_a82as"), SubResource("Resource_2br0j"), SubResource("Resource_ek1h6"), SubResource("Resource_hspjs")])
+dig_drops = SubResource("Resource_xeplt")

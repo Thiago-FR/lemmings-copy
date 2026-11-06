@@ -19,6 +19,8 @@ var lemmings_spawned_count: int = 0
 var lemmings_saved_count: int = 0
 var lemmings_lost_count: int = 0
 var time_remaining: float = 0.0
+## Lays the items found in broken blocks (null when the level has none).
+var dig_dropper: DigDropper = null
 
 ## Screen space taken by the HUD at the top and the tool panel at the
 ## bottom, which the camera can scroll past the level's edges (LevelCamera).
@@ -92,7 +94,18 @@ func _ready() -> void:
 	AudioManager.play_music_track(&"level_theme")
 	_set_up_view()
 	_add_solution_overlay()
+	_add_dig_dropper()
 	_add_item_collector()
+
+
+## Items that turn up where blocks break, when the level has a table for
+## them. Whoever hands items out sets the dropper's inventory and takes its
+## pickups (ItemCollector here, a mode's session there).
+func _add_dig_dropper() -> void:
+	if level_data.dig_drops == null:
+		return
+	dig_dropper = DigDropper.new(self, level_data.dig_drops)
+	add_child(dig_dropper)
 
 
 ## A level whose tools come from items gets its items, its tool bar and

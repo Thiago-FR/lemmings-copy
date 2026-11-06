@@ -1,44 +1,61 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_1cfig"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_8qus5"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_fnebu"]
 
-[sub_resource type="Resource" id="Resource_fnebu"]
+[sub_resource type="Resource" id="Resource_8qus5"]
+script = ExtResource("1_8qus5")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_xbshq"]
 script = ExtResource("1_fnebu")
 column = 19
 row = 14
 tool_id = "miner"
 
-[sub_resource type="Resource" id="Resource_8qus5"]
+[sub_resource type="Resource" id="Resource_6a51r"]
 script = ExtResource("1_fnebu")
 kind = 2
 column = 18
 row = 8
 amount = 60
 
-[sub_resource type="Resource" id="Resource_xbshq"]
+[sub_resource type="Resource" id="Resource_krd5o"]
 script = ExtResource("1_fnebu")
 column = 26
 row = 18
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_6a51r"]
+[sub_resource type="Resource" id="Resource_2idu1"]
 script = ExtResource("1_fnebu")
 kind = 2
 column = 71
 row = 21
 amount = 60
 
-[sub_resource type="Resource" id="Resource_krd5o"]
+[sub_resource type="Resource" id="Resource_n0hiy"]
 script = ExtResource("1_fnebu")
-column = 35
+column = 34
 row = 64
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_2idu1"]
+[sub_resource type="Resource" id="Resource_cscik"]
 script = ExtResource("1_fnebu")
-column = 35
-row = 65
+column = 34
+row = 64
 tool_id = "basher"
 
 [resource]
@@ -125,7 +142,7 @@ dressing = {
 "tool_id": "basher"
 }, {
 "amount": 1,
-"column": 35,
+"column": 34,
 "kind": 0,
 "required": true,
 "row": 64,
@@ -133,10 +150,10 @@ dressing = {
 "tool_id": "digger"
 }, {
 "amount": 1,
-"column": 35,
+"column": 34,
 "kind": 0,
 "required": true,
-"row": 65,
+"row": 64,
 "spot_index": -1,
 "tool_id": "basher"
 }]),
@@ -535,7 +552,7 @@ Vector2i(121, 65): &"border"
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(35, 64)]),
+"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(34, 64), Vector2i(34, 64)]),
 "direction": 1,
 "from_column": 35,
 "row": 64,
@@ -543,7 +560,7 @@ Vector2i(121, 65): &"border"
 "tool": "digger",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(35, 64), Vector2i(35, 65)]),
+"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(34, 64), Vector2i(34, 64)]),
 "direction": 1,
 "from_column": 35,
 "row": 65,
@@ -947,7 +964,7 @@ solution = Array[Dictionary]([{
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(35, 64)]),
+"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(34, 64), Vector2i(34, 64)]),
 "direction": 1,
 "from_column": 35,
 "row": 64,
@@ -955,7 +972,7 @@ solution = Array[Dictionary]([{
 "tool": "digger",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(35, 64), Vector2i(35, 65)]),
+"collect_first": Array[Vector2i]([Vector2i(18, 64), Vector2i(34, 64), Vector2i(34, 64)]),
 "direction": 1,
 "from_column": 35,
 "row": 65,
@@ -964,4 +981,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_fnebu")]([SubResource("Resource_fnebu"), SubResource("Resource_8qus5"), SubResource("Resource_xbshq"), SubResource("Resource_6a51r"), SubResource("Resource_krd5o"), SubResource("Resource_2idu1")])
+items = Array[ExtResource("1_fnebu")]([SubResource("Resource_xbshq"), SubResource("Resource_6a51r"), SubResource("Resource_krd5o"), SubResource("Resource_2idu1"), SubResource("Resource_n0hiy"), SubResource("Resource_cscik")])
+dig_drops = SubResource("Resource_8qus5")

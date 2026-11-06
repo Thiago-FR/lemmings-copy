@@ -218,6 +218,8 @@ static func create_level(index: int, maze: MazeStageData, lemmings: int, spawn_s
 	data.solution = maze.solution.duplicate(true)
 	data.tools_from_items = not items.is_empty()
 	data.items = items
+	# Tools found on the way: blocks can give more (DigDropper).
+	data.dig_drops = DigDropTable.for_campaign() if data.tools_from_items else null
 	if ResourceSaver.save(data, data_path) != OK:
 		push_error("Could not write %s" % data_path)
 		return false

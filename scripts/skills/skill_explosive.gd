@@ -42,6 +42,7 @@ func apply_to(lemming: LemmingController) -> void:
 	charge.fuse_seconds = fuse_seconds
 	charge.blast_radius_tiles = blast_radius_tiles
 	charge.look = charge_look
+	charge.tool_id = id
 	lemming.get_parent().add_child(charge)
 	charge.global_position = Vector2(body.get_center().x, body.end.y)
 	AudioManager.play_sound(&"fuse")

@@ -83,6 +83,7 @@ func _build(number: int) -> bool:
 	if moved or (not SOLUTION_FIXES.has(number) and not _wins_as_it_is(maze)):
 		_supply_route(maze, number)
 	_fix_solution(maze, number)
+	_ground_spots(maze, number)
 	var items := _items_of(maze, number)
 	var start := _starting_tools(maze)
 	for tool_id in start:
@@ -241,19 +242,90 @@ static func _supply_route(maze: MazeStageData, number: int) -> void:
 		if int(on_map.get(tool_id, 0)) > 0:
 			on_map[tool_id] = int(on_map[tool_id]) - 1
 		else:
-			_lay_tool_at(maze, step)
+			_lay_tool_at(maze, step, route.path)
 	if CellStageSolver.solve(maze, [], true).solved:
 		print("   map %02d: tools added where the new way uses them" % number)
 		return
 	maze.item_spots = original
 	for step: Dictionary in route.steps:
-		_lay_tool_at(maze, step)
+		_lay_tool_at(maze, step, route.path)
 	print("   map %02d: every tool of the new way laid where it is used, solved: %s" % [number, CellStageSolver.solve(maze, [], true).solved])
 
 
-static func _lay_tool_at(maze: MazeStageData, step: Dictionary) -> void:
-	maze.item_spots.append({"column": int(step.column), "row": roundi(float(step.feet) / CellStageSolver.UNITS_PER_CELL),
-		"kind": MazeLayout.SpotKind.TOOL, "tool_id": str(step.tool), "amount": 1, "required": true, "spot_index": -1})
+## The charge lies on the way to where it is used, at the last point before
+## it where the lemming stands on the map's own ground. Laid where the tool
+## is used, it floated (a bridge is given at an edge, a ladder mid-fall) or
+## sat inside a block still to be dug (prints/bug20.png).
+## Several charges for the same point share one item (more charges);
+## different tools there lie side by side (ItemCollector).
+static func _lay_tool_at(maze: MazeStageData, step: Dictionary, path: Array) -> void:
+	var tool_id := str(step.tool)
+	var spot := _standing_point_before(maze, int(step.get("path_index", -1)), path)
+	if spot.x < 0:
+		spot = Vector2i(int(step.column), roundi(float(step.feet) / CellStageSolver.UNITS_PER_CELL))
+	for existing in maze.item_spots:
+		if int(existing.column) == spot.x and int(existing.row) == spot.y and existing.kind == MazeLayout.SpotKind.TOOL and str(existing.tool_id) == tool_id:
+			existing.amount = int(existing.amount) + 1
+			return
+	maze.item_spots.append({"column": spot.x, "row": spot.y,
+		"kind": MazeLayout.SpotKind.TOOL, "tool_id": tool_id, "amount": 1, "required": true, "spot_index": -1})
+
+
+## Column and floor row of the last point of the walk up to `index` where
+## the body stands on solid ground with open air around it, (-1, -1) if none.
+static func _standing_point_before(maze: MazeStageData, index: int, path: Array) -> Vector2i:
+	for at in range(mini(index, path.size() - 1), -1, -1):
+		var point: Vector3i = path[at]
+		if point.y % CellStageSolver.UNITS_PER_CELL != 0:
+			continue
+		var row := point.y / CellStageSolver.UNITS_PER_CELL
+		if _stands(maze, Vector2i(point.x, row)):
+			return Vector2i(point.x, row)
+	return Vector2i(-1, -1)
+
+
+## Solid floor with open air for the body above it.
+static func _stands(maze: MazeStageData, cell: Vector2i) -> bool:
+	return maze.is_solid(cell.x, cell.y) and not maze.is_solid(cell.x, cell.y - 1)
+
+
+## Most rows a spot is moved to reach a floor.
+const MAX_GROUNDING_ROWS := 12
+
+
+## Item spots of the frozen maps that float (no floor under them) or sit in
+## a block go down (or up) their column to the nearest floor, as long as
+## the troop still gets through with the items where they end up; one that
+## would break the way stays and is reported.
+static func _ground_spots(maze: MazeStageData, number: int) -> void:
+	var solved_before: bool = CellStageSolver.solve(maze, [], true).solved
+	for spot in maze.item_spots:
+		var cell := Vector2i(int(spot.column), int(spot.row))
+		if _stands(maze, cell):
+			continue
+		var grounded := _nearest_floor(maze, cell)
+		if grounded.x < 0:
+			print("   map %02d: item at %s has no floor in its column" % [number, cell])
+			continue
+		spot.row = grounded.y
+		if solved_before and not CellStageSolver.solve(maze, [], true).solved:
+			spot.row = cell.y
+			print("   map %02d: item at %s left floating: on the floor at %s the troop no longer gets through" % [number, cell, grounded])
+		else:
+			print("   map %02d: item at %s put on the floor at %s" % [number, cell, grounded])
+
+
+static func _nearest_floor(maze: MazeStageData, cell: Vector2i) -> Vector2i:
+	# Inside a block: up to the first open cell. In the air: down to the
+	# first floor (where a falling lemming lands).
+	var step := -1 if maze.is_solid(cell.x, cell.y - 1) else 1
+	for distance in range(1, MAX_GROUNDING_ROWS + 1):
+		var candidate := Vector2i(cell.x, cell.y + step * distance)
+		if candidate.y <= 0 or candidate.y >= maze.rows:
+			break
+		if _stands(maze, candidate):
+			return candidate
+	return Vector2i(-1, -1)
 
 
 ## The doorway needs a solid floor and its two cells above open, and stands

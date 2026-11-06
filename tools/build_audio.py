@@ -279,6 +279,17 @@ def sacrifice():
     return mix(air, shimmer, sparkle) * envelope(seconds, attack=0.04, decay_power=1.6)
 
 
+def item_found():
+    """An item turning up in a broken block: a bright two-note sparkle,
+    rising, so it reads as a find rather than as a hit."""
+    parts = []
+    for name, length in (("A5", 0.06), ("E6", 0.16)):
+        tone = triangle(np.full(int(length * SAMPLE_RATE), note_frequency(name)))
+        glitter = square(np.full(int(length * SAMPLE_RATE), note_frequency(name) * 2), duty=0.125) * 0.15
+        parts.append(mix(tone, glitter) * envelope(length, decay_power=1.4))
+    return sequence(*parts)
+
+
 SOUND_EFFECTS = {
     "dig_earth": dig_earth,
     "pickaxe_hit": pickaxe_hit,
@@ -297,6 +308,7 @@ SOUND_EFFECTS = {
     "level_won": level_won,
     "level_lost": level_lost,
     "sacrifice": sacrifice,
+    "item_found": item_found,
 }
 
 

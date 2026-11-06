@@ -41,6 +41,11 @@ func _ready() -> void:
 	print("  %d lemmings, %d%% needed, %ds, tools %s" % [level_data.total_lemmings, roundi(level_data.required_percentage * 100.0), level_data.time_limit_seconds, level_data.skill_counts])
 	if OS.has_environment("CAMPAIGN_COMPARE"):
 		_start_comparing()
+	# Items found in broken blocks are extras: listed so a run shows what
+	# turned up (the solution never counts on them).
+	if level_manager.dig_dropper != null:
+		level_manager.dig_dropper.item_dropped.connect(func(pickup: ItemPickup) -> void:
+			print("  found in a block: %s" % pickup.spec.describe()))
 
 
 func _get_level_data_path() -> String:

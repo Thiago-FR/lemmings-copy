@@ -91,7 +91,7 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 		if not lemming.terrain.is_solid_at(lemming.get_feet_position()) and cell != _current_cell:
 			return false
 		var material := lemming.terrain.material_at(ahead)
-		if not lemming.terrain.dig_side_stage_at(ahead, lemming.direction, breaks_concrete):
+		if not lemming.terrain.dig_side_stage_at(ahead, lemming.direction, breaks_concrete, id):
 			# Two lemmings digging the same tunnel take its block twice as
 			# fast: it is gone while this one is only part way in. That is
 			# not open space, so it walks to the block's far side and digs

@@ -44,6 +44,10 @@ signal cells_changed(coords: Array[Vector2i])
 ## A tool tried to break a cell that never breaks (the stage's border): the
 ## level shows the tool blowing up there.
 signal unbreakable_hit(world_position: Vector2)
+## A tool or a blast took the last of a terrain cell (not the editor's
+## brush): an item can turn up there (DigDropper). breaker is the id of the
+## tool that broke it, empty when unknown.
+signal cell_broken(cell: Vector2i, material: TerrainMaterial, breaker: StringName)
 
 const TERRAIN_SOURCE_ID := 0
 ## Terrain materials, by atlas row.
@@ -367,7 +371,7 @@ func get_dig_stage_height() -> float:
 ## sink into, and other lemmings walking past fell through it first.
 ##
 ## Concrete is left alone unless breaks_concrete is set.
-func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false) -> int:
+func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false, breaker: StringName = &"") -> int:
 	var last_stage := get_dig_stage_count() - 1
 	var touched_count := 0
 	for cell in _cells_overlapping(world_rect):
@@ -380,7 +384,7 @@ func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false) -> int:
 		# A cell already dug from the side cannot also be dug from the top
 		# with these tiles, so it goes in one go.
 		if stage >= last_stage or _dug_side_of(cell) != 0:
-			erase_cell(cell)
+			_break_cell(cell, breaker)
 		else:
 			set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, _material_of(cell)))
 		touched_count += 1
@@ -392,7 +396,7 @@ func dig_stage_in_rect(world_rect: Rect2, breaks_concrete: bool = false) -> int:
 ## right), erasing the cell on its last stage. Returns false if there is no
 ## terrain there, or it is concrete and breaks_concrete is not set. A cell
 ## already dug from another side goes in one go.
-func dig_side_stage_at(world_position: Vector2, direction: int, breaks_concrete: bool = false) -> bool:
+func dig_side_stage_at(world_position: Vector2, direction: int, breaks_concrete: bool = false, breaker: StringName = &"") -> bool:
 	var cell := local_to_map(to_local(world_position))
 	if unbreakable_cells.has(cell) and _is_terrain_cell(cell):
 		_refuse(cell)
@@ -403,7 +407,7 @@ func dig_side_stage_at(world_position: Vector2, direction: int, breaks_concrete:
 	var stage := _dig_stage_of(cell)
 	var already_dug_other_way := stage > 0 and _dug_side_of(cell) != side
 	if stage >= get_dig_stage_count() - 1 or already_dug_other_way:
-		erase_cell(cell)
+		_break_cell(cell, breaker)
 	else:
 		set_cell(cell, TERRAIN_SOURCE_ID, Vector2i(stage + 1, _material_of(cell)), side)
 	return true
@@ -543,13 +547,20 @@ func is_below_stage(world_position: Vector2) -> bool:
 	return local_to_map(to_local(world_position)).y >= get_used_rect().end.y
 
 
-func destroy_cell_at(world_position: Vector2) -> bool:
+func destroy_cell_at(world_position: Vector2, breaker: StringName = &"") -> bool:
 	var removed_bricks := _remove_bricks_in(cell_rect_at(world_position))
 	var cell := local_to_map(to_local(world_position))
 	if not _is_terrain_cell(cell) or unbreakable_cells.has(cell):
 		return removed_bricks > 0
-	erase_cell(cell)
+	_break_cell(cell, breaker)
 	return true
+
+
+## Erases a terrain cell a tool or blast broke and announces it.
+func _break_cell(cell: Vector2i, breaker: StringName) -> void:
+	var material := _material_of(cell)
+	erase_cell(cell)
+	cell_broken.emit(cell, material, breaker)
 
 
 ## Places a full block of the given material at world_position.
@@ -671,5 +682,5 @@ func destroy_circle(world_position: Vector2, radius: float) -> void:
 		for x_offset in range(-radius_in_cells, radius_in_cells + 1):
 			var cell := center_cell + Vector2i(x_offset, y_offset)
 			var cell_world_position := to_global(map_to_local(cell))
-			if world_position.distance_to(cell_world_position) <= radius:
-				erase_cell(cell)
+			if world_position.distance_to(cell_world_position) <= radius and _is_terrain_cell(cell):
+				_break_cell(cell, &"")

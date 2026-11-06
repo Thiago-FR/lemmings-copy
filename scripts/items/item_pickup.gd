@@ -23,12 +23,23 @@ const BAG_COLOUR := Color(0.6, 0.4, 0.2)
 
 ## Height above the walking surface: an item floats at body height.
 const SURFACE_HEIGHT := 16.0
+## An item that turned up in a broken block (DigDropper) pops out, growing
+## from nothing with a little hop, then falls to the floor below it.
+const POP_SECONDS := 0.35
+const POP_HOP := 10.0
+const FALL_SPEED := 160.0
+## Most a laid item is lifted to stand on what covers its floor: a soil
+## ramp, half a block (it sat sunk into the ramp otherwise).
+const MAX_LIFT := 16.0
 
 var spec: ItemSpec = null
+## Falls until there is floor under it (an item found in the rock).
+var falls := false
 
 var _icon: Texture2D = null
 var _time := 0.0
 var _taken := false
+var _terrain: TerrainDestructible = null
 
 
 ## A pickup for spec, placed on its cell.
@@ -58,6 +69,54 @@ func _ready() -> void:
 		_icon = UiStyle.icon(spec.icon_id)
 	add_to_group("item_pickups")
 	body_entered.connect(_on_body_entered)
+	_terrain = get_tree().get_first_node_in_group("terrain") as TerrainDestructible
+	if falls:
+		_pop_out()
+	else:
+		_stand_on_cover()
+
+
+## A ramp or a plank laid on the item's floor: it stands on top of that.
+func _stand_on_cover() -> void:
+	if _terrain == null:
+		return
+	var foot := global_position + Vector2.DOWN * (SURFACE_HEIGHT - 1.0)
+	if not _terrain.is_solid_at(foot):
+		return
+	var top := _terrain.solid_top_y_at(foot)
+	var brick := _terrain.brick_at(foot)
+	if brick.has_area():
+		top = brick.position.y
+	var lift := foot.y + 1.0 - top
+	if lift > 0.0 and lift <= MAX_LIFT:
+		global_position.y -= lift
+
+
+func _pop_out() -> void:
+	scale = Vector2.ZERO
+	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2.ONE, POP_SECONDS)
+	var hop := create_tween().set_trans(Tween.TRANS_SINE)
+	hop.tween_property(self, "position:y", position.y - POP_HOP, POP_SECONDS / 2.0).set_ease(Tween.EASE_OUT)
+	hop.tween_property(self, "position:y", position.y, POP_SECONDS / 2.0).set_ease(Tween.EASE_IN)
+
+
+func _physics_process(delta: float) -> void:
+	if not falls or _terrain == null or scale.x < 1.0:
+		return
+	var floor_point := global_position + Vector2.DOWN * SURFACE_HEIGHT
+	if _terrain.is_below_stage(floor_point):
+		queue_free()
+		return
+	var step := FALL_SPEED * delta
+	if _terrain.is_solid_at(floor_point):
+		return
+	# Lands exactly on the surface it reaches this frame.
+	var landing := _terrain.solid_top_y_at(floor_point + Vector2.DOWN * step)
+	if _terrain.is_solid_at(floor_point + Vector2.DOWN * step):
+		global_position.y = minf(landing, floor_point.y + step) - SURFACE_HEIGHT
+	else:
+		global_position.y += step
 
 
 func _process(delta: float) -> void:

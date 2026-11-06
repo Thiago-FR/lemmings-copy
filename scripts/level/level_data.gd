@@ -27,3 +27,5 @@ extends Resource
 @export var tools_from_items: bool = false
 ## Items lying in the level from the start (tools, hourglasses, bags).
 @export var items: Array[ItemSpec] = []
+## What breaking a block can give (DigDropper); null: nothing ever turns up.
+@export var dig_drops: DigDropTable = null

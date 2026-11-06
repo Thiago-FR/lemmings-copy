@@ -1,51 +1,68 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_4kegs"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_avmm0"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_smn2b"]
 
-[sub_resource type="Resource" id="Resource_4kegs"]
+[sub_resource type="Resource" id="Resource_avmm0"]
+script = ExtResource("1_avmm0")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_dyy21"]
 script = ExtResource("1_4kegs")
 column = 12
 row = 16
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_avmm0"]
+[sub_resource type="Resource" id="Resource_64mpj"]
 script = ExtResource("1_4kegs")
 column = 7
 row = 34
 tool_id = "miner"
 
-[sub_resource type="Resource" id="Resource_dyy21"]
+[sub_resource type="Resource" id="Resource_tosn6"]
 script = ExtResource("1_4kegs")
 kind = 3
 column = 5
 row = 34
 
-[sub_resource type="Resource" id="Resource_64mpj"]
+[sub_resource type="Resource" id="Resource_ag0l5"]
 script = ExtResource("1_4kegs")
 kind = 3
 column = 83
 row = 42
 
-[sub_resource type="Resource" id="Resource_tosn6"]
+[sub_resource type="Resource" id="Resource_gtdvn"]
 script = ExtResource("1_4kegs")
 column = 17
 row = 49
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_ag0l5"]
+[sub_resource type="Resource" id="Resource_2w3p1"]
 script = ExtResource("1_4kegs")
 column = 35
 row = 49
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_gtdvn"]
+[sub_resource type="Resource" id="Resource_6nc13"]
 script = ExtResource("1_4kegs")
 column = 55
 row = 49
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_2w3p1"]
+[sub_resource type="Resource" id="Resource_1vaib"]
 script = ExtResource("1_4kegs")
 column = 46
 row = 49
@@ -974,4 +991,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_4kegs")]([SubResource("Resource_4kegs"), SubResource("Resource_avmm0"), SubResource("Resource_dyy21"), SubResource("Resource_64mpj"), SubResource("Resource_tosn6"), SubResource("Resource_ag0l5"), SubResource("Resource_gtdvn"), SubResource("Resource_2w3p1")])
+items = Array[ExtResource("1_4kegs")]([SubResource("Resource_dyy21"), SubResource("Resource_64mpj"), SubResource("Resource_tosn6"), SubResource("Resource_ag0l5"), SubResource("Resource_gtdvn"), SubResource("Resource_2w3p1"), SubResource("Resource_6nc13"), SubResource("Resource_1vaib")])
+dig_drops = SubResource("Resource_avmm0")

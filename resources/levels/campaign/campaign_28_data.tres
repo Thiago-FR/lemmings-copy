@@ -1,33 +1,50 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_0xl7j"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_dujjv"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_rhxim"]
 
-[sub_resource type="Resource" id="Resource_rhxim"]
+[sub_resource type="Resource" id="Resource_dujjv"]
+script = ExtResource("1_dujjv")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_yu8rm"]
 script = ExtResource("1_rhxim")
 kind = 3
 column = 118
 row = 7
 
-[sub_resource type="Resource" id="Resource_dujjv"]
+[sub_resource type="Resource" id="Resource_3kbqt"]
 script = ExtResource("1_rhxim")
 column = 96
 row = 5
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_yu8rm"]
+[sub_resource type="Resource" id="Resource_wbbos"]
 script = ExtResource("1_rhxim")
 column = 83
 row = 20
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_3kbqt"]
+[sub_resource type="Resource" id="Resource_i46ga"]
 script = ExtResource("1_rhxim")
 column = 69
 row = 20
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_wbbos"]
+[sub_resource type="Resource" id="Resource_q2mqq"]
 script = ExtResource("1_rhxim")
 column = 103
 row = 18
@@ -784,4 +801,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_rhxim")]([SubResource("Resource_rhxim"), SubResource("Resource_dujjv"), SubResource("Resource_yu8rm"), SubResource("Resource_3kbqt"), SubResource("Resource_wbbos")])
+items = Array[ExtResource("1_rhxim")]([SubResource("Resource_yu8rm"), SubResource("Resource_3kbqt"), SubResource("Resource_wbbos"), SubResource("Resource_i46ga"), SubResource("Resource_q2mqq")])
+dig_drops = SubResource("Resource_dujjv")

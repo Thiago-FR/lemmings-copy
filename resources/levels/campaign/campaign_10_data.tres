@@ -2,64 +2,81 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_7cpvd"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_i70d4"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_m0cnq"]
 
-[sub_resource type="Resource" id="Resource_7cpvd"]
+[sub_resource type="Resource" id="Resource_m0cnq"]
+script = ExtResource("1_m0cnq")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_3i8be"]
 script = ExtResource("1_7cpvd")
 column = 70
 row = 16
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_m0cnq"]
+[sub_resource type="Resource" id="Resource_vg40u"]
 script = ExtResource("1_7cpvd")
 column = 15
 row = 20
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_3i8be"]
+[sub_resource type="Resource" id="Resource_0y4bg"]
 script = ExtResource("1_7cpvd")
 column = 29
 row = 21
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_vg40u"]
+[sub_resource type="Resource" id="Resource_vl00x"]
 script = ExtResource("1_7cpvd")
 column = 46
 row = 17
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_0y4bg"]
+[sub_resource type="Resource" id="Resource_330uh"]
 script = ExtResource("1_7cpvd")
 column = 71
 row = 16
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_vl00x"]
+[sub_resource type="Resource" id="Resource_uj8pw"]
 script = ExtResource("1_7cpvd")
-column = 29
+column = 12
+row = 20
+tool_id = "bridge"
+
+[sub_resource type="Resource" id="Resource_jup61"]
+script = ExtResource("1_7cpvd")
+column = 12
 row = 20
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_330uh"]
+[sub_resource type="Resource" id="Resource_tjq8o"]
 script = ExtResource("1_7cpvd")
-column = 41
-row = 17
-tool_id = "bridge"
-
-[sub_resource type="Resource" id="Resource_uj8pw"]
-script = ExtResource("1_7cpvd")
-column = 45
-row = 17
+column = 12
+row = 20
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_jup61"]
+[sub_resource type="Resource" id="Resource_kfy2h"]
 script = ExtResource("1_7cpvd")
 column = 65
 row = 16
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_tjq8o"]
+[sub_resource type="Resource" id="Resource_5ykaw"]
 script = ExtResource("1_7cpvd")
-column = 82
+column = 83
 row = 16
 tool_id = "builder"
 
@@ -140,7 +157,7 @@ dressing = {
 "spot_index": 4,
 "tool_id": "builder"
 }, {
-"amount": 1,
+"amount": 2,
 "column": 12,
 "kind": 0,
 "required": true,
@@ -149,7 +166,7 @@ dressing = {
 "tool_id": "bridge"
 }, {
 "amount": 1,
-"column": 29,
+"column": 12,
 "kind": 0,
 "required": true,
 "row": 20,
@@ -157,18 +174,10 @@ dressing = {
 "tool_id": "builder"
 }, {
 "amount": 1,
-"column": 41,
+"column": 12,
 "kind": 0,
 "required": true,
-"row": 17,
-"spot_index": -1,
-"tool_id": "bridge"
-}, {
-"amount": 1,
-"column": 45,
-"kind": 0,
-"required": true,
-"row": 17,
+"row": 20,
 "spot_index": -1,
 "tool_id": "basher"
 }, {
@@ -181,7 +190,7 @@ dressing = {
 "tool_id": "basher"
 }, {
 "amount": 1,
-"column": 82,
+"column": 83,
 "kind": 0,
 "required": true,
 "row": 16,
@@ -391,7 +400,7 @@ Vector2i(85, 28): &"border",
 Vector2i(85, 29): &"border"
 },
 "solution": Array[Dictionary]([{
-"collect_first": Array[Vector2i]([Vector2i(12, 20)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 12,
 "row": 20,
@@ -399,7 +408,7 @@ Vector2i(85, 29): &"border"
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(29, 20)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 29,
 "row": 20,
@@ -407,7 +416,7 @@ Vector2i(85, 29): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 41,
 "row": 17,
@@ -415,7 +424,7 @@ Vector2i(85, 29): &"border"
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17), Vector2i(45, 17)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 45,
 "row": 17,
@@ -423,7 +432,7 @@ Vector2i(85, 29): &"border"
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17), Vector2i(45, 17), Vector2i(65, 16)]),
+"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20), Vector2i(65, 16)]),
 "direction": 1,
 "from_column": 65,
 "row": 16,
@@ -431,7 +440,7 @@ Vector2i(85, 29): &"border"
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(71, 16), Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17), Vector2i(45, 17), Vector2i(65, 16), Vector2i(82, 16)]),
+"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(71, 16), Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20), Vector2i(65, 16), Vector2i(83, 16)]),
 "direction": -1,
 "from_column": 82,
 "row": 16,
@@ -643,7 +652,7 @@ Vector2i(85, 29): true
 }
 }
 solution = Array[Dictionary]([{
-"collect_first": Array[Vector2i]([Vector2i(12, 20)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 12,
 "row": 20,
@@ -651,7 +660,7 @@ solution = Array[Dictionary]([{
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(29, 20)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 29,
 "row": 20,
@@ -659,7 +668,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 41,
 "row": 17,
@@ -667,7 +676,7 @@ solution = Array[Dictionary]([{
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17), Vector2i(45, 17)]),
+"collect_first": Array[Vector2i]([Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20)]),
 "direction": 1,
 "from_column": 45,
 "row": 17,
@@ -675,7 +684,7 @@ solution = Array[Dictionary]([{
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17), Vector2i(45, 17), Vector2i(65, 16)]),
+"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20), Vector2i(65, 16)]),
 "direction": 1,
 "from_column": 65,
 "row": 16,
@@ -683,7 +692,7 @@ solution = Array[Dictionary]([{
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(71, 16), Vector2i(12, 20), Vector2i(29, 20), Vector2i(41, 17), Vector2i(45, 17), Vector2i(65, 16), Vector2i(82, 16)]),
+"collect_first": Array[Vector2i]([Vector2i(46, 17), Vector2i(71, 16), Vector2i(12, 20), Vector2i(12, 20), Vector2i(12, 20), Vector2i(65, 16), Vector2i(83, 16)]),
 "direction": -1,
 "from_column": 82,
 "row": 16,
@@ -692,4 +701,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_7cpvd")]([SubResource("Resource_7cpvd"), SubResource("Resource_m0cnq"), SubResource("Resource_3i8be"), SubResource("Resource_vg40u"), SubResource("Resource_0y4bg"), SubResource("Resource_vl00x"), SubResource("Resource_330uh"), SubResource("Resource_uj8pw"), SubResource("Resource_jup61"), SubResource("Resource_tjq8o")])
+items = Array[ExtResource("1_7cpvd")]([SubResource("Resource_3i8be"), SubResource("Resource_vg40u"), SubResource("Resource_0y4bg"), SubResource("Resource_vl00x"), SubResource("Resource_330uh"), SubResource("Resource_uj8pw"), SubResource("Resource_jup61"), SubResource("Resource_tjq8o"), SubResource("Resource_kfy2h"), SubResource("Resource_5ykaw")])
+dig_drops = SubResource("Resource_m0cnq")

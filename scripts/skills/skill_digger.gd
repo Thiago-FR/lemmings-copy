@@ -79,7 +79,7 @@ func _dig_next_stage(lemming: LemmingController) -> bool:
 		_descent_remaining = _drop_to_ground_below(lemming)
 		return true
 	var material := lemming.terrain.material_at(feet)
-	if lemming.terrain.dig_stage_in_rect(slice) == 0:
+	if lemming.terrain.dig_stage_in_rect(slice, false, id) == 0:
 		return false
 	DebrisBurst.spawn(lemming.get_parent(), Vector2(body.get_center().x, body.end.y), Vector2(DEBRIS_THROW.x * lemming.direction, DEBRIS_THROW.y), material)
 	AudioManager.play_sound(&"dig_earth")

@@ -1,157 +1,140 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_qwa68"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_wiokf"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_xlg1x"]
 
-[sub_resource type="Resource" id="Resource_xlg1x"]
+[sub_resource type="Resource" id="Resource_wiokf"]
+script = ExtResource("1_wiokf")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_shsr4"]
 script = ExtResource("1_xlg1x")
 kind = 2
 column = 33
 row = 24
 amount = 60
 
-[sub_resource type="Resource" id="Resource_wiokf"]
+[sub_resource type="Resource" id="Resource_ryp87"]
 script = ExtResource("1_xlg1x")
 kind = 3
 column = 71
 row = 53
 
-[sub_resource type="Resource" id="Resource_shsr4"]
+[sub_resource type="Resource" id="Resource_77w44"]
 script = ExtResource("1_xlg1x")
 column = 101
 row = 53
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_ryp87"]
-script = ExtResource("1_xlg1x")
-column = 6
-row = 48
-tool_id = "basher"
-
-[sub_resource type="Resource" id="Resource_77w44"]
-script = ExtResource("1_xlg1x")
-column = 14
-row = 48
-tool_id = "builder"
-
 [sub_resource type="Resource" id="Resource_5y05s"]
-script = ExtResource("1_xlg1x")
-column = 15
-row = 48
-tool_id = "ladder_vertical"
-
-[sub_resource type="Resource" id="Resource_hceue"]
-script = ExtResource("1_xlg1x")
-column = 16
-row = 48
-tool_id = "builder"
-
-[sub_resource type="Resource" id="Resource_daqcn"]
-script = ExtResource("1_xlg1x")
-column = 13
-row = 44
-tool_id = "basher"
-
-[sub_resource type="Resource" id="Resource_s1ewk"]
-script = ExtResource("1_xlg1x")
-column = 17
-row = 47
-tool_id = "bridge"
-
-[sub_resource type="Resource" id="Resource_lg76y"]
-script = ExtResource("1_xlg1x")
-column = 18
-row = 47
-tool_id = "ladder_vertical"
-
-[sub_resource type="Resource" id="Resource_4hcqe"]
-script = ExtResource("1_xlg1x")
-column = 32
-row = 24
-tool_id = "bridge"
-
-[sub_resource type="Resource" id="Resource_6nngr"]
-script = ExtResource("1_xlg1x")
-column = 40
-row = 24
-tool_id = "builder"
-
-[sub_resource type="Resource" id="Resource_ji5fo"]
-script = ExtResource("1_xlg1x")
-column = 38
-row = 24
-tool_id = "ladder_vertical"
-
-[sub_resource type="Resource" id="Resource_hu81j"]
 script = ExtResource("1_xlg1x")
 column = 5
 row = 48
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_o188o"]
+[sub_resource type="Resource" id="Resource_hceue"]
 script = ExtResource("1_xlg1x")
-column = 7
+column = 6
 row = 48
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_wd5eb"]
+[sub_resource type="Resource" id="Resource_daqcn"]
+script = ExtResource("1_xlg1x")
+column = 14
+row = 48
+tool_id = "builder"
+
+[sub_resource type="Resource" id="Resource_s1ewk"]
+script = ExtResource("1_xlg1x")
+column = 15
+row = 48
+tool_id = "ladder_vertical"
+
+[sub_resource type="Resource" id="Resource_lg76y"]
 script = ExtResource("1_xlg1x")
 column = 16
 row = 48
 tool_id = "builder"
+amount = 3
 
-[sub_resource type="Resource" id="Resource_x1lxd"]
+[sub_resource type="Resource" id="Resource_4hcqe"]
+script = ExtResource("1_xlg1x")
+column = 13
+row = 44
+tool_id = "basher"
+
+[sub_resource type="Resource" id="Resource_6nngr"]
 script = ExtResource("1_xlg1x")
 column = 17
 row = 48
+tool_id = "bridge"
+
+[sub_resource type="Resource" id="Resource_ji5fo"]
+script = ExtResource("1_xlg1x")
+column = 18
+row = 48
+tool_id = "ladder_vertical"
+
+[sub_resource type="Resource" id="Resource_hu81j"]
+script = ExtResource("1_xlg1x")
+column = 32
+row = 24
+tool_id = "bridge"
+
+[sub_resource type="Resource" id="Resource_o188o"]
+script = ExtResource("1_xlg1x")
+column = 40
+row = 24
 tool_id = "builder"
+
+[sub_resource type="Resource" id="Resource_wd5eb"]
+script = ExtResource("1_xlg1x")
+column = 38
+row = 24
+tool_id = "ladder_vertical"
+
+[sub_resource type="Resource" id="Resource_x1lxd"]
+script = ExtResource("1_xlg1x")
+column = 5
+row = 48
+tool_id = "basher"
 
 [sub_resource type="Resource" id="Resource_x3tty"]
 script = ExtResource("1_xlg1x")
-column = 14
-row = 47
+column = 16
+row = 48
 tool_id = "ladder_vertical"
 
 [sub_resource type="Resource" id="Resource_11bgs"]
 script = ExtResource("1_xlg1x")
-column = 16
-row = 36
+column = 13
+row = 44
 tool_id = "builder"
+amount = 5
 
 [sub_resource type="Resource" id="Resource_je68j"]
 script = ExtResource("1_xlg1x")
-column = 16
-row = 32
-tool_id = "builder"
+column = 13
+row = 44
+tool_id = "bridge"
 
 [sub_resource type="Resource" id="Resource_8jabc"]
 script = ExtResource("1_xlg1x")
-column = 4
-row = 29
-tool_id = "bridge"
-
-[sub_resource type="Resource" id="Resource_xpo5m"]
-script = ExtResource("1_xlg1x")
-column = 6
-row = 30
-tool_id = "builder"
-
-[sub_resource type="Resource" id="Resource_ympns"]
-script = ExtResource("1_xlg1x")
-column = 14
-row = 28
-tool_id = "builder"
-
-[sub_resource type="Resource" id="Resource_6gery"]
-script = ExtResource("1_xlg1x")
-column = 3
-row = 25
-tool_id = "builder"
-
-[sub_resource type="Resource" id="Resource_ck8x0"]
-script = ExtResource("1_xlg1x")
-column = 15
-row = 22
+column = 13
+row = 44
 tool_id = "ladder_vertical"
 
 [resource]
@@ -197,7 +180,7 @@ dressing = {
 "spot_index": 2,
 "tool_id": ""
 }, {
-"amount": 1,
+"amount": 2,
 "column": 5,
 "kind": 0,
 "required": true,
@@ -229,7 +212,7 @@ dressing = {
 "spot_index": 6,
 "tool_id": "ladder_vertical"
 }, {
-"amount": 1,
+"amount": 3,
 "column": 16,
 "kind": 0,
 "required": true,
@@ -249,7 +232,7 @@ dressing = {
 "column": 17,
 "kind": 0,
 "required": true,
-"row": 47,
+"row": 48,
 "spot_index": 9,
 "tool_id": "bridge"
 }, {
@@ -257,7 +240,7 @@ dressing = {
 "column": 18,
 "kind": 0,
 "required": true,
-"row": 47,
+"row": 48,
 "spot_index": 10,
 "tool_id": "ladder_vertical"
 }, {
@@ -291,14 +274,6 @@ dressing = {
 "required": true,
 "row": 48,
 "spot_index": -1,
-"tool_id": "bridge"
-}, {
-"amount": 1,
-"column": 7,
-"kind": 0,
-"required": true,
-"row": 48,
-"spot_index": -1,
 "tool_id": "basher"
 }, {
 "amount": 1,
@@ -307,77 +282,29 @@ dressing = {
 "required": true,
 "row": 48,
 "spot_index": -1,
-"tool_id": "builder"
-}, {
-"amount": 1,
-"column": 17,
-"kind": 0,
-"required": true,
-"row": 48,
-"spot_index": -1,
-"tool_id": "builder"
-}, {
-"amount": 1,
-"column": 14,
-"kind": 0,
-"required": true,
-"row": 47,
-"spot_index": -1,
 "tool_id": "ladder_vertical"
 }, {
-"amount": 1,
-"column": 16,
+"amount": 5,
+"column": 13,
 "kind": 0,
 "required": true,
-"row": 36,
+"row": 44,
 "spot_index": -1,
 "tool_id": "builder"
 }, {
 "amount": 1,
-"column": 16,
+"column": 13,
 "kind": 0,
 "required": true,
-"row": 32,
-"spot_index": -1,
-"tool_id": "builder"
-}, {
-"amount": 1,
-"column": 4,
-"kind": 0,
-"required": true,
-"row": 29,
+"row": 44,
 "spot_index": -1,
 "tool_id": "bridge"
 }, {
 "amount": 1,
-"column": 6,
+"column": 13,
 "kind": 0,
 "required": true,
-"row": 30,
-"spot_index": -1,
-"tool_id": "builder"
-}, {
-"amount": 1,
-"column": 14,
-"kind": 0,
-"required": true,
-"row": 28,
-"spot_index": -1,
-"tool_id": "builder"
-}, {
-"amount": 1,
-"column": 3,
-"kind": 0,
-"required": true,
-"row": 25,
-"spot_index": -1,
-"tool_id": "builder"
-}, {
-"amount": 1,
-"column": 15,
-"kind": 0,
-"required": true,
-"row": 22,
+"row": 44,
 "spot_index": -1,
 "tool_id": "ladder_vertical"
 }]),
@@ -2253,7 +2180,7 @@ Vector2i(110, 59): &"border"
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(5, 48), Vector2i(7, 48)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(5, 48)]),
 "direction": 1,
 "from_column": 7,
 "row": 48,
@@ -2261,7 +2188,7 @@ Vector2i(110, 59): &"border"
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(5, 48), Vector2i(16, 48)]),
 "direction": 1,
 "from_column": 16,
 "row": 48,
@@ -2269,7 +2196,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48)]),
 "direction": -1,
 "from_column": 17,
 "row": 48,
@@ -2277,7 +2204,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48)]),
 "direction": -1,
 "from_column": 14,
 "row": 47,
@@ -2285,7 +2212,7 @@ Vector2i(110, 59): &"border"
 "tool": "ladder_vertical",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 16,
 "row": 36,
@@ -2293,7 +2220,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": -1,
 "from_column": 16,
 "row": 32,
@@ -2301,7 +2228,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": -1,
 "from_column": 4,
 "row": 29,
@@ -2309,7 +2236,7 @@ Vector2i(110, 59): &"border"
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 6,
 "row": 30,
@@ -2317,7 +2244,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30), Vector2i(14, 28)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": -1,
 "from_column": 14,
 "row": 28,
@@ -2325,7 +2252,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30), Vector2i(14, 28), Vector2i(3, 25)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 3,
 "row": 25,
@@ -2333,7 +2260,7 @@ Vector2i(110, 59): &"border"
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30), Vector2i(14, 28), Vector2i(3, 25), Vector2i(15, 22)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 15,
 "row": 22,
@@ -2702,7 +2629,7 @@ solution = Array[Dictionary]([{
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(5, 48), Vector2i(7, 48)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(5, 48)]),
 "direction": 1,
 "from_column": 7,
 "row": 48,
@@ -2710,7 +2637,7 @@ solution = Array[Dictionary]([{
 "tool": "basher",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(5, 48), Vector2i(16, 48)]),
 "direction": 1,
 "from_column": 16,
 "row": 48,
@@ -2718,7 +2645,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48)]),
 "direction": -1,
 "from_column": 17,
 "row": 48,
@@ -2726,7 +2653,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48)]),
 "direction": -1,
 "from_column": 14,
 "row": 47,
@@ -2734,7 +2661,7 @@ solution = Array[Dictionary]([{
 "tool": "ladder_vertical",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 16,
 "row": 36,
@@ -2742,7 +2669,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": -1,
 "from_column": 16,
 "row": 32,
@@ -2750,7 +2677,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": -1,
 "from_column": 4,
 "row": 29,
@@ -2758,7 +2685,7 @@ solution = Array[Dictionary]([{
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 6,
 "row": 30,
@@ -2766,7 +2693,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30), Vector2i(14, 28)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": -1,
 "from_column": 14,
 "row": 28,
@@ -2774,7 +2701,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30), Vector2i(14, 28), Vector2i(3, 25)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 3,
 "row": 25,
@@ -2782,7 +2709,7 @@ solution = Array[Dictionary]([{
 "tool": "builder",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(7, 48), Vector2i(16, 48), Vector2i(17, 48), Vector2i(14, 47), Vector2i(16, 36), Vector2i(16, 32), Vector2i(4, 29), Vector2i(6, 30), Vector2i(14, 28), Vector2i(3, 25), Vector2i(15, 22)]),
+"collect_first": Array[Vector2i]([Vector2i(5, 48), Vector2i(14, 48), Vector2i(15, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(17, 47), Vector2i(18, 47), Vector2i(5, 48), Vector2i(16, 48), Vector2i(13, 44), Vector2i(13, 44), Vector2i(13, 44)]),
 "direction": 1,
 "from_column": 15,
 "row": 22,
@@ -2791,4 +2718,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_xlg1x")]([SubResource("Resource_xlg1x"), SubResource("Resource_wiokf"), SubResource("Resource_shsr4"), SubResource("Resource_ryp87"), SubResource("Resource_77w44"), SubResource("Resource_5y05s"), SubResource("Resource_hceue"), SubResource("Resource_daqcn"), SubResource("Resource_s1ewk"), SubResource("Resource_lg76y"), SubResource("Resource_4hcqe"), SubResource("Resource_6nngr"), SubResource("Resource_ji5fo"), SubResource("Resource_hu81j"), SubResource("Resource_o188o"), SubResource("Resource_wd5eb"), SubResource("Resource_x1lxd"), SubResource("Resource_x3tty"), SubResource("Resource_11bgs"), SubResource("Resource_je68j"), SubResource("Resource_8jabc"), SubResource("Resource_xpo5m"), SubResource("Resource_ympns"), SubResource("Resource_6gery"), SubResource("Resource_ck8x0")])
+items = Array[ExtResource("1_xlg1x")]([SubResource("Resource_shsr4"), SubResource("Resource_ryp87"), SubResource("Resource_77w44"), SubResource("Resource_5y05s"), SubResource("Resource_hceue"), SubResource("Resource_daqcn"), SubResource("Resource_s1ewk"), SubResource("Resource_lg76y"), SubResource("Resource_4hcqe"), SubResource("Resource_6nngr"), SubResource("Resource_ji5fo"), SubResource("Resource_hu81j"), SubResource("Resource_o188o"), SubResource("Resource_wd5eb"), SubResource("Resource_x1lxd"), SubResource("Resource_x3tty"), SubResource("Resource_11bgs"), SubResource("Resource_je68j"), SubResource("Resource_8jabc")])
+dig_drops = SubResource("Resource_wiokf")

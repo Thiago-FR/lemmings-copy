@@ -1,57 +1,74 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_eo5a5"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_swm23"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="2_eo5a5"]
 
-[sub_resource type="Resource" id="Resource_swm23"]
+[sub_resource type="Resource" id="Resource_eo5a5"]
+script = ExtResource("1_eo5a5")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_fe65i"]
 script = ExtResource("1_swm23")
 kind = 3
 column = 73
 row = 41
 
-[sub_resource type="Resource" id="Resource_eo5a5"]
+[sub_resource type="Resource" id="Resource_u78tb"]
 script = ExtResource("1_swm23")
 column = 121
 row = 41
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_fe65i"]
+[sub_resource type="Resource" id="Resource_eavou"]
 script = ExtResource("1_swm23")
 column = 110
 row = 35
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_u78tb"]
+[sub_resource type="Resource" id="Resource_2upo8"]
 script = ExtResource("1_swm23")
 column = 11
 row = 59
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_eavou"]
+[sub_resource type="Resource" id="Resource_x6kjt"]
 script = ExtResource("1_swm23")
 column = 54
 row = 59
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_2upo8"]
+[sub_resource type="Resource" id="Resource_iosmt"]
 script = ExtResource("1_swm23")
 column = 56
 row = 59
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_x6kjt"]
+[sub_resource type="Resource" id="Resource_6f5ge"]
 script = ExtResource("1_swm23")
 column = 62
 row = 41
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_iosmt"]
+[sub_resource type="Resource" id="Resource_adta5"]
 script = ExtResource("1_swm23")
 column = 55
 row = 59
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_6f5ge"]
+[sub_resource type="Resource" id="Resource_52ul3"]
 script = ExtResource("1_swm23")
 column = 68
 row = 41
@@ -6211,4 +6228,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_swm23")]([SubResource("Resource_swm23"), SubResource("Resource_eo5a5"), SubResource("Resource_fe65i"), SubResource("Resource_u78tb"), SubResource("Resource_eavou"), SubResource("Resource_2upo8"), SubResource("Resource_x6kjt"), SubResource("Resource_iosmt"), SubResource("Resource_6f5ge")])
+items = Array[ExtResource("1_swm23")]([SubResource("Resource_fe65i"), SubResource("Resource_u78tb"), SubResource("Resource_eavou"), SubResource("Resource_2upo8"), SubResource("Resource_x6kjt"), SubResource("Resource_iosmt"), SubResource("Resource_6f5ge"), SubResource("Resource_adta5"), SubResource("Resource_52ul3")])
+dig_drops = SubResource("Resource_eo5a5")

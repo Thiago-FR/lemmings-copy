@@ -2,46 +2,63 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_8eqhp"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_gbtnt"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_q2gup"]
 
-[sub_resource type="Resource" id="Resource_8eqhp"]
+[sub_resource type="Resource" id="Resource_q2gup"]
+script = ExtResource("1_q2gup")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_k3m2k"]
 script = ExtResource("1_8eqhp")
 column = 23
 row = 25
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_q2gup"]
+[sub_resource type="Resource" id="Resource_3a7ax"]
 script = ExtResource("1_8eqhp")
 column = 23
 row = 36
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_k3m2k"]
+[sub_resource type="Resource" id="Resource_wovoi"]
 script = ExtResource("1_8eqhp")
 column = 24
 row = 36
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_3a7ax"]
+[sub_resource type="Resource" id="Resource_23wec"]
 script = ExtResource("1_8eqhp")
 column = 27
-row = 36
+row = 23
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_wovoi"]
+[sub_resource type="Resource" id="Resource_njx6w"]
 script = ExtResource("1_8eqhp")
 column = 27
-row = 37
+row = 23
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_23wec"]
+[sub_resource type="Resource" id="Resource_h84ko"]
 script = ExtResource("1_8eqhp")
 column = 28
 row = 35
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_njx6w"]
+[sub_resource type="Resource" id="Resource_dau6e"]
 script = ExtResource("1_8eqhp")
-column = 40
+column = 28
 row = 35
 tool_id = "basher"
 
@@ -142,7 +159,7 @@ dressing = {
 "spot_index": 2,
 "tool_id": "builder"
 }, {
-"amount": 1,
+"amount": 2,
 "column": 27,
 "kind": 0,
 "required": true,
@@ -154,15 +171,7 @@ dressing = {
 "column": 27,
 "kind": 0,
 "required": true,
-"row": 36,
-"spot_index": -1,
-"tool_id": "digger"
-}, {
-"amount": 1,
-"column": 27,
-"kind": 0,
-"required": true,
-"row": 37,
+"row": 23,
 "spot_index": -1,
 "tool_id": "ladder_vertical"
 }, {
@@ -175,7 +184,7 @@ dressing = {
 "tool_id": "bridge"
 }, {
 "amount": 1,
-"column": 40,
+"column": 28,
 "kind": 0,
 "required": true,
 "row": 35,
@@ -400,7 +409,7 @@ Vector2i(70, 36): &"border",
 Vector2i(70, 37): &"border"
 },
 "solution": Array[Dictionary]([{
-"collect_first": Array[Vector2i]([Vector2i(27, 23)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23)]),
 "direction": 1,
 "from_column": 27,
 "row": 23,
@@ -408,7 +417,7 @@ Vector2i(70, 37): &"border"
 "tool": "digger",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23)]),
 "direction": 1,
 "from_column": 27,
 "row": 36,
@@ -416,7 +425,7 @@ Vector2i(70, 37): &"border"
 "tool": "digger",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36), Vector2i(27, 37)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23)]),
 "direction": 1,
 "from_column": 27,
 "row": 37,
@@ -424,7 +433,7 @@ Vector2i(70, 37): &"border"
 "tool": "ladder_vertical",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36), Vector2i(27, 37), Vector2i(28, 35)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23), Vector2i(28, 35), Vector2i(28, 35)]),
 "direction": 1,
 "from_column": 28,
 "row": 35,
@@ -432,7 +441,7 @@ Vector2i(70, 37): &"border"
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36), Vector2i(27, 37), Vector2i(28, 35), Vector2i(40, 35)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23), Vector2i(28, 35), Vector2i(28, 35)]),
 "direction": 1,
 "from_column": 40,
 "row": 35,
@@ -659,7 +668,7 @@ Vector2i(70, 37): true
 }
 }
 solution = Array[Dictionary]([{
-"collect_first": Array[Vector2i]([Vector2i(27, 23)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23)]),
 "direction": 1,
 "from_column": 27,
 "row": 23,
@@ -667,7 +676,7 @@ solution = Array[Dictionary]([{
 "tool": "digger",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23)]),
 "direction": 1,
 "from_column": 27,
 "row": 36,
@@ -675,7 +684,7 @@ solution = Array[Dictionary]([{
 "tool": "digger",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36), Vector2i(27, 37)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23)]),
 "direction": 1,
 "from_column": 27,
 "row": 37,
@@ -683,7 +692,7 @@ solution = Array[Dictionary]([{
 "tool": "ladder_vertical",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36), Vector2i(27, 37), Vector2i(28, 35)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23), Vector2i(28, 35), Vector2i(28, 35)]),
 "direction": 1,
 "from_column": 28,
 "row": 35,
@@ -691,7 +700,7 @@ solution = Array[Dictionary]([{
 "tool": "bridge",
 "why": ""
 }, {
-"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 36), Vector2i(27, 37), Vector2i(28, 35), Vector2i(40, 35)]),
+"collect_first": Array[Vector2i]([Vector2i(27, 23), Vector2i(27, 23), Vector2i(28, 35), Vector2i(28, 35)]),
 "direction": 1,
 "from_column": 40,
 "row": 35,
@@ -700,4 +709,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_8eqhp")]([SubResource("Resource_8eqhp"), SubResource("Resource_q2gup"), SubResource("Resource_k3m2k"), SubResource("Resource_3a7ax"), SubResource("Resource_wovoi"), SubResource("Resource_23wec"), SubResource("Resource_njx6w")])
+items = Array[ExtResource("1_8eqhp")]([SubResource("Resource_k3m2k"), SubResource("Resource_3a7ax"), SubResource("Resource_wovoi"), SubResource("Resource_23wec"), SubResource("Resource_njx6w"), SubResource("Resource_h84ko"), SubResource("Resource_dau6e")])
+dig_drops = SubResource("Resource_q2gup")

@@ -1,94 +1,111 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_a573u"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_vumuh"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="2_vumuh"]
 
-[sub_resource type="Resource" id="Resource_a573u"]
+[sub_resource type="Resource" id="Resource_vumuh"]
+script = ExtResource("1_vumuh")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_62gsh"]
 script = ExtResource("1_a573u")
 kind = 3
 column = 50
 row = 41
 
-[sub_resource type="Resource" id="Resource_vumuh"]
+[sub_resource type="Resource" id="Resource_rmniw"]
 script = ExtResource("1_a573u")
 kind = 2
 column = 114
 row = 44
 amount = 60
 
-[sub_resource type="Resource" id="Resource_62gsh"]
+[sub_resource type="Resource" id="Resource_jh3ka"]
 script = ExtResource("1_a573u")
 column = 103
 row = 41
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_rmniw"]
+[sub_resource type="Resource" id="Resource_yhev5"]
 script = ExtResource("1_a573u")
 column = 11
 row = 53
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_jh3ka"]
+[sub_resource type="Resource" id="Resource_76raa"]
 script = ExtResource("1_a573u")
 column = 17
 row = 53
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_yhev5"]
+[sub_resource type="Resource" id="Resource_inyhg"]
 script = ExtResource("1_a573u")
 column = 44
 row = 47
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_76raa"]
+[sub_resource type="Resource" id="Resource_dv6ln"]
 script = ExtResource("1_a573u")
 column = 30
 row = 47
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_inyhg"]
+[sub_resource type="Resource" id="Resource_ef47p"]
 script = ExtResource("1_a573u")
 column = 20
 row = 29
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_dv6ln"]
+[sub_resource type="Resource" id="Resource_256x5"]
 script = ExtResource("1_a573u")
 column = 37
 row = 53
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_ef47p"]
+[sub_resource type="Resource" id="Resource_e70r0"]
 script = ExtResource("1_a573u")
 column = 40
 row = 47
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_256x5"]
+[sub_resource type="Resource" id="Resource_hb5xy"]
 script = ExtResource("1_a573u")
 column = 38
 row = 29
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_e70r0"]
+[sub_resource type="Resource" id="Resource_vbtw1"]
 script = ExtResource("1_a573u")
 column = 39
 row = 29
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_hb5xy"]
+[sub_resource type="Resource" id="Resource_lhccg"]
 script = ExtResource("1_a573u")
 column = 43
 row = 53
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_vbtw1"]
+[sub_resource type="Resource" id="Resource_2brg1"]
 script = ExtResource("1_a573u")
 column = 31
 row = 47
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_lhccg"]
+[sub_resource type="Resource" id="Resource_3ddrk"]
 script = ExtResource("1_a573u")
 column = 9
 row = 53
@@ -6249,4 +6266,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_a573u")]([SubResource("Resource_a573u"), SubResource("Resource_vumuh"), SubResource("Resource_62gsh"), SubResource("Resource_rmniw"), SubResource("Resource_jh3ka"), SubResource("Resource_yhev5"), SubResource("Resource_76raa"), SubResource("Resource_inyhg"), SubResource("Resource_dv6ln"), SubResource("Resource_ef47p"), SubResource("Resource_256x5"), SubResource("Resource_e70r0"), SubResource("Resource_hb5xy"), SubResource("Resource_vbtw1"), SubResource("Resource_lhccg")])
+items = Array[ExtResource("1_a573u")]([SubResource("Resource_62gsh"), SubResource("Resource_rmniw"), SubResource("Resource_jh3ka"), SubResource("Resource_yhev5"), SubResource("Resource_76raa"), SubResource("Resource_inyhg"), SubResource("Resource_dv6ln"), SubResource("Resource_ef47p"), SubResource("Resource_256x5"), SubResource("Resource_e70r0"), SubResource("Resource_hb5xy"), SubResource("Resource_vbtw1"), SubResource("Resource_lhccg"), SubResource("Resource_2brg1"), SubResource("Resource_3ddrk")])
+dig_drops = SubResource("Resource_vumuh")

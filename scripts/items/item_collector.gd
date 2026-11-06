@@ -17,6 +17,9 @@ const MAX_POPS := 5
 const POP_SPACING := 14.0
 
 var inventory := ToolInventory.new()
+## Horizontal offsets, in pixels, of the items sharing one spot.
+const STACK_OFFSETS: Array[float] = [0.0, 14.0, -14.0, 28.0, -28.0]
+var _items_per_cell: Dictionary = {}
 
 var _level: LevelManager
 
@@ -35,6 +38,9 @@ func _ready() -> void:
 		add_item(spec)
 	_level.add_child.call_deferred(ToolInventoryBar.new(inventory))
 	inventory.changed.connect(_sync_charges)
+	if _level.dig_dropper != null:
+		_level.dig_dropper.inventory = inventory
+		_level.dig_dropper.item_dropped.connect(_take_dropped)
 	SkillManager.skill_assigned.connect(_on_skill_assigned)
 	SkillManager.skill_refunded.connect(_on_skill_refunded)
 	_sync_charges()
@@ -51,9 +57,20 @@ func _exit_tree() -> void:
 ## later) and listens for it being picked up.
 func add_item(spec: ItemSpec) -> ItemPickup:
 	var pickup := ItemPickup.make(spec)
+	# Items on the same spot lie side by side instead of on top of each
+	# other: the nth one a little to the right or left of the first.
+	var cell := Vector2i(spec.column, spec.row)
+	var stacked := int(_items_per_cell.get(cell, 0))
+	_items_per_cell[cell] = stacked + 1
+	pickup.position.x += STACK_OFFSETS[stacked % STACK_OFFSETS.size()]
 	pickup.collected.connect(_on_collected)
 	_level.add_child.call_deferred(pickup)
 	return pickup
+
+
+## An item found in a broken block is picked up like the others.
+func _take_dropped(pickup: ItemPickup) -> void:
+	pickup.collected.connect(_on_collected)
 
 
 func _sync_charges() -> void:

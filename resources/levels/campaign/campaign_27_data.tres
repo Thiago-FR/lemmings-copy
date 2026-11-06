@@ -1,82 +1,99 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_1lgrl"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_enulj"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_rh2m6"]
 
-[sub_resource type="Resource" id="Resource_rh2m6"]
+[sub_resource type="Resource" id="Resource_1lgrl"]
+script = ExtResource("1_1lgrl")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_prq0i"]
 script = ExtResource("1_rh2m6")
 kind = 3
 column = 23
 row = 93
 
-[sub_resource type="Resource" id="Resource_1lgrl"]
+[sub_resource type="Resource" id="Resource_do7vg"]
 script = ExtResource("1_rh2m6")
 column = 31
 row = 93
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_prq0i"]
+[sub_resource type="Resource" id="Resource_5v1kl"]
 script = ExtResource("1_rh2m6")
 kind = 2
 column = 33
 row = 28
 amount = 60
 
-[sub_resource type="Resource" id="Resource_do7vg"]
+[sub_resource type="Resource" id="Resource_hhdl4"]
 script = ExtResource("1_rh2m6")
 column = 6
 row = 88
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_5v1kl"]
+[sub_resource type="Resource" id="Resource_g5cnm"]
 script = ExtResource("1_rh2m6")
 column = 7
 row = 88
 tool_id = "floater"
 
-[sub_resource type="Resource" id="Resource_hhdl4"]
+[sub_resource type="Resource" id="Resource_7ee8g"]
 script = ExtResource("1_rh2m6")
 column = 18
 row = 88
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_g5cnm"]
+[sub_resource type="Resource" id="Resource_upfpe"]
 script = ExtResource("1_rh2m6")
 column = 19
 row = 88
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_7ee8g"]
+[sub_resource type="Resource" id="Resource_c37lb"]
 script = ExtResource("1_rh2m6")
 column = 39
 row = 88
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_upfpe"]
+[sub_resource type="Resource" id="Resource_nbekb"]
 script = ExtResource("1_rh2m6")
 column = 41
 row = 88
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_c37lb"]
+[sub_resource type="Resource" id="Resource_xirdb"]
 script = ExtResource("1_rh2m6")
 column = 16
 row = 88
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_nbekb"]
+[sub_resource type="Resource" id="Resource_dthlk"]
 script = ExtResource("1_rh2m6")
 column = 20
 row = 88
 tool_id = "ladder_vertical"
 
-[sub_resource type="Resource" id="Resource_xirdb"]
+[sub_resource type="Resource" id="Resource_8knka"]
 script = ExtResource("1_rh2m6")
 column = 42
 row = 88
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_dthlk"]
+[sub_resource type="Resource" id="Resource_006o3"]
 script = ExtResource("1_rh2m6")
 column = 17
 row = 88
@@ -2426,4 +2443,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_rh2m6")]([SubResource("Resource_rh2m6"), SubResource("Resource_1lgrl"), SubResource("Resource_prq0i"), SubResource("Resource_do7vg"), SubResource("Resource_5v1kl"), SubResource("Resource_hhdl4"), SubResource("Resource_g5cnm"), SubResource("Resource_7ee8g"), SubResource("Resource_upfpe"), SubResource("Resource_c37lb"), SubResource("Resource_nbekb"), SubResource("Resource_xirdb"), SubResource("Resource_dthlk")])
+items = Array[ExtResource("1_rh2m6")]([SubResource("Resource_prq0i"), SubResource("Resource_do7vg"), SubResource("Resource_5v1kl"), SubResource("Resource_hhdl4"), SubResource("Resource_g5cnm"), SubResource("Resource_7ee8g"), SubResource("Resource_upfpe"), SubResource("Resource_c37lb"), SubResource("Resource_nbekb"), SubResource("Resource_xirdb"), SubResource("Resource_dthlk"), SubResource("Resource_8knka"), SubResource("Resource_006o3")])
+dig_drops = SubResource("Resource_1lgrl")

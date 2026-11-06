@@ -1,45 +1,62 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_3e13s"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_py2m0"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_wr88b"]
 
-[sub_resource type="Resource" id="Resource_wr88b"]
+[sub_resource type="Resource" id="Resource_py2m0"]
+script = ExtResource("1_py2m0")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_mde0y"]
 script = ExtResource("1_wr88b")
 column = 10
 row = 85
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_py2m0"]
+[sub_resource type="Resource" id="Resource_jbflx"]
 script = ExtResource("1_wr88b")
 column = 14
 row = 81
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_mde0y"]
+[sub_resource type="Resource" id="Resource_g64pw"]
 script = ExtResource("1_wr88b")
 column = 11
 row = 85
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_jbflx"]
+[sub_resource type="Resource" id="Resource_vc7uj"]
 script = ExtResource("1_wr88b")
 column = 11
 row = 63
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_g64pw"]
+[sub_resource type="Resource" id="Resource_wq3h3"]
 script = ExtResource("1_wr88b")
 column = 20
 row = 48
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_vc7uj"]
+[sub_resource type="Resource" id="Resource_vy2wj"]
 script = ExtResource("1_wr88b")
 column = 32
 row = 30
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_wq3h3"]
+[sub_resource type="Resource" id="Resource_0hdv2"]
 script = ExtResource("1_wr88b")
 column = 34
 row = 27
@@ -1030,4 +1047,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_wr88b")]([SubResource("Resource_wr88b"), SubResource("Resource_py2m0"), SubResource("Resource_mde0y"), SubResource("Resource_jbflx"), SubResource("Resource_g64pw"), SubResource("Resource_vc7uj"), SubResource("Resource_wq3h3")])
+items = Array[ExtResource("1_wr88b")]([SubResource("Resource_mde0y"), SubResource("Resource_jbflx"), SubResource("Resource_g64pw"), SubResource("Resource_vc7uj"), SubResource("Resource_wq3h3"), SubResource("Resource_vy2wj"), SubResource("Resource_0hdv2")])
+dig_drops = SubResource("Resource_py2m0")

@@ -2,39 +2,56 @@
 
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_8ld2e"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_8x7nu"]
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_dcq1v"]
 
-[sub_resource type="Resource" id="Resource_8x7nu"]
+[sub_resource type="Resource" id="Resource_dcq1v"]
+script = ExtResource("1_dcq1v")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_d0vlv"]
 script = ExtResource("1_8x7nu")
 column = 65
 row = 46
 tool_id = "builder"
 
-[sub_resource type="Resource" id="Resource_dcq1v"]
+[sub_resource type="Resource" id="Resource_0e1i4"]
 script = ExtResource("1_8x7nu")
 kind = 2
 column = 11
 row = 24
 amount = 60
 
-[sub_resource type="Resource" id="Resource_d0vlv"]
+[sub_resource type="Resource" id="Resource_l2j1v"]
 script = ExtResource("1_8x7nu")
 kind = 3
 column = 49
 row = 43
 
-[sub_resource type="Resource" id="Resource_0e1i4"]
+[sub_resource type="Resource" id="Resource_uar3a"]
 script = ExtResource("1_8x7nu")
 column = 49
 row = 16
 tool_id = "bridge"
 
-[sub_resource type="Resource" id="Resource_l2j1v"]
+[sub_resource type="Resource" id="Resource_cud2k"]
 script = ExtResource("1_8x7nu")
 column = 8
 row = 46
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_uar3a"]
+[sub_resource type="Resource" id="Resource_o1cn0"]
 script = ExtResource("1_8x7nu")
 column = 30
 row = 43
@@ -903,4 +920,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_8x7nu")]([SubResource("Resource_8x7nu"), SubResource("Resource_dcq1v"), SubResource("Resource_d0vlv"), SubResource("Resource_0e1i4"), SubResource("Resource_l2j1v"), SubResource("Resource_uar3a")])
+items = Array[ExtResource("1_8x7nu")]([SubResource("Resource_d0vlv"), SubResource("Resource_0e1i4"), SubResource("Resource_l2j1v"), SubResource("Resource_uar3a"), SubResource("Resource_cud2k"), SubResource("Resource_o1cn0")])
+dig_drops = SubResource("Resource_dcq1v")

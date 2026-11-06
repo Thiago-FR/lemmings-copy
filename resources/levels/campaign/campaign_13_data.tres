@@ -1,46 +1,63 @@
 [gd_resource type="Resource" script_class="LevelData" format=3]
 
+[ext_resource type="Script" path="res://scripts/items/dig_drop_table.gd" id="1_61ofh"]
 [ext_resource type="Script" path="res://scripts/level/level_data.gd" id="1_sivm0"]
 [ext_resource type="Script" path="res://scripts/items/item_spec.gd" id="1_vcp3c"]
 
-[sub_resource type="Resource" id="Resource_vcp3c"]
+[sub_resource type="Resource" id="Resource_61ofh"]
+script = ExtResource("1_61ofh")
+entries = Array[Dictionary]([{
+"amount": 1,
+"kind": 0,
+"weight": 22.0
+}, {
+"amount": 30,
+"kind": 2,
+"weight": 10.0
+}, {
+"amount": 1,
+"kind": 3,
+"weight": 6.0
+}])
+
+[sub_resource type="Resource" id="Resource_4va34"]
 script = ExtResource("1_vcp3c")
 kind = 3
 column = 38
 row = 48
 
-[sub_resource type="Resource" id="Resource_61ofh"]
+[sub_resource type="Resource" id="Resource_fi1yu"]
 script = ExtResource("1_vcp3c")
 kind = 2
 column = 9
 row = 27
 amount = 60
 
-[sub_resource type="Resource" id="Resource_4va34"]
+[sub_resource type="Resource" id="Resource_1luen"]
 script = ExtResource("1_vcp3c")
 kind = 3
 column = 15
 row = 13
 
-[sub_resource type="Resource" id="Resource_fi1yu"]
+[sub_resource type="Resource" id="Resource_8d32p"]
 script = ExtResource("1_vcp3c")
 column = 16
 row = 12
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_1luen"]
+[sub_resource type="Resource" id="Resource_wj5ug"]
 script = ExtResource("1_vcp3c")
 column = 11
 row = 27
 tool_id = "basher"
 
-[sub_resource type="Resource" id="Resource_8d32p"]
+[sub_resource type="Resource" id="Resource_gwbus"]
 script = ExtResource("1_vcp3c")
 column = 20
 row = 11
 tool_id = "digger"
 
-[sub_resource type="Resource" id="Resource_wj5ug"]
+[sub_resource type="Resource" id="Resource_60pc4"]
 script = ExtResource("1_vcp3c")
 column = 13
 row = 13
@@ -840,4 +857,5 @@ solution = Array[Dictionary]([{
 "why": ""
 }])
 tools_from_items = true
-items = Array[ExtResource("1_vcp3c")]([SubResource("Resource_vcp3c"), SubResource("Resource_61ofh"), SubResource("Resource_4va34"), SubResource("Resource_fi1yu"), SubResource("Resource_1luen"), SubResource("Resource_8d32p"), SubResource("Resource_wj5ug")])
+items = Array[ExtResource("1_vcp3c")]([SubResource("Resource_4va34"), SubResource("Resource_fi1yu"), SubResource("Resource_1luen"), SubResource("Resource_8d32p"), SubResource("Resource_wj5ug"), SubResource("Resource_gwbus"), SubResource("Resource_60pc4")])
+dig_drops = SubResource("Resource_61ofh")
