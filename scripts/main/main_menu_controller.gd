@@ -29,14 +29,11 @@ const TOOL_LEVEL_PATHS: Array[String] = [
 	"res://resources/levels/level_12_data.tres",
 	"res://resources/levels/level_13_data.tres",
 	"res://resources/levels/level_14_data.tres",
+	"res://resources/levels/level_15_data.tres",
+	"res://resources/levels/level_16_data.tres",
 ]
 
 const TITLE := "Lemmings-copy"
-const TITLE_FONT_SIZE := 56
-const TITLE_OUTLINE_SIZE := 10
-const TITLE_COLOUR := Color(1.0, 0.9, 0.55)
-const MODE_BUTTON_SIZE := Vector2(300, 52)
-const MODE_FONT_SIZE := 20
 const TOOL_COLUMNS := 6
 const SECTION_COLOUR := Color(1.0, 0.86, 0.45)
 const CORNER_MARGIN := 12
@@ -45,6 +42,9 @@ var _column: VBoxContainer
 
 
 func _ready() -> void:
+	# Back at the menu, no saved game is being played (the save button of a
+	# tool level must not write into the campaign's).
+	SaveSlots.close()
 	AudioManager.play_music_track(&"menu_theme")
 	add_child(LevelBackground.new())
 	var centre := CenterContainer.new()
@@ -57,7 +57,7 @@ func _ready() -> void:
 	_add_title()
 	var modes := _add_panel()
 	_add_mode_button(modes, "Tutorial", "editor_play", false, LevelLoader.load_level.bind(load(TUTORIAL_LEVEL_PATH)))
-	var campaign := _add_mode_button(modes, "Fases", "campaign", false, get_tree().change_scene_to_file.bind(Campaign.SELECT_SCENE_PATH))
+	var campaign := _add_mode_button(modes, "Fases", "campaign", false, func() -> void: CampaignMenu.open(get_tree(), false))
 	campaign.name = "CampaignButton"
 	for mode in MODES:
 		if ResourceLoader.exists(mode[1]):
@@ -71,37 +71,16 @@ func _ready() -> void:
 
 
 func _add_title() -> void:
-	var title := Label.new()
-	title.text = TITLE
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
-	title.add_theme_color_override("font_color", TITLE_COLOUR)
-	title.add_theme_constant_override("outline_size", TITLE_OUTLINE_SIZE)
-	_column.add_child(title)
+	_column.add_child(UiStyle.make_menu_title(TITLE))
 
 
 ## A wooden panel in the menu column, holding a column of its own.
 func _add_panel() -> VBoxContainer:
-	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_column.add_child(panel)
-	var margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 14)
-	panel.add_child(margin)
-	var inner := VBoxContainer.new()
-	inner.add_theme_constant_override("separation", 10)
-	margin.add_child(inner)
-	return inner
+	return UiStyle.add_menu_panel(_column)
 
 
 func _add_mode_button(parent: Container, text: String, icon_id: String, primary: bool, action: Callable) -> Button:
-	var button := UiStyle.make_text_button(text, primary)
-	button.icon = UiStyle.icon(icon_id)
-	button.custom_minimum_size = MODE_BUTTON_SIZE
-	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.add_theme_font_size_override("font_size", MODE_FONT_SIZE)
+	var button := UiStyle.make_menu_button(text, icon_id, primary)
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button

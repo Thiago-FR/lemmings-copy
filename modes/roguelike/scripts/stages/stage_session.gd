@@ -124,7 +124,7 @@ func _make_level_data() -> LevelData:
 	level_data.skill_counts = state.inventory.to_counts()
 	level_data.solution = definition.get_solution()
 	level_data.solution_note = _stage_note()
-	level_data.dig_drops = RoguelikeDigDrops.table()
+	level_data.dig_drops = RoguelikeDigDrops.table(state.get_relic_level(RoguelikeRelics.PROSPECTOR))
 	# In the log too: a stage someone got stuck in can be made again from
 	# its seed and number (tools/debug_stage.gd, check_stages.gd).
 	print("Roguelike: %s, '%s'" % [level_data.solution_note, definition.stage_name])

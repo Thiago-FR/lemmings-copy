@@ -24,6 +24,12 @@ enum State {
 	## current_skill, like the action tools. No tool can be handed over or
 	## take over meanwhile.
 	PERFORMING,
+	## Tying a rope to a ledge and letting it down (SkillRope).
+	ROPE_TYING,
+	## Sliding down a rope (LemmingController._try_grab_rope).
+	ROPE_SLIDING,
+	## Digging a staircase up into a wall (SkillDigStairs).
+	STAIR_DIGGING,
 }
 
 signal state_changed(previous_state: State, new_state: State)

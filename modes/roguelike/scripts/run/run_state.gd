@@ -77,6 +77,70 @@ static func new_run(character: StringName = RoguelikeCharacters.STARTER) -> Rogu
 	return state
 
 
+## The run as plain data, for a saved game (RoguelikeRunController keeps
+## it between stages). The stages are not in it: they are made again from
+## the seed.
+func to_dictionary() -> Dictionary:
+	var levels := {}
+	for relic_id in relic_levels:
+		levels[String(relic_id)] = int(relic_levels[relic_id])
+	return {
+		"seed_value": seed_value,
+		"use_handmade_stages": use_handmade_stages,
+		"character_id": String(character_id),
+		"troop": _strings(troop),
+		"fallen": _strings(fallen),
+		"unlocked_characters": _strings(unlocked_characters),
+		"relics": _strings(relics),
+		"relic_levels": levels,
+		"revive_tokens": revive_tokens,
+		"inventory": inventory.to_dictionary(),
+		"stage_index": stage_index,
+		"lemmings_saved_total": lemmings_saved_total,
+		"last_time_left": last_time_left,
+		"coins": coins,
+		"score": score,
+		"last_stage_perfect": last_stage_perfect,
+	}
+
+
+## A run as to_dictionary() wrote it.
+static func from_dictionary(data: Dictionary) -> RoguelikeRunState:
+	var state := RoguelikeRunState.new()
+	state.seed_value = int(data.seed_value)
+	state.use_handmade_stages = bool(data.get("use_handmade_stages", false))
+	state.character_id = StringName(data.character_id)
+	state.troop = _names(data.troop)
+	state.fallen = _names(data.fallen)
+	state.unlocked_characters = _names(data.unlocked_characters)
+	state.relics = _names(data.relics)
+	for relic_id in data.relic_levels:
+		state.relic_levels[StringName(relic_id)] = int(data.relic_levels[relic_id])
+	state.revive_tokens = int(data.revive_tokens)
+	state.inventory = ToolInventory.from_dictionary(data.inventory)
+	state.stage_index = int(data.stage_index)
+	state.lemmings_saved_total = int(data.lemmings_saved_total)
+	state.last_time_left = float(data.get("last_time_left", 0.0))
+	state.coins = int(data.coins)
+	state.score = int(data.score)
+	state.last_stage_perfect = bool(data.get("last_stage_perfect", false))
+	return state
+
+
+static func _strings(names: Array[StringName]) -> Array:
+	var result := []
+	for name in names:
+		result.append(String(name))
+	return result
+
+
+static func _names(strings: Array) -> Array[StringName]:
+	var result: Array[StringName] = []
+	for text in strings:
+		result.append(StringName(text))
+	return result
+
+
 ## The stage at stage_index: generated from the run's seed (harder with every
 ## stage) or hand-made, made the first time it is asked for.
 func get_stage_definition() -> RoguelikeStageDefinition:

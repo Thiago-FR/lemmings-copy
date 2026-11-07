@@ -1,29 +1,40 @@
 class_name EditorCounter
 extends HBoxContainer
 ## A named number with - and + buttons, clamped to [min_value, max_value],
-## led by an optional icon. Used by the editor for the lemming count and
-## each tool's count.
+## led by an optional icon. Used by the editor for the lemming count, each
+## tool's count and the chances of what broken blocks give (with a "%"
+## after the number and a bigger step).
 
 signal value_changed(new_value: int)
 
 const NAME_WIDTH := 104.0
 const BUTTON_WIDTH := 24.0
 const VALUE_WIDTH := 26.0
+## Room for "100%".
+const SUFFIXED_VALUE_WIDTH := 40.0
 
 var min_value: int = 0
 var max_value: int = 50
 var value: int = 0:
 	set = set_value
+## How much one press of - or + changes the value.
+var step: int = 1
+## Shown after the number ("%").
+var suffix: String = ""
 
 var _value_label: Label
 var _decrease_button: Button
 var _increase_button: Button
 
 
-func _init(display_name: String, initial_value: int, minimum: int, maximum: int, icon: Texture2D = null) -> void:
+func _init(display_name: String, initial_value: int, minimum: int, maximum: int, icon: Texture2D = null,
+		value_suffix: String = "", step_size: int = 1) -> void:
 	assert(minimum <= maximum, "EditorCounter needs minimum <= maximum")
+	assert(step_size > 0, "EditorCounter needs a positive step")
 	min_value = minimum
 	max_value = maximum
+	suffix = value_suffix
+	step = step_size
 	add_theme_constant_override("separation", 2)
 
 	# With an icon the name is only the tooltip: the user wants as little
@@ -44,11 +55,13 @@ func _init(display_name: String, initial_value: int, minimum: int, maximum: int,
 		add_child(name_label)
 
 	_decrease_button = _make_step_button("-", -1)
+	_decrease_button.name = "Decrease"
 	_value_label = Label.new()
-	_value_label.custom_minimum_size.x = VALUE_WIDTH
+	_value_label.custom_minimum_size.x = VALUE_WIDTH if suffix.is_empty() else SUFFIXED_VALUE_WIDTH
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_value_label)
 	_increase_button = _make_step_button("+", 1)
+	_increase_button.name = "Increase"
 
 	value = initial_value
 
@@ -59,18 +72,18 @@ func set_value(new_value: int) -> void:
 	value = clamped
 	if _value_label == null:
 		return
-	_value_label.text = str(value)
+	_value_label.text = str(value) + suffix
 	_decrease_button.disabled = value <= min_value
 	_increase_button.disabled = value >= max_value
 	if changed:
 		value_changed.emit(value)
 
 
-func _make_step_button(text: String, step: int) -> Button:
+func _make_step_button(text: String, direction: int) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size.x = BUTTON_WIDTH
 	button.focus_mode = Control.FOCUS_NONE
-	button.pressed.connect(func() -> void: value += step)
+	button.pressed.connect(func() -> void: value += direction * step)
 	add_child(button)
 	return button

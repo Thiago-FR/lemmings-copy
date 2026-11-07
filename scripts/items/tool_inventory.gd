@@ -95,6 +95,21 @@ func add_slot() -> void:
 	changed.emit()
 
 
+## Everything the bar holds, as plain data for a saved game.
+func to_dictionary() -> Dictionary:
+	return {"max_slots": max_slots, "slots": _slots.duplicate(true), "touch_counter": _touch_counter}
+
+
+## A bar as to_dictionary() wrote it.
+static func from_dictionary(data: Dictionary) -> ToolInventory:
+	var inventory := ToolInventory.new()
+	inventory.max_slots = int(data.get("max_slots", DEFAULT_MAX_SLOTS))
+	for slot: Dictionary in data.get("slots", []):
+		inventory._slots.append({"id": String(slot.id), "charges": int(slot.charges), "touched": int(slot.touched)})
+	inventory._touch_counter = int(data.get("touch_counter", 0))
+	return inventory
+
+
 ## Charges per tool id, the shape LevelData.skill_counts uses.
 func to_counts() -> Dictionary:
 	var counts := {}

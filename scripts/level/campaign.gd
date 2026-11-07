@@ -1,8 +1,13 @@
 class_name Campaign
 extends RefCounted
 ## The campaign ("Fases"): its levels in order, and the player's progress
-## through them, saved in user://campaign.cfg. The first level is always
-## open; winning a level clears it and opens the next one.
+## through them. The first level is always open; winning a level clears it
+## and opens the next one.
+##
+## Progress is a saved game (SaveSlots, mode SAVE_MODE): opening a slot
+## (use_save_slot) points save_path at that game's working copy, and every
+## win asks for an automatic save. Before there were slots it lived in
+## user://campaign.cfg, which becomes slot 1 (adopt_legacy_save).
 ##
 ## Every level is drawn by hand (tools/campaign/level_NN.gd, written into the
 ## game by tools/build_handmade_campaign.tscn), numbered from 1; everything
@@ -12,6 +17,9 @@ extends RefCounted
 const LEVEL_COUNT := 33
 const LEVEL_DATA_PATH := "res://resources/levels/campaign/campaign_%02d_data.tres"
 const SAVE_PATH := "user://campaign.cfg"
+## The campaign's id among the saved games, and its file in a game.
+const SAVE_MODE := "campaign"
+const SAVE_FILE := "campaign.cfg"
 ## The level select screen.
 const SELECT_SCENE_PATH := "res://scenes/ui/campaign_select.tscn"
 ## The congratulations and credits, after the last level.
@@ -77,12 +85,38 @@ static func best_percentage(index: int) -> float:
 	return float(_load().get_value(SECTION, _key(index), 0.0))
 
 
-## Records a win, keeping the best percentage.
+## Records a win, keeping the best percentage, and saves the game (unless
+## the player turned the automatic save off).
 static func record_win(index: int, percentage_saved: float) -> void:
 	var config := _load()
 	var best := maxf(float(config.get_value(SECTION, _key(index), 0.0)), percentage_saved)
 	config.set_value(SECTION, _key(index), best)
 	config.save(save_path)
+	if SaveSlots.is_active(SAVE_MODE):
+		SaveSlots.auto_save()
+
+
+## Plays a saved game: its progress becomes the campaign's.
+static func use_save_slot(slot: int) -> void:
+	# First: a new game is saved as it opens, and its summary reads this.
+	save_path = SaveSlots.working_path(SAVE_FILE, SAVE_MODE)
+	SaveSlots.open(SAVE_MODE, slot, summary)
+
+
+## The progress kept before there were saved games becomes slot 1, once.
+static func adopt_legacy_save() -> void:
+	var kept_path := save_path
+	save_path = SAVE_PATH
+	var line := summary()
+	save_path = kept_path
+	SaveSlots.adopt_legacy_file(SAVE_MODE, SAVE_PATH, SAVE_FILE, line)
+
+
+## The game's line in the saved games list: the level reached.
+static func summary() -> String:
+	if is_complete():
+		return "Todas as %d fases vencidas" % LEVEL_COUNT
+	return "Fase %d de %d" % [current_index() + 1, LEVEL_COUNT]
 
 
 static func has_next(index: int) -> bool:

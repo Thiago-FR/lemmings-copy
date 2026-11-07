@@ -320,6 +320,51 @@ def icon_bridge():
     return outline(image)
 
 
+def icon_rope():
+    """Rope: a stake on a grassy ledge at the top left, the rope coiling
+    down past the ledge's edge to a knot near the bottom, with an arrow
+    pointing down (it is only for going down)."""
+    image = new()
+    grass_top(image, 0, 13, 6)
+    earth_fill(image, 0, 11, 13, 31, 21)
+    rect(image, 9, 1, 11, 7, WOOD_DARK)
+    put(image, 10, 1, WOOD_LIGHT)
+    # The rope: out over the edge, then down with a gentle sway.
+    line(image, (11, 4), (17, 6), CREAM_DARK, 2)
+    for y in range(6, 27):
+        x = 17 + round(1.2 * math.sin(y / 3.0))
+        put(image, x, y, CREAM)
+        put(image, x + 1, y, CREAM_DARK)
+        if y % 3 == 0:
+            put(image, x, y, CREAM_DARK)
+    disc(image, 17.5, 27.5, 2.0, WOOD)
+    # Arrow down, on the open side.
+    vline(image, 26, 10, 22, YELLOW)
+    for i in range(4):
+        hline(image, 26 - i, 26 + i, 22 - i, YELLOW)
+    return outline(image)
+
+
+def icon_dig_stairs():
+    """Digging stairs: a block of earth with a staircase carved up through
+    it from the bottom left to the top right (each step a pale tread under a
+    dark opening), and a pickaxe on the top step, still digging."""
+    image = new()
+    grass_top(image, 0, 31, 3)
+    earth_fill(image, 0, 8, 31, 31, 31)
+    step_width = 7
+    for index in range(5):
+        x0 = index * 6
+        floor_y = 29 - index * 5
+        rect(image, x0, floor_y - 10, x0 + step_width, floor_y - 1, rgb("#2a1a12"))
+        hline(image, x0, x0 + step_width, floor_y, EARTH_LIGHT)
+        hline(image, x0, x0 + step_width, floor_y + 1, EARTH_MID)
+    # Pickaxe swinging into the rock at the top of the stairs.
+    line(image, (21, 12), (26, 7), WOOD, 2)
+    line(image, (24, 3), (29, 9), METAL, 2)
+    put(image, 25, 4, METAL_SHINE)
+    return outline(image)
+
 def icon_floater():
     """Parachute, striped cream and red like the float animation, with a
     tiny hooded wizard hanging from four cords."""
@@ -1275,6 +1320,75 @@ def level_save():
     return outline(image)
 
 
+def item_bag():
+    """The bag found in a broken block: a leather pouch tied with a gold
+    cord, one more charge of every tool."""
+    image = new()
+    disc(image, 15.5, 20, 10, LEATHER)
+    polygon(image, [(10, 6), (21, 6), (19, 12), (12, 12)], LEATHER)
+    rect(image, 9, 4, 22, 6, LEATHER_DARK)
+    hline(image, 10, 21, 4, LEATHER)
+    hline(image, 11, 20, 12, YELLOW)
+    hline(image, 11, 20, 13, ORANGE)
+    disc(image, 15.5, 13, 1.5, YELLOW_LIGHT)
+    for y in range(32):
+        for x in range(32):
+            if image.getpixel((x, y)) == LEATHER and y > 14 and (x - 15.5) + (y - 20) > 6:
+                put(image, x, y, LEATHER_DARK)
+    line(image, (9, 17), (10, 23), rgb("#8a5636"), 1)
+    return outline(image)
+
+
+def item_tool_charge():
+    """One more charge of a tool in the bar: the shovel with a green plus."""
+    image = icon_digger()
+    rect(image, 21, 18, 30, 30, CLEAR)
+    rect(image, 24, 19, 27, 30, GRASS)
+    rect(image, 20, 23, 31, 26, GRASS)
+    vline(image, 24, 19, 30, GRASS_LIGHT)
+    hline(image, 20, 31, 23, GRASS_LIGHT)
+    for x, y in ((24, 18), (27, 18), (19, 23), (19, 26), (24, 31), (27, 31)):
+        put(image, x, y, OUTLINE)
+    return image
+
+
+def dig_drops():
+    """What broken blocks can give: an earth block split open, a gold
+    sparkle jumping out of it."""
+    image = new()
+    earth_fill(image, 3, 17, 28, 29, 41)
+    hline(image, 3, 28, 17, EARTH_LIGHT)
+    hline(image, 3, 28, 29, EARTH_DARK)
+    # The crack the find came out of.
+    polygon(image, [(13, 17), (19, 17), (17, 22), (15, 21)], CLEAR)
+    line(image, (16, 21), (14, 26), EARTH_DARK, 1)
+    star = []
+    for index in range(8):
+        radius = 8 if index % 2 == 0 else 3
+        angle = math.radians(-90 + index * 45)
+        star.append((16 + radius * math.cos(angle), 9 + radius * math.sin(angle)))
+    polygon(image, star, YELLOW)
+    disc(image, 16, 9, 2, YELLOW_LIGHT)
+    for x, y in ((6, 6), (26, 5), (24, 13), (7, 13)):
+        put(image, x, y, YELLOW_LIGHT)
+    return outline(image)
+
+
+def drops_none():
+    """Nothing comes out of the blocks: the earth block, crossed out."""
+    image = new()
+    earth_fill(image, 5, 5, 26, 26, 43)
+    hline(image, 5, 26, 5, EARTH_LIGHT)
+    hline(image, 5, 26, 26, EARTH_DARK)
+    outline(image)
+    for y in range(32):
+        for x in range(32):
+            dist = math.hypot(x - 15.5, y - 15.5)
+            if 11 <= dist <= 14 or (dist < 12 and abs((x - 15.5) - (y - 15.5)) <= 1.6):
+                put(image, x, y, RED)
+    return outline(image)
+
+
 THEME_PIECES = {
     **{name: (lambda state=name: theme_button(state)) for name in BUTTON_STATES},
     "check_on": lambda: theme_check(True),
@@ -1361,6 +1475,8 @@ TOOL_ICONS = {
     "tnt": icon_tnt,
     "basher": icon_basher,
     "miner": icon_miner,
+    "rope": icon_rope,
+    "dig_stairs": icon_dig_stairs,
 }
 
 EDITOR_ICONS = {
@@ -1400,6 +1516,10 @@ EDITOR_ICONS = {
     "procedural": procedural,
     "level_new": level_new,
     "editor_turn": editor_turn,
+    "item_bag": item_bag,
+    "item_tool_charge": item_tool_charge,
+    "dig_drops": dig_drops,
+    "drops_none": drops_none,
 }
 
 

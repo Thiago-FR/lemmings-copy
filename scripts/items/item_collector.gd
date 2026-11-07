@@ -8,6 +8,10 @@ extends Node
 ##
 ## The core applies tools, hourglasses and bags itself. Any other kind is
 ## announced through item_collected for whoever knows what it does.
+##
+## A level with the classic fixed bar (LevelData.drops_on_fixed_bar) gets
+## one too, for what turns up in broken blocks: the fixed bar (SkillPanel)
+## stays, and the inventory only keeps its charges in step.
 
 signal item_collected(spec: ItemSpec, lemming: LemmingController, where: Vector2)
 
@@ -30,13 +34,18 @@ func _init(level: LevelManager) -> void:
 
 
 func _ready() -> void:
+	var fixed_bar := not _level.level_data.tools_from_items
+	if fixed_bar:
+		# Every tool offered keeps its slot: none is ever pushed out.
+		inventory.max_slots = maxi(inventory.max_slots, _level.level_data.available_skills.size())
 	for tool_id in _level.level_data.skill_counts:
 		var charges := int(_level.level_data.skill_counts[tool_id])
 		if charges > 0:
 			inventory.add_charges(tool_id, charges)
 	for spec in _level.level_data.items:
 		add_item(spec)
-	_level.add_child.call_deferred(ToolInventoryBar.new(inventory))
+	if not fixed_bar:
+		_level.add_child.call_deferred(ToolInventoryBar.new(inventory))
 	inventory.changed.connect(_sync_charges)
 	if _level.dig_dropper != null:
 		_level.dig_dropper.inventory = inventory

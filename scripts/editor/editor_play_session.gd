@@ -19,8 +19,9 @@ const TIME_LIMIT_SECONDS := 99 * 60
 
 
 ## The LevelData a test run uses: every registered tool is offered, with the
-## counts chosen in the editor.
-static func make_level_data(lemming_count: int, skill_counts: Dictionary, scene_path: String) -> LevelData:
+## counts chosen in the editor, and broken blocks give what the drawing's
+## table says (null: nothing), handed out by the core on the fixed bar.
+static func make_level_data(lemming_count: int, skill_counts: Dictionary, scene_path: String, dig_drops: DigDropTable = null) -> LevelData:
 	assert(lemming_count > 0, "A test run needs at least one lemming")
 	var level_data := LevelData.new()
 	level_data.level_name = LEVEL_NAME
@@ -31,6 +32,8 @@ static func make_level_data(lemming_count: int, skill_counts: Dictionary, scene_
 	level_data.available_skills = SkillManager.get_skill_ids()
 	level_data.skill_counts = skill_counts.duplicate()
 	level_data.scene_path = scene_path
+	level_data.dig_drops = dig_drops.copy() if dig_drops != null else null
+	level_data.drops_on_fixed_bar = true
 	return level_data
 
 

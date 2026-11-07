@@ -29,3 +29,8 @@ extends Resource
 @export var items: Array[ItemSpec] = []
 ## What breaking a block can give (DigDropper); null: nothing ever turns up.
 @export var dig_drops: DigDropTable = null
+## A level with the classic fixed bar (tools_from_items false) whose finds
+## the core hands out itself (ItemCollector): charges go to the bar's tools,
+## the hourglass to the clock, the bag to every tool. False leaves them to
+## whoever set the table (a game mode's own session).
+@export var drops_on_fixed_bar: bool = false

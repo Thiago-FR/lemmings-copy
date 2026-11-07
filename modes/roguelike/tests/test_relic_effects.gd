@@ -3,13 +3,15 @@ extends Node
 ##   godot --headless res://modes/roguelike/tests/test_relic_effects.tscn
 ## Exits 0 when every check passes, 1 otherwise.
 ##
-## Checked, with Quick step II, Hourglass I, Spare parachute II, Collector I
-## and Greed II:
+## Checked, with Quick step II, Hourglass I, Spare parachute II, Collector I,
+## Greed II and Prospector II:
 ##   - the stage clock has the Hourglass's extra seconds;
 ##   - every lemming walks 30% faster;
 ##   - the first two lemmings come out with a parachute, the third without;
 ##   - a tool item gives its charge plus the Collector's;
 ##   - a coin item gives its coins plus the Greed's;
+##   - broken blocks give items more often (Prospector), on top of the
+##     table the developer may have tuned;
 ##   - the relic bar shows a slot per relic, with its level.
 
 const TROOP_SIZE := 3
@@ -35,12 +37,19 @@ func _ready() -> void:
 	state.add_relic(RoguelikeRelics.COLLECTOR)
 	state.add_relic(RoguelikeRelics.GREED)
 	state.add_relic(RoguelikeRelics.GREED)
+	state.add_relic(RoguelikeRelics.PROSPECTOR)
+	state.add_relic(RoguelikeRelics.PROSPECTOR)
 	var session := RoguelikeStageSession.new()
 	session.state = state
 	add_child(session)
 
 	var expected_time := state.get_stage_definition().time_limit_seconds + RoguelikeRelics.SECONDS_PER_LEVEL
 	_expect(session.level_manager.level_data.time_limit_seconds == expected_time, "the stage has %d s, expected %d with the Hourglass" % [session.level_manager.level_data.time_limit_seconds, expected_time])
+
+	var base := RoguelikeDigDrops.load_from()
+	var drops := session.level_manager.level_data.dig_drops
+	_expect(drops != null and is_equal_approx(drops.earth_chance, minf(base.earth_chance + 2 * RoguelikeDigDrops.PROSPECTOR_EARTH_PER_LEVEL, 1.0)), "earth does not give items more often with Prospector II")
+	_expect(drops != null and is_equal_approx(drops.concrete_chance, minf(base.concrete_chance + 2 * RoguelikeDigDrops.PROSPECTOR_CONCRETE_PER_LEVEL, 1.0)), "concrete does not give items more often with Prospector II")
 
 	await get_tree().create_timer(WAIT_FOR_THREE_SECONDS).timeout
 	var lemmings := get_tree().root.find_children("*", "CharacterBody2D", true, false)

@@ -75,6 +75,43 @@ Para blocos de terreno e ícones simples.
   sobe, para a túnica não descolar dos pés, que só tremem para os lados), a
   ponta da broca entra e sai uma célula em volta da borda direita da
   colisão e solta poeira da parede. Braço curto, do ombro até a pega.
+- Descer a corda (`build_rope_frames.py` → `rope_slide_0..3`, 250x390):
+  de costas como `ladder`, os braços sobem pelos lados da cabeça e as mãos
+  seguram a corda acima dela, uma sobre a outra, trocando a cada quadro. As
+  mãos ficam na linha da corda (centro da colisão, 1 px à direita do centro
+  do quadro); a corda em si é o nó `Rope`, desenhado atrás do boneco.
+- Montar (`build_construction_frames.py`): escada vertical
+  (`ladder_fit_0..3`), escada diagonal (`stair_lay_0..3`) e ponte
+  (`bridge_lay_0..3`). A peça desenhada é a própria arte do terreno
+  (`ladder.png`, `brick.png`) ampliada e posta **exatamente onde a peça de
+  verdade aparece** quando a ferramenta a coloca, então ela vira a peça real
+  sem pulo. Por isso esses quadros são maiores (peças saem do quadro de
+  250): `ladder_fit_*` 250x642 (o segmento fica na célula de cima),
+  `*_lay_*` 642x348 (a tábua fica à frente e, na ponte, abaixo dos pés),
+  sempre com o espaço extra igual dos dois lados, como o paraquedas.
+  - Escada vertical, de costas como `ladder`: puxa o segmento da mochila
+    (sai por trás do capuz), levanta acima da cabeça, empurra até o lugar e
+    encaixa, com poeira na emenda. Mãos nos trilhos.
+  - Escada diagonal e ponte, de lado: abaixa sobre o lugar da peça, assenta
+    a tábua, levanta um martelinho (cabo de madeira, cabeça cinza de 4x2
+    células), bate no prego da ponta perto (poeira) e levanta de novo. Na
+    ponte a tábua fica abaixo da linha dos pés, então ajoelha mais fundo
+    (o manto do mago cobre os pés; os outros dobram as pernas por uma fração
+    do comprimento e inclinam o tronco pelos quadris). O corpo é o mesmo nos
+    quatro quadros: só braço, martelo, tábua e poeira mudam (sem tremida).
+  - Animações `ladder_place`, `build` e `bridge` (12 fps), cada uma com os 4
+    quadros de trabalho seguidos dos quadros de mover (subir: `climb_aligned`
+    ×2; andar: `walk_aligned` ×2, ambos no ritmo de 8 fps das originais). A
+    duração dos quadros de trabalho bate com o tempo da ferramenta (0,35 s
+    por segmento; 0,3 s por tábua). Como o tempo de mover muda de peça para
+    peça, cada ferramenta chama `SkillAnimation.hold` a cada quadro com a
+    fase em que está (trabalhando ou movendo), que põe a animação no começo
+    da faixa certa quando ela está fora dela.
+  - Conferir no jogo: `godot --path . --windowed --resolution 1280x720
+    res://tools/capture_construction.tscn -- <pasta> [personagens...]` salva
+    uma folha por personagem e ferramenta em 4x, 16 momentos seguidos
+    começando no trabalho da segunda peça (as de referência estão em
+    `prints/animacoes/`).
 - As funções em comum desses três (corpo sem a mão, separar os pés, braço
   com mão e garras, girar um ponto junto com o corpo) estão em
   `wizard_art.py`.
@@ -272,6 +309,10 @@ de colisão de 26x30:
   achata —, e os dois braços vão às mãos no cabo.
 - `climb_aligned_*` (de costas, escada vertical): as mãos se revezam
   pegando o degrau acima da cabeça, com o pé do outro lado levantado.
+- `ladder_fit_*`, `stair_lay_*`, `bridge_lay_*`: as mesmas poses, peças e
+  martelo do mago (lidos de `build_construction_frames.py`); só os braços
+  saem dos ombros de cada um (de costas, dos dois ombros; de lado, do ombro
+  da frente).
 - `climb_side_*`, `pickaxe_*`, `jackhammer_*`, `float_*`: mesma inclinação,
   recuo, tremida e balanço do mago. A inclinação é feita deslocando linhas
   inteiras de células (não girando a imagem), para as bordas continuarem

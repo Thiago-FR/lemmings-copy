@@ -41,6 +41,7 @@ func read(index: int) -> Dictionary:
 func write(index: int, drawing: Dictionary) -> String:
 	var path := _path(index)
 	var backup := _back_up_files(index, [path])
+	list_backups(index)
 	DirAccess.make_dir_recursive_absolute(directory)
 	var file := LevelDrawing.from_dictionary(drawing)
 	if ResourceSaver.save(file, path) != OK:

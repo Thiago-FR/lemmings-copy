@@ -7,13 +7,18 @@ extends RefCounted
 ## extending this class (the core never names a mode).
 ##
 ## Saving over a slot backs up what was there first, so any version can be
-## opened again (list_backups / read_backup) and saved back.
+## opened again (list_backups / read_backup) and saved back. Only the newest
+## MAX_BACKUPS of a slot are kept (keep_newest_backups): every save made a
+## new one, and a slot saved often listed so many the list ran off the
+## screen.
 
 const MODES_DIRECTORY := "res://modes/"
 const MODE_COLLECTION_FILE := "level_collection.gd"
 const BACKUP_ROOT := "user://level_backups/"
 ## Tests point it elsewhere.
 static var backup_root := BACKUP_ROOT
+## Backups kept per slot; older ones are deleted.
+const MAX_BACKUPS := 5
 
 
 ## Every collection the editor can use now (some only in developer mode).
@@ -69,9 +74,18 @@ func write(_index: int, _drawing: Dictionary) -> String:
 	return ""
 
 
-## Backups of a slot, newest first: [{"folder", "label"}].
+## Backups of a slot, newest first: [{"folder", "label"}]. Older ones than
+## the newest MAX_BACKUPS are deleted on the way.
 func list_backups(index: int) -> Array[Dictionary]:
-	return _list_backups_in(_backup_directory(index))
+	return keep_newest_backups(_list_backups_in(_backup_directory(index)))
+
+
+## Deletes the backup folders past the newest MAX_BACKUPS of a list sorted
+## newest first, and returns the ones kept.
+static func keep_newest_backups(backups: Array[Dictionary]) -> Array[Dictionary]:
+	for index in range(MAX_BACKUPS, backups.size()):
+		FolderUtils.delete_folder(String(backups[index].folder))
+	return backups.slice(0, MAX_BACKUPS)
 
 
 func read_backup(_folder: String) -> Dictionary:
@@ -96,17 +110,31 @@ func _back_up_files(index: int, paths: Array[String]) -> String:
 	if existing.is_empty():
 		return ""
 	var stamp := Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_")
-	var folder := _backup_directory(index).path_join(stamp)
-	var repeat := 2
-	while DirAccess.dir_exists_absolute(folder):
-		folder = _backup_directory(index).path_join("%s_%d" % [stamp, repeat])
-		repeat += 1
+	var folder := _backup_directory(index).path_join(_new_backup_name(index, stamp))
 	if DirAccess.make_dir_recursive_absolute(folder) != OK:
 		return ""
 	for path in existing:
 		if DirAccess.copy_absolute(path, folder.path_join(path.get_file())) != OK:
 			return ""
 	return folder
+
+
+## A folder name that sorts after every backup of the slot: the stamp, or
+## for a second save within the same second the stamp and a number past
+## the highest one there. Reusing a free name instead ("stamp" again once
+## the oldest backups were deleted) sorted the newest backup as the oldest,
+## and it was the next one deleted.
+func _new_backup_name(index: int, stamp: String) -> String:
+	var directory := _backup_directory(index)
+	if not DirAccess.dir_exists_absolute(directory):
+		return stamp
+	var highest := -1
+	for folder in DirAccess.get_directories_at(directory):
+		if folder == stamp:
+			highest = maxi(highest, 1)
+		elif folder.begins_with(stamp + "_"):
+			highest = maxi(highest, folder.trim_prefix(stamp + "_").to_int())
+	return stamp if highest < 0 else "%s_%03d" % [stamp, highest + 1]
 
 
 static func _list_backups_in(directory: String) -> Array[Dictionary]:

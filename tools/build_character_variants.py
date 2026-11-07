@@ -41,11 +41,13 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import build_climb_frames as climb_frames  # noqa: E402
+import build_construction_frames as construction_frames  # noqa: E402
 import build_death_frames as death_frames  # noqa: E402
 import build_dig_frames as dig_frames  # noqa: E402
 import build_float_frames as float_frames  # noqa: E402
 import build_jackhammer_frames as jackhammer_frames  # noqa: E402
 import build_pickaxe_frames as pickaxe_frames  # noqa: E402
+import build_rope_frames as rope_frames  # noqa: E402
 import wizard_art  # noqa: E402
 from character_designs import DESIGNS, FLOOR_ROW, OUTLINE  # noqa: E402
 from wizard_art import ART_PIXEL, ArtCanvas, rotate_point  # noqa: E402
@@ -410,6 +412,92 @@ def jackhammer_frame(design, index):
     return image
 
 
+def padded(image, size, pad):
+    """The 250 frame on a larger canvas, offset by pad (see
+    build_construction_frames: padding both sides keeps the body where the
+    other frames have it)."""
+    frame = Image.new("RGBA", size, (0, 0, 0, 0))
+    frame.alpha_composite(image, pad)
+    return frame
+
+
+def ladder_fit_frame(design, index):
+    """Back view, pulling a ladder segment out of the backpack and fitting it
+    on the cell above (poses from build_construction_frames)."""
+    pose = construction_frames.LADDER_FRAMES[index]
+    pad_y = construction_frames.LADDER_PAD_Y
+    frame = construction_frames.ladder_segment(pose["bottom"])
+    frame.alpha_composite(to_pixels(body(design, "back", ((0, 0), (0, 0)))), (0, pad_y))
+    # The hands reach above the 250 frame, so the arms are drawn on the
+    # padded frame's rows: everything moves down by the padding.
+    pad_rows = pad_y // ART_PIXEL
+    height = construction_frames.LADDER_FRAME[1]
+    rows = -(-height // ART_PIXEL)
+    arms = blank(rows)
+    for shoulder, hand in zip(design.back_shoulders, construction_frames.ladder_hands(pose["bottom"])):
+        over(arms, arm(design, offset(shoulder, 0, pad_rows), offset(to_cell(hand), 0, pad_rows), rows=rows))
+    frame.alpha_composite(to_pixels(arms, height))
+    if pose["dust"]:
+        canvas = construction_frames.PaddedCanvas(construction_frames.LADDER_FRAME)
+        construction_frames.ladder_dust(canvas, pad_y)
+        frame.alpha_composite(canvas.to_image())
+    return frame
+
+
+def rope_slide_frame(design, index):
+    """Back view, the arms straight up past the head and both hands on the
+    rope above it, one over the other, the legs crossed in around it (poses
+    from build_rope_frames)."""
+    pose = rope_frames.FRAMES[index]
+    feet = [(rope_frames.FEET_IN, 0), (-rope_frames.FEET_IN, 0)]
+    raised = pose["raised_foot"]
+    feet[raised] = (feet[raised][0], -1)
+    image = to_pixels(body(design, "back", tuple(feet), variant=index))
+    head_top_row = wizard_art.occupied_box(image)[1] // ART_PIXEL
+    frame = padded(image, rope_frames.FRAME, (0, rope_frames.PAD_Y))
+    pad_rows = rope_frames.PAD_CELLS
+    rows = -(-rope_frames.FRAME[1] // ART_PIXEL)
+    arms = blank(rows)
+    for side in rope_frames.drawing_order(pose):
+        shoulder = design.back_shoulders[side]
+        elbow, hand = rope_frames.arm_points(shoulder, head_top_row, pose["hands"][side])
+        over(arms, arm(design, offset(shoulder, 0, pad_rows), offset(elbow, 0, pad_rows), rows=rows, draw_hand=False))
+        over(arms, arm(design, offset(elbow, 0, pad_rows), offset(hand, 0, pad_rows), rows=rows))
+    frame.alpha_composite(to_pixels(arms, rope_frames.FRAME[1]))
+    return frame
+
+
+def lay_frame(design, index, surface, stance):
+    """Side view, bent over the spot in front, setting a plank down and
+    hammering it (poses from build_construction_frames)."""
+    pose = construction_frames.LAY_FRAMES[index]
+    leg_rows = FLOOR_ROW - design.side_hips[0][1]
+    crouch, lean = round(leg_rows * stance["leg_share"]), stance["body_lean"]
+    pad = (construction_frames.PLANK_PAD_X, construction_frames.PLANK_PAD_Y)
+    size = construction_frames.PLANK_FRAME
+    layer = body(design, "side", ((-2, 0), (1, 0)), dy=crouch, lean=lean)
+    frame = padded(to_pixels(layer), size, pad)
+    frame.alpha_composite(construction_frames.plank(surface, pose["lift"]))
+    canvas = construction_frames.PaddedCanvas(size)
+    hand = construction_frames.lay_tool(canvas, surface, pose)
+    canvas.outline()
+    frame.alpha_composite(canvas.to_image())
+    hips_row = design.side_hips[0][1] + crouch
+    shoulder = shear_point(offset(design.side_front_shoulder, 0, crouch), lean, hips_row)
+    hand_cell = to_cell((hand[0] - pad[0], hand[1] - pad[1]))
+    frame.alpha_composite(padded(to_pixels(arm(design, shoulder, hand_cell)), size, pad))
+    frame.alpha_composite(construction_frames.lay_dust(surface, pose))
+    return frame
+
+
+def stair_lay_frame(design, index):
+    return lay_frame(design, index, construction_frames.STAIR_SURFACE, construction_frames.STAIR_STANCE)
+
+
+def bridge_lay_frame(design, index):
+    return lay_frame(design, index, construction_frames.BRIDGE_SURFACE, construction_frames.BRIDGE_STANCE)
+
+
 _CANOPY = []
 
 
@@ -488,6 +576,10 @@ BUILDERS = {
     "pickaxe": pickaxe_frame,
     "jackhammer": jackhammer_frame,
     "float": float_frame,
+    "ladder_fit": ladder_fit_frame,
+    "stair_lay": stair_lay_frame,
+    "bridge_lay": bridge_lay_frame,
+    "rope_slide": rope_slide_frame,
 }
 
 

@@ -53,10 +53,17 @@ const STATE_ANIMATIONS := {
 	LemmingStateMachine.State.FLOATING: &"float",
 	LemmingStateMachine.State.MINING: &"pickaxe",
 	LemmingStateMachine.State.BASHING: &"jackhammer",
-	# Back view, which shows the backpack the ladder comes out of. Stands in
-	# for a dedicated "pulling the ladder out" animation until that exists.
-	LemmingStateMachine.State.LADDER_PLACING: &"ladder",
+	# The construction tools keep their animation in step with what they
+	# are doing (SkillAnimation), so these names match their ANIMATION.
+	LemmingStateMachine.State.LADDER_PLACING: &"ladder_place",
+	LemmingStateMachine.State.BUILDING: &"build",
+	LemmingStateMachine.State.BRIDGING: &"bridge",
 	LemmingStateMachine.State.LADDER_CLIMBING: &"ladder",
+	LemmingStateMachine.State.STAIR_DIGGING: &"pickaxe",
+	# Tying still borrows the back view of the ladder; sliding has its own
+	# (tools/build_rope_frames.py).
+	LemmingStateMachine.State.ROPE_TYING: &"ladder",
+	LemmingStateMachine.State.ROPE_SLIDING: &"rope_slide",
 }
 const DEFAULT_ANIMATION := &"walk"
 ## States of a tool in use that a newer tool can interrupt (assign_skill).
@@ -68,6 +75,8 @@ const TAKE_OVER_STATES: Array[LemmingStateMachine.State] = [
 	LemmingStateMachine.State.MINING,
 	LemmingStateMachine.State.LADDER_PLACING,
 	LemmingStateMachine.State.BRIDGING,
+	LemmingStateMachine.State.ROPE_TYING,
+	LemmingStateMachine.State.STAIR_DIGGING,
 ]
 
 ## Walking into an exit (enter_exit): the back view it turns to, how small
@@ -126,6 +135,8 @@ var is_entering_exit: bool = false
 var has_floater_skill: bool = false
 
 var _fall_start_y: float = 0.0
+## The rope being slid down (ROPE_SLIDING).
+var _rope: Rope = null
 ## While stepping from the top of a ladder or a climbed wall onto the ground
 ## beside it: which way, and how many pixels of the step are left. Zero when
 ## not stepping.
@@ -303,6 +314,9 @@ func _physics_process(delta: float) -> void:
 		LemmingStateMachine.State.LADDER_CLIMBING:
 			_process_ladder_climbing(delta)
 			uses_physics_movement = false
+		LemmingStateMachine.State.ROPE_SLIDING:
+			_process_rope_sliding(delta)
+			uses_physics_movement = false
 		_:
 			_process_skill(delta)
 			uses_physics_movement = false
@@ -332,7 +346,7 @@ func _update_animation() -> void:
 
 func _process_falling() -> void:
 	velocity.x = 0.0
-	if _try_grab_ladder():
+	if _try_grab_ladder() or _try_grab_rope():
 		return
 	if is_on_floor():
 		_land()
@@ -574,6 +588,49 @@ func _try_grab_ladder() -> bool:
 	velocity = Vector2.ZERO
 	state_machine.change_state(LemmingStateMachine.State.LADDER_CLIMBING)
 	return true
+
+
+## A falling lemming whose body reaches a rope takes hold of it and slides
+## down (see Rope): walking off the ledge a rope hangs from is how everyone
+## after the one who tied it gets down.
+func _try_grab_rope() -> bool:
+	var rope := terrain.rope_reachable_by(get_body_rect())
+	if rope == null:
+		return false
+	_rope = rope
+	global_position.x += rope.get_top().x - get_body_rect().get_center().x
+	velocity = Vector2.ZERO
+	state_machine.change_state(LemmingStateMachine.State.ROPE_SLIDING)
+	return true
+
+
+## Slides down until the feet touch ground, then walks on from there (the
+## slide is not a fall: nobody dies of it). Past the rope's end, it lets go
+## and falls the rest of the way, the fall counted from there.
+func _process_rope_sliding(delta: float) -> void:
+	velocity = Vector2.ZERO
+	if not is_instance_valid(_rope) or get_body_rect().get_center().y >= _rope.get_bottom().y:
+		_rope = null
+		_start_falling()
+		return
+	if _has_terrain_under_body():
+		_rope = null
+		_fall_start_y = position.y
+		state_machine.change_state(LemmingStateMachine.State.WALKING)
+		return
+	global_position.y += minf(Constants.ROPE_SLIDE_SPEED * delta, _distance_to_ground_below())
+
+
+## How far the feet are above the ground right under them, up to a cell.
+func _distance_to_ground_below() -> float:
+	const PROBE_INSET := 0.5
+	var body := get_body_rect()
+	var reach := int(terrain.get_cell_size().y)
+	for drop in range(1, reach):
+		for x in [body.position.x + PROBE_INSET, body.get_center().x, body.end.x - PROBE_INSET]:
+			if terrain.is_solid_at(Vector2(x, body.end.y + drop - PROBE_INSET)):
+				return float(drop) - PROBE_INSET
+	return float(reach)
 
 
 ## Climbs straight up until the feet clear the top rung, then steps off to

@@ -9,6 +9,8 @@ extends RoguelikeOverlayScreen
 
 signal character_chosen(character_id: StringName)
 signal developer_requested
+## The Menu button: back to the mode's menu.
+signal menu_requested
 
 const CARD_WIDTH := 190.0
 const PORTRAIT_SIZE := Vector2(128, 128)
@@ -35,7 +37,7 @@ func _init(profile: RoguelikeProfile) -> void:
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_child(_cards)
 	var buttons: Array = [
-		["editor_menu", "Menu", GameManager.go_to_main_menu, "Menu"],
+		["editor_menu", "Menu", menu_requested.emit, "Menu"],
 		["compendium", "Compêndio", open_compendium, "Compendium"],
 		["trophy", "Ranking", _open_ranking, "Ranking"],
 	]

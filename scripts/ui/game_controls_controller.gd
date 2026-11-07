@@ -7,7 +7,10 @@ extends HBoxContainer
 ##
 ## Keyboard shortcuts do the same: P pauses, R restarts, Esc goes back to
 ## the menu. Config opens the settings screen (volumes; M, handled by
-## AudioManager, mutes). Not Space: it already presses whichever button has focus.
+## AudioManager, mutes). Not Space: it already presses whichever button
+## has focus. Menu and Esc open the game's menu over the paused level
+## (continue, save and load in the campaign, settings, main menu); a saved
+## game loaded starts its level over.
 
 @onready var _pause_button: Button = $PauseButton
 @onready var _restart_button: Button = $RestartButton
@@ -33,7 +36,7 @@ func _ready() -> void:
 	_fast_button.toggled.connect(GameManager.set_fast_forward)
 	GameManager.fast_forward_changed.connect(_fast_button.set_pressed_no_signal)
 	_restart_button.pressed.connect(GameManager.restart_level)
-	_menu_button.pressed.connect(GameManager.go_to_main_menu)
+	_menu_button.pressed.connect(open_menu)
 	_settings_button.pressed.connect(_open_settings)
 	GameManager.game_paused.connect(_refresh_pause_button)
 	GameManager.game_resumed.connect(_refresh_pause_button)
@@ -60,7 +63,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_F:
 			GameManager.toggle_fast_forward()
 		KEY_ESCAPE:
-			GameManager.go_to_main_menu()
+			open_menu()
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -70,6 +73,22 @@ func _unhandled_key_input(event: InputEvent) -> void:
 ## already paused.
 func _open_settings() -> void:
 	get_tree().root.add_child(SettingsMenu.new())
+
+
+## The game's menu over the level: the campaign's while one of its saved
+## games is being played, otherwise one without saved games (a tool level,
+## the tutorial).
+func open_menu() -> void:
+	if get_tree().current_scene.get_node_or_null("GameMenu") != null or get_tree().current_scene.get_node_or_null("CampaignMenu") != null:
+		return
+	var level_data := GameManager.current_level_data
+	if SaveSlots.is_active(Campaign.SAVE_MODE) and Campaign.index_of(level_data) >= 0:
+		CampaignMenu.open(get_tree(), true)
+		return
+	var menu := GameMenu.new("", level_data.level_name if level_data != null else "", true)
+	menu.name = "GameMenu"
+	menu.main_menu_requested.connect(GameManager.go_to_main_menu)
+	get_tree().current_scene.add_child(menu)
 
 
 func _style_as_icon(button: Button) -> void:

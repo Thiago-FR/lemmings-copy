@@ -20,6 +20,11 @@ extends SkillBase
 ## Tallest ladder, in cells. Walls taller than this are not used.
 @export var max_pieces: int = 12
 
+## Animation of the LADDER_PLACING state (LemmingController.STATE_ANIMATIONS):
+## pull a segment out of the backpack and fit it, then climb onto it (see
+## SkillAnimation).
+const ANIMATION := &"ladder_place"
+
 ## Centre of the cell the ladder starts from. Segments are placed relative
 ## to this, not to the lemming, because the lemming moves up as it builds.
 var _base_centre: Vector2 = Vector2.ZERO
@@ -62,6 +67,7 @@ func start_at_wall(lemming: LemmingController) -> void:
 
 func physics_process(lemming: LemmingController, delta: float) -> bool:
 	lemming.velocity = Vector2.ZERO
+	SkillAnimation.hold(lemming.animated_sprite, ANIMATION, _climb_remaining <= 0.0)
 
 	if _climb_remaining > 0.0:
 		_climb(lemming, delta)

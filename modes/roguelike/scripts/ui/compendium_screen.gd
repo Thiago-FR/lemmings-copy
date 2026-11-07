@@ -11,6 +11,12 @@ extends RoguelikeOverlayScreen
 ## silhouette and "???" (the user's idea: the player unlocks entries by
 ## finding and using things; the rules are in RoguelikeDiscovery). The
 ## developer screen opens it without one, showing everything.
+##
+## The last category is the dig-drop table (RoguelikeDigDrops): the chance a
+## broken block of earth or concrete gives an item, and each item's weight
+## and share. Read-only for the player; with the developer mode on, every
+## value is a slider and a number field, saved at once so the next stages
+## use it, and a button puts the approved table back.
 
 signal closed
 
@@ -31,6 +37,19 @@ const CATEGORIES: Array = [
 	["Itens da fase", "ability_charge"],
 	["Cartas", "editor_counts"],
 	["Relíquias", "hud_clock"],
+	["Itens ao cavar", "miner"],
+]
+const DIG_DROPS_CATEGORY := 6
+const DIG_ROW_ICON_SIZE := Vector2(32, 32)
+const CHANCE_SLIDER_WIDTH := 150.0
+const WEIGHT_SLIDER_WIDTH := 330.0
+const SHARE_LABEL_WIDTH := 56.0
+const CHANCE_STEP := 0.5
+const MAX_WEIGHT := 100.0
+## [TerrainDestructible.TerrainMaterial, node name, icon, tooltip].
+const DIG_MATERIALS: Array = [
+	[TerrainDestructible.TerrainMaterial.EARTH, "EarthChance", "editor_earth", "Terra: chance de item"],
+	[TerrainDestructible.TerrainMaterial.CONCRETE, "ConcreteChance", "editor_concrete", "Concreto: chance de item"],
 ]
 
 ## What a tool does, in the player's words (the core tools have only a name).
@@ -64,11 +83,20 @@ var _is_discovered: Callable
 var _category_row: HBoxContainer
 var _pages: Control
 var _category_group := ButtonGroup.new()
+var _dig_drops: RoguelikeDigDrops
+## The dig-drop values can be changed (developer mode).
+var _dig_drops_editable := false
+## ItemSpec.Kind -> the Label with its share of the finds.
+var _share_labels: Dictionary = {}
 
 
-func _init(is_discovered: Callable = Callable()) -> void:
+## dig_drops_path: where the tuned dig-drop table is kept (tests use their
+## own file).
+func _init(is_discovered: Callable = Callable(), dig_drops_path: String = RoguelikeDigDrops.DEFAULT_PATH) -> void:
 	super()
 	_is_discovered = is_discovered
+	_dig_drops = RoguelikeDigDrops.load_from(dig_drops_path)
+	_dig_drops_editable = GameManager.developer_mode
 	add_title("Compêndio")
 	_category_row = HBoxContainer.new()
 	_category_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -83,6 +111,7 @@ func _init(is_discovered: Callable = Callable()) -> void:
 	_build_stage_items()
 	_build_cards()
 	_build_relics()
+	_build_dig_drops()
 	_refresh_category_counts()
 	show_category(0)
 	var back := UiStyle.make_text_button("Voltar", true)
@@ -152,20 +181,163 @@ func _build_relics() -> void:
 		_add_entry(list, RoguelikeDiscovery.relic(relic_id), load(card.get_art_path()), RoguelikeRelics.get_title(relic_id), RoguelikeRelics.get_description(relic_id))
 
 
-## A category: its icon button in the row (with discovered/total) and its
-## page, a scrolling grid of tiles.
-func _add_category(index: int) -> GridContainer:
+# --- Dig drops ------------------------------------------------------------
+
+## A row per material (its chance) and a row per item (its weight, and the
+## share that makes), each led by its icon.
+func _build_dig_drops() -> void:
+	_add_category_button(DIG_DROPS_CATEGORY, false)
+	var page := VBoxContainer.new()
+	page.name = "DigDrops"
+	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page.add_theme_constant_override("separation", 8)
+	_pages.add_child(page)
+
+	var chances := HBoxContainer.new()
+	chances.alignment = BoxContainer.ALIGNMENT_CENTER
+	chances.add_theme_constant_override("separation", 10)
+	page.add_child(chances)
+	for material in DIG_MATERIALS:
+		var percent := 100.0 * _dig_drops_chance(material[0])
+		var spin := _add_dig_row(chances, UiStyle.icon(material[2]), material[3], material[1], percent, 100.0, CHANCE_STEP, CHANCE_SLIDER_WIDTH)
+		spin.suffix = "%"
+		spin.value_changed.connect(_on_chance_changed.bind(material[0]))
+	page.add_child(HSeparator.new())
+
+	for kind in RoguelikeDigDrops.KINDS:
+		var item: Array = _stage_item(kind)
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 10)
+		page.add_child(row)
+		var known := not _is_discovered.is_valid() or bool(_is_discovered.call(RoguelikeDiscovery.stage_item(kind)))
+		var spin := _add_dig_row(row, UiStyle.icon(item[2]), item[1] if known else UNKNOWN_NAME, "Weight_%s" % _kind_key(kind), float(_dig_drops.weights[kind]), MAX_WEIGHT, 1.0, WEIGHT_SLIDER_WIDTH)
+		if not known:
+			(row.get_child(0) as TextureRect).self_modulate = SILHOUETTE
+		spin.value_changed.connect(_on_weight_changed.bind(kind))
+		var share := Label.new()
+		share.name = "Share_%s" % _kind_key(kind)
+		share.custom_minimum_size.x = SHARE_LABEL_WIDTH
+		share.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		share.add_theme_color_override("font_color", NAME_COLOUR)
+		row.add_child(share)
+		_share_labels[kind] = share
+	_refresh_shares()
+
+	if _dig_drops_editable:
+		var restore := UiStyle.make_icon_button("editor_restart", "Voltar ao padrão")
+		restore.name = "RestoreDefaults"
+		restore.size_flags_horizontal = Control.SIZE_SHRINK_END
+		restore.pressed.connect(restore_dig_drop_defaults)
+		page.add_child(restore)
+
+
+## An icon, a slider and a number field sharing one value. Returns the field.
+func _add_dig_row(row: HBoxContainer, texture: Texture2D, tooltip: String, node_name: String, value: float, max_value: float, step: float, slider_width: float) -> SpinBox:
+	var icon := TextureRect.new()
+	icon.texture = texture
+	icon.custom_minimum_size = DIG_ROW_ICON_SIZE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.tooltip_text = tooltip
+	row.add_child(icon)
+	var slider := HSlider.new()
+	slider.custom_minimum_size.x = slider_width
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.tooltip_text = tooltip
+	row.add_child(slider)
+	var spin := SpinBox.new()
+	spin.name = node_name
+	spin.tooltip_text = tooltip
+	spin.select_all_on_focus = true
+	row.add_child(spin)
+	for range_control: Range in [slider, spin]:
+		range_control.min_value = 0.0
+		range_control.max_value = max_value
+		range_control.step = step
+	# Sharing makes them one value: moving either moves the other.
+	slider.share(spin)
+	spin.set_value_no_signal(value)
+	slider.editable = _dig_drops_editable
+	spin.editable = _dig_drops_editable
+	return spin
+
+
+## Puts the approved table back, saved, and shows it.
+func restore_dig_drop_defaults() -> void:
+	_dig_drops.restore_defaults()
+	_dig_drops.save()
+	for material in DIG_MATERIALS:
+		_dig_field(material[1]).set_value_no_signal(100.0 * _dig_drops_chance(material[0]))
+	for kind in RoguelikeDigDrops.KINDS:
+		_dig_field("Weight_%s" % _kind_key(kind)).set_value_no_signal(float(_dig_drops.weights[kind]))
+	_refresh_shares()
+
+
+func _on_chance_changed(percent: float, material: TerrainDestructible.TerrainMaterial) -> void:
+	if material == TerrainDestructible.TerrainMaterial.CONCRETE:
+		_dig_drops.concrete_chance = percent / 100.0
+	else:
+		_dig_drops.earth_chance = percent / 100.0
+	_dig_drops.save()
+
+
+func _on_weight_changed(weight: float, kind: ItemSpec.Kind) -> void:
+	_dig_drops.weights[kind] = weight
+	_dig_drops.save()
+	_refresh_shares()
+
+
+func _refresh_shares() -> void:
+	for kind in _share_labels:
+		(_share_labels[kind] as Label).text = "%d%%" % roundi(100.0 * _dig_drops.get_share(kind))
+
+
+func _dig_drops_chance(material: TerrainDestructible.TerrainMaterial) -> float:
+	return _dig_drops.concrete_chance if material == TerrainDestructible.TerrainMaterial.CONCRETE else _dig_drops.earth_chance
+
+
+func _dig_field(node_name: String) -> SpinBox:
+	return _pages.find_child(node_name, true, false) as SpinBox
+
+
+static func _stage_item(kind: ItemSpec.Kind) -> Array:
+	for item in STAGE_ITEMS:
+		if item[0] == kind:
+			return item
+	assert(false, "No stage item for kind %d" % kind)
+	return []
+
+
+static func _kind_key(kind: ItemSpec.Kind) -> String:
+	return String(ItemSpec.Kind.find_key(kind)).to_lower()
+
+
+# --- Building blocks --------------------------------------------------------
+
+## A category's icon button in the row; counted: with discovered/total.
+func _add_category_button(index: int, counted: bool) -> void:
 	var title: String = CATEGORIES[index][0]
 	var button := UiStyle.make_icon_button(CATEGORIES[index][1], title)
 	button.name = "Category%d" % index
 	button.toggle_mode = true
-	# Room for the icon and its discovered/total side by side.
-	button.custom_minimum_size = CATEGORY_BUTTON_SIZE
-	button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.button_group = _category_group
 	button.pressed.connect(show_category.bind(index))
-	UiStyle.add_count_label(button)
+	if counted:
+		# Room for the icon and its discovered/total side by side.
+		button.custom_minimum_size = CATEGORY_BUTTON_SIZE
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		UiStyle.add_count_label(button)
 	_category_row.add_child(button)
+
+
+## A category: its icon button in the row (with discovered/total) and its
+## page, a scrolling grid of tiles.
+func _add_category(index: int) -> GridContainer:
+	_add_category_button(index, true)
+	var title: String = CATEGORIES[index][0]
 	var scroll := ScrollContainer.new()
 	scroll.name = title
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -183,6 +355,8 @@ func _add_category(index: int) -> GridContainer:
 ## Discovered/total on each category button.
 func _refresh_category_counts() -> void:
 	for index in _pages.get_child_count():
+		if not _pages.get_child(index) is ScrollContainer:
+			continue
 		var tiles := (_pages.get_child(index) as ScrollContainer).get_child(0).get_children()
 		var known := tiles.filter(func(tile: Node) -> bool: return tile.get_meta("known", true)).size()
 		var count := _category_row.get_child(index).get_node("Count") as Label

@@ -138,7 +138,7 @@ func _build_controls() -> void:
 	_end_stage_button = _add_button(controls, "give_up", "Encerrar fase: para quando os bonecos que faltam ficaram presos", _ask_end_stage)
 	controls.add_child(VSeparator.new())
 	_add_button(controls, "settings", "Configurações", _open_settings)
-	_add_button(controls, "editor_menu", "Menu (Esc)", GameManager.go_to_main_menu)
+	_add_button(controls, "editor_menu", "Menu (Esc)", _open_menu)
 	GameManager.game_paused.connect(_refresh_pause_button)
 	GameManager.game_resumed.connect(_refresh_pause_button)
 
@@ -193,6 +193,16 @@ func _open_settings() -> void:
 	get_tree().root.add_child(SettingsMenu.new())
 
 
+## The run's menu over the paused stage (RoguelikeRunController), or the
+## main menu when the stage is played on its own (tests).
+func _open_menu() -> void:
+	var run := get_tree().get_first_node_in_group(RoguelikeRunController.GROUP) as RoguelikeRunController
+	if run == null:
+		GameManager.go_to_main_menu()
+		return
+	run.open_game_menu()
+
+
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
@@ -203,7 +213,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_F:
 			GameManager.toggle_fast_forward()
 		KEY_ESCAPE:
-			GameManager.go_to_main_menu()
+			_open_menu()
 		_:
 			return
 	get_viewport().set_input_as_handled()

@@ -4,8 +4,9 @@ extends CanvasLayer
 ## it (the main menu, or a level, which it pauses). It has the display
 ## (full screen or window, saved by DisplayScaler) and the audio settings:
 ## overall, music and effects volume and a mute switch, applied live and
-## saved by AudioManager. Further sections (controls) go
-## below the audio one.
+## saved by AudioManager. Opened from a game mode's menu, also that mode's
+## automatic save (save_mode). Further sections (controls) go below the
+## audio one.
 ##
 ## Built in code so new settings are a few lines each. Emits closed when the
 ## player leaves it, and frees itself.
@@ -22,6 +23,9 @@ const BACKDROP_COLOUR := Color(0, 0, 0, 0.6)
 const OVERLAY_LAYER := 20
 
 var _was_paused := false
+## Opened from a game mode's menu: its saved games' settings (the automatic
+## save) show too. "" for none. Set before adding to the tree.
+var save_mode := ""
 
 
 func _ready() -> void:
@@ -100,6 +104,15 @@ func _build() -> void:
 		if on != AudioManager.is_muted:
 			AudioManager.toggle_mute())
 	column.add_child(mute)
+
+	if save_mode != "":
+		_add_section(column, "Jogo salvo", "level_save")
+		var auto_save := CheckBox.new()
+		auto_save.name = "AutoSaveCheckBox"
+		auto_save.text = "Salvar sozinho ao fim de cada fase"
+		auto_save.button_pressed = SaveSlots.is_auto_save_on(save_mode)
+		auto_save.toggled.connect(func(on: bool) -> void: SaveSlots.set_auto_save(save_mode, on))
+		column.add_child(auto_save)
 
 	_add_section(column, "Desenvolvedor", "dev")
 	var developer := CheckBox.new()

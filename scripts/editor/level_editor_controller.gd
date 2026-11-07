@@ -65,6 +65,9 @@ var _environment_kind: LevelEnvironment.Kind = LevelEnvironment.Kind.SURFACE
 ## A generated stage's looks, border, ramps, items and solution
 ## (LevelDrawing.dressing); empty for a drawing made here.
 var _dressing: Dictionary = {}
+## What broken blocks give in the drawing (LevelDrawing.dig_drops); null:
+## nothing. A new drawing starts with the campaign's table.
+var _dig_drops: DigDropTable = DigDropTable.for_campaign()
 var _background: LevelBackground
 var _backdrop: LevelBackdrop
 
@@ -88,6 +91,8 @@ func _ready() -> void:
 	toolbar.save_level_requested.connect(_save_level_picker)
 	toolbar.generate_requested.connect(_open_generator)
 	toolbar.new_requested.connect(_confirm_new)
+	toolbar.dig_drops_requested.connect(_open_dig_drops_panel)
+	toolbar.show_dig_drops(_dig_drops != null)
 	toolbar.select_tool(current_tool)
 	_enter_editing_mode()
 
@@ -375,7 +380,7 @@ func _start_run() -> void:
 	_is_stroking = false
 	_grid_overlay.hide_preview()
 	GameManager.current_level_data = EditorPlaySession.make_level_data(
-		toolbar.get_lemming_count(), toolbar.get_skill_counts(), scene_file_path
+		toolbar.get_lemming_count(), toolbar.get_skill_counts(), scene_file_path, _dig_drops
 	)
 	var exit_positions: Array[Vector2] = []
 	if has_exit():
@@ -434,6 +439,7 @@ func new_drawing() -> void:
 		"tile_map_data": PackedByteArray(), "bricks": [], "entrances": [], "exit": null,
 		"total_lemmings": EditorToolbar.DEFAULT_LEMMING_COUNT, "skill_counts": {},
 		"environment_kind": LevelEnvironment.Kind.SURFACE, "size": DEFAULT_MAP_SIZE, "dressing": {},
+		"dig_drops": DigDropTable.for_campaign(),
 	})
 	toolbar.set_counts(EditorToolbar.DEFAULT_LEMMING_COUNT, _default_tool_counts())
 	_collection = null
@@ -446,6 +452,23 @@ func _default_tool_counts() -> Dictionary:
 	for skill_id in SkillManager.get_skill_ids():
 		counts[skill_id] = EditorToolbar.DEFAULT_TOOL_COUNT
 	return counts
+
+
+## What broken blocks give in this drawing; null: nothing.
+func get_dig_drops() -> DigDropTable:
+	return _dig_drops
+
+
+func set_dig_drops(table: DigDropTable) -> void:
+	_dig_drops = table.copy() if table != null else null
+	toolbar.show_dig_drops(_dig_drops != null)
+
+
+func _open_dig_drops_panel() -> void:
+	var panel := EditorDigDropsPanel.new(_dig_drops)
+	panel.name = "DigDropsPanel"
+	panel.table_changed.connect(set_dig_drops)
+	add_child(panel)
 
 
 func _open_generator() -> void:
@@ -504,7 +527,9 @@ func save_campaign_level(index: int) -> String:
 ## A new drawing from the stage generator: any setting, size and difficulty.
 func generate_level(biome_id: StringName, size: Vector2i, tier: int) -> void:
 	var maze := BiomeStageGenerator.generate_custom(randi(), biome_id, size, tier / 2.0, tier)
-	_load_drawing(LevelDrawing.dictionary_from_maze(maze))
+	var drawing := LevelDrawing.dictionary_from_maze(maze)
+	drawing.dig_drops = DigDropTable.for_campaign()
+	_load_drawing(drawing)
 	_collection = null
 	_slot_index = -1
 	AudioManager.play_sound(&"select_tool")
@@ -522,6 +547,7 @@ func get_drawing() -> Dictionary:
 		"environment_kind": _environment_kind,
 		"size": map_size,
 		"dressing": _dressing.merged({"ramps": terrain.get_ramps()}, true),
+		"dig_drops": _dig_drops.copy() if _dig_drops != null else null,
 	}
 
 
@@ -554,6 +580,10 @@ func _load_drawing(drawing: Dictionary) -> void:
 	_environment_kind = drawing.get("environment_kind", LevelEnvironment.Kind.SURFACE)
 	_background.environment = LevelEnvironment.by_kind(_environment_kind)
 	set_map_size(drawing.get("size", DEFAULT_MAP_SIZE))
+	# A drawing saved before drops could be chosen has none: it plays as it
+	# was made.
+	var drops: DigDropTable = drawing.get("dig_drops")
+	set_dig_drops(drops)
 	if has_entrance():
 		(get_node("Camera") as LevelCamera).focus_on(_entrances[0].position)
 

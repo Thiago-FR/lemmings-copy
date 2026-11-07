@@ -171,6 +171,50 @@ static func make_text_button(text: String, primary: bool = false) -> Button:
 	return button
 
 
+## The menus' look (the main menu, a game mode's menu): a big outlined
+## title, wooden panels and wide buttons with an icon and a word.
+const MENU_TITLE_FONT_SIZE := 56
+const MENU_TITLE_OUTLINE_SIZE := 10
+const MENU_TITLE_COLOUR := Color(1.0, 0.9, 0.55)
+const MENU_BUTTON_SIZE := Vector2(300, 52)
+const MENU_FONT_SIZE := 20
+
+
+static func make_menu_title(text: String) -> Label:
+	var title := Label.new()
+	title.text = text
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", MENU_TITLE_FONT_SIZE)
+	title.add_theme_color_override("font_color", MENU_TITLE_COLOUR)
+	title.add_theme_constant_override("outline_size", MENU_TITLE_OUTLINE_SIZE)
+	return title
+
+
+## A wooden panel added to parent, holding a column of its own (returned).
+static func add_menu_panel(parent: Node) -> VBoxContainer:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	parent.add_child(panel)
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 14)
+	panel.add_child(margin)
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 10)
+	margin.add_child(inner)
+	return inner
+
+
+static func make_menu_button(text: String, icon_id: String, primary: bool = false) -> Button:
+	var button := make_text_button(text, primary)
+	button.icon = icon(icon_id)
+	button.custom_minimum_size = MENU_BUTTON_SIZE
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.add_theme_font_size_override("font_size", MENU_FONT_SIZE)
+	return button
+
+
 static func _nine_slice(file_name: String, margin: int, content_margin: int) -> StyleBoxTexture:
 	var style := StyleBoxTexture.new()
 	style.texture = load(UI_DIR + file_name)

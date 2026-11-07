@@ -28,6 +28,9 @@ extends SkillBase
 const PROBE_INSET := 0.5
 ## Debris flies up and back towards the digger.
 const DEBRIS_THROW := Vector2(-0.6, -0.8)
+## How fast a lemming drops onto a tunnel floor just under its feet, in
+## pixels per second.
+const SETTLE_SPEED := 120.0
 
 ## The state the lemming is in while digging (picks its animation).
 var dig_state: LemmingStateMachine.State = LemmingStateMachine.State.MINING
@@ -41,6 +44,8 @@ const NO_CELL := Vector2i(-1048576, -1048576)
 ## The block being dug, to tell one that another lemming in the same tunnel
 ## finished off (walk on into it) from open space (stop there).
 var _current_cell := NO_CELL
+## Where the current block is being dug (see _body_rows_y).
+var _dig_rows_y: Array[float] = []
 
 
 func can_apply_to(lemming: LemmingController) -> bool:
@@ -88,15 +93,21 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 		# of walking on and dropping out of the tunnel (campaign level 18).
 		var ahead := _point_ahead(lemming)
 		var cell := lemming.terrain.local_to_map(lemming.terrain.to_local(ahead))
-		if not lemming.terrain.is_solid_at(lemming.get_feet_position()) and cell != _current_cell:
-			return false
+		if not lemming.terrain.is_solid_at(lemming.get_feet_position()):
+			# Started from a diagonal ladder's step, the tunnel's floor is a
+			# little below the feet: it settles onto it and digs on. It used
+			# to stop there, a block in, with the tool spent (prints/bug21.png).
+			if _settle_onto_tunnel_floor(lemming, delta):
+				return true
+			if cell.x != _current_cell.x:
+				return false
 		var material := lemming.terrain.material_at(ahead)
-		if not lemming.terrain.dig_side_stage_at(ahead, lemming.direction, breaks_concrete, id):
+		if not _dig_slice_ahead(lemming, ahead, cell):
 			# Two lemmings digging the same tunnel take its block twice as
 			# fast: it is gone while this one is only part way in. That is
 			# not open space, so it walks to the block's far side and digs
 			# on (both used to stop there, in the middle of the wall).
-			if cell != _current_cell or lemming.terrain.is_solid_at(ahead):
+			if cell.x != _current_cell.x or lemming.terrain.is_solid_at(ahead):
 				return false
 			_advance_remaining = _distance_to_far_side(lemming, cell)
 			if _advance_remaining <= PROBE_INSET:
@@ -113,6 +124,47 @@ func physics_process(lemming: LemmingController, delta: float) -> bool:
 	lemming.global_position.x += step * lemming.direction
 	_advance_remaining -= step
 	return true
+
+
+## Digs the slice ahead in every row the body reaches into. Standing on the
+## grid that is one row (the tunnel is one block tall); standing on a
+## diagonal ladder's step the body straddles two rows, and a tunnel of the
+## middle row only left the head of every lemming behind against its
+## ceiling, so they turned back at its mouth (prints/bug21.png).
+func _dig_slice_ahead(lemming: LemmingController, ahead: Vector2, cell: Vector2i) -> bool:
+	if cell.x != _current_cell.x:
+		_dig_rows_y = _body_rows_y(lemming, ahead)
+	var dug := false
+	for y in _dig_rows_y:
+		if lemming.terrain.dig_side_stage_at(Vector2(ahead.x, y), lemming.direction, breaks_concrete, id):
+			dug = true
+	return dug
+
+
+## The middle of each row the body reaches into, decided when a block is
+## started and kept until it is through: the lemming settles onto the
+## tunnel floor part way into the first block, and digging only the rows
+## it reached from there left the top of that block in place.
+func _body_rows_y(lemming: LemmingController, ahead: Vector2) -> Array[float]:
+	var body := lemming.get_body_rect()
+	var rows: Array[float] = []
+	for y in [ahead.y, body.position.y + PROBE_INSET, body.end.y - PROBE_INSET]:
+		var row_middle := lemming.terrain.cell_rect_at(Vector2(ahead.x, y)).get_center().y
+		if not rows.has(row_middle):
+			rows.append(row_middle)
+	return rows
+
+
+## Lowers the lemming towards ground a short way under its feet, at falling
+## pace. False when there is none that close (a real drop: the tool ends).
+func _settle_onto_tunnel_floor(lemming: LemmingController, delta: float) -> bool:
+	var feet := lemming.get_feet_position()
+	var max_drop := lemming.terrain.get_cell_size().y
+	for drop in range(1, int(max_drop)):
+		if lemming.terrain.is_solid_at(feet + Vector2(0, drop)):
+			lemming.global_position.y += minf(float(drop), SETTLE_SPEED * delta)
+			return true
+	return false
 
 
 ## Just past the leading edge, at the middle of the body: the block the

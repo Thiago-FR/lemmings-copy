@@ -11,8 +11,9 @@ extends RefCounted
 ## templates and puts them back when it ends (restore_templates), and the
 ## normal levels never see an upgraded tool. The other relics are read
 ## where they act: the stage session (parachutes, walking speed, extra
-## charges per item, time, ability charges), the run state (coins, bar
-## slots).
+## charges per item, time, ability charges, the chance a broken block
+## drops an item: RoguelikeDigDrops.PROSPECTOR_*_PER_LEVEL), the run state
+## (coins, bar slots).
 
 const MAX_LEVEL := 3
 
@@ -27,6 +28,7 @@ const GREED := &"greed"
 const QUICK_STEP := &"quick_step"
 const HOURGLASS := &"hourglass"
 const ABILITY_CHARGES := &"ability_charges"
+const PROSPECTOR := &"prospector"
 
 ## Effect per level (multiplied by the relic's level).
 const DIG_SPEED_PER_LEVEL := 0.25
@@ -54,6 +56,7 @@ const DEFINITIONS := {
 	QUICK_STEP: {"title": "Passo acelerado", "icon": "hud_out", "levels": ["Andam 15% mais rápido.", "Andam 30% mais rápido.", "Andam 45% mais rápido."]},
 	HOURGLASS: {"title": "Ampulheta", "icon": "hud_clock", "levels": ["+20 s em toda fase.", "+40 s em toda fase.", "+60 s em toda fase."]},
 	ABILITY_CHARGES: {"title": "Dom ampliado", "icon": "ability_charge", "levels": ["+1 carga da habilidade.", "+2 cargas da habilidade.", "+3 cargas da habilidade."]},
+	PROSPECTOR: {"title": "Garimpeiro", "icon": "miner", "levels": ["Mais itens ao cavar: terra +2%, concreto +4%.", "Mais itens ao cavar: terra +4%, concreto +8%.", "Mais itens ao cavar: terra +6%, concreto +12%."]},
 }
 
 ## Copies of every template as they were before the run touched them.

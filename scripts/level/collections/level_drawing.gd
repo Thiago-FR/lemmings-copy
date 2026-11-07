@@ -24,6 +24,10 @@ extends Resource
 ## worked out for it: "items" (MazeStageData.item_spots), "solution",
 ## "stage_name", "time". Empty for a drawing made by hand.
 @export var dressing: Dictionary = {}
+## What breaking a block can give (LevelData.dig_drops); null: nothing.
+## A drawing saved before this existed loads with null, so it keeps playing
+## exactly as it was made and tested.
+@export var dig_drops: DigDropTable = null
 
 ## Matching RoguelikeStageBuilder and the campaign levels: the entrance
 ## stands a short drop above the floor, the exit on it.
@@ -43,6 +47,7 @@ func to_dictionary() -> Dictionary:
 		"environment_kind": environment_kind,
 		"size": size,
 		"dressing": dressing.duplicate(),
+		"dig_drops": dig_drops.copy() if dig_drops != null else null,
 	}
 
 
@@ -58,6 +63,8 @@ static func from_dictionary(drawing: Dictionary) -> LevelDrawing:
 	file.environment_kind = drawing.get("environment_kind", LevelEnvironment.Kind.SURFACE)
 	file.size = drawing.get("size", Vector2i(120, 60))
 	file.dressing = drawing.get("dressing", {}).duplicate()
+	var drops: DigDropTable = drawing.get("dig_drops")
+	file.dig_drops = drops.copy() if drops != null else null
 	return file
 
 

@@ -99,7 +99,12 @@ def icon_next():
     return outline(image)
 
 
-ICONS = {"campaign": icon_campaign, "lock": icon_lock, "star": icon_star, "next": icon_next}
+def icon_back():
+    """The same arrow pointing left: back to the page before (menus)."""
+    return icon_next().transpose(Image.FLIP_LEFT_RIGHT)
+
+
+ICONS = {"campaign": icon_campaign, "lock": icon_lock, "star": icon_star, "next": icon_next, "back": icon_back}
 
 
 def main():

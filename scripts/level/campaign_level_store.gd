@@ -14,6 +14,7 @@ extends RefCounted
 ##   exit: Vector2 or null            the exit's position
 ##   total_lemmings: int
 ##   skill_counts: Dictionary         tool id -> charges (0 = not offered)
+##   dig_drops: DigDropTable or null  what broken blocks can give
 ##
 ## What the editor does not edit (name, hint, goal %, time, setting, release
 ## rate) is kept from the level being replaced.
@@ -104,6 +105,11 @@ static func write(index: int, drawing: Dictionary) -> String:
 			counts[tool_id] = int(drawing.skill_counts[tool_id])
 	data.available_skills = offered
 	data.skill_counts = counts
+	var drops: DigDropTable = drawing.get("dig_drops")
+	data.dig_drops = drops.copy() if drops != null else null
+	# A level with the fixed bar has no ItemCollector of its own to hand
+	# its finds out.
+	data.drops_on_fixed_bar = not data.tools_from_items
 	if ResourceSaver.save(data, data_path) != OK:
 		push_error("Could not write %s" % data_path)
 		return ""
@@ -123,6 +129,7 @@ static func _read_files(scene_path: String, data: LevelData) -> Dictionary:
 		"environment_kind": data.environment_kind,
 		"size": CAMPAIGN_SIZE,
 		"dressing": data.dressing.duplicate(),
+		"dig_drops": data.dig_drops.copy() if data.dig_drops != null else null,
 	}
 	if data.dressing.has("area"):
 		drawing.size = (data.dressing.area as Rect2i).size

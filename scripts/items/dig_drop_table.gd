@@ -35,6 +35,17 @@ static func for_campaign() -> DigDropTable:
 	return table
 
 
+## An independent copy: changing it leaves this one as it is (the editor's
+## drawing and the level a test run plays each keep their own).
+func copy() -> DigDropTable:
+	var table := DigDropTable.new()
+	table.earth_chance = earth_chance
+	table.concrete_chance = concrete_chance
+	for entry in entries:
+		table.entries.append(entry.duplicate())
+	return table
+
+
 ## Chance of an item for a block of `material`.
 func chance_for(material: TerrainDestructible.TerrainMaterial) -> float:
 	return concrete_chance if material == TerrainDestructible.TerrainMaterial.CONCRETE else earth_chance

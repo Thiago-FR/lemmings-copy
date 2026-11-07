@@ -11,9 +11,13 @@ extends Node
 ##   - given the profile, an undiscovered entry is a black silhouette with
 ##     "???", a discovered one shows its name; without it everything shows;
 ##   - a card offered records its kind and its relic or tool;
-##   - the character screen has a compendium button that opens it.
+##   - the character screen has a compendium button that opens it;
+##   - the dig-drop tab: read-only out of the developer mode; in it, a
+##     change is saved and used by the next table, the shares follow the
+##     weights, and the restore button puts the approved table back.
 
 const PROFILE_PATH := "user://test_compendium_profile.cfg"
+const DIG_DROPS_PATH := "user://test_compendium_dig_drops.cfg"
 
 var _failures: Array[String] = []
 
@@ -59,7 +63,55 @@ func _ready() -> void:
 		_expect(select.find_child("CompendiumScreen", true, false) != null, "the compendium button did not open it")
 	select.queue_free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PROFILE_PATH))
+	_check_dig_drops()
 	_report()
+
+
+func _check_dig_drops() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(DIG_DROPS_PATH))
+	var was_developer := GameManager.developer_mode
+	GameManager.developer_mode = false
+	var player := RoguelikeCompendiumScreen.new(Callable(), DIG_DROPS_PATH)
+	add_child(player)
+	_expect(player.get_category_count() == RoguelikeCompendiumScreen.CATEGORIES.size(), "the compendium has no dig-drop tab")
+	var coins_field := player.find_child("Weight_coins", true, false) as SpinBox
+	_expect(coins_field != null and not coins_field.editable, "the dig-drop table can be changed out of the developer mode")
+	_expect(coins_field != null and is_equal_approx(coins_field.value, RoguelikeDigDrops.COIN_WEIGHT), "the coin weight is not the approved one")
+	_expect(_text(player, "Share_coins") == "60%", "the coins' share is '%s', expected 60%%" % _text(player, "Share_coins"))
+	_expect(player.find_child("RestoreDefaults", true, false) == null, "the player sees the restore button")
+	player.queue_free()
+
+	GameManager.developer_mode = true
+	var developer := RoguelikeCompendiumScreen.new(Callable(), DIG_DROPS_PATH)
+	add_child(developer)
+	var earth := developer.find_child("EarthChance", true, false) as SpinBox
+	var revive := developer.find_child("Weight_revive", true, false) as SpinBox
+	_expect(earth != null and earth.editable and revive != null and revive.editable, "the developer cannot change the dig-drop table")
+	if earth != null and revive != null:
+		earth.value = 50.0
+		revive.value = 42.0
+		var saved := RoguelikeDigDrops.load_from(DIG_DROPS_PATH)
+		_expect(is_equal_approx(saved.earth_chance, 0.5), "the earth chance was not saved (%.2f)" % saved.earth_chance)
+		_expect(is_equal_approx(float(saved.weights[ItemSpec.Kind.REVIVE]), 42.0), "the feather weight was not saved")
+		_expect(_text(developer, "Share_revive") == "30%", "the feather's share is '%s', expected 42/140 = 30%%" % _text(developer, "Share_revive"))
+		var table := RoguelikeDigDrops.table(1, DIG_DROPS_PATH)
+		_expect(is_equal_approx(table.earth_chance, 0.5 + RoguelikeDigDrops.PROSPECTOR_EARTH_PER_LEVEL), "the next table does not use the saved chance plus the Prospector's")
+		var restore := developer.find_child("RestoreDefaults", true, false) as Button
+		_expect(restore != null, "the developer has no restore button")
+		if restore != null:
+			restore.pressed.emit()
+			var restored := RoguelikeDigDrops.load_from(DIG_DROPS_PATH)
+			_expect(is_equal_approx(restored.earth_chance, RoguelikeDigDrops.DEFAULT_EARTH_CHANCE) and is_equal_approx(float(restored.weights[ItemSpec.Kind.REVIVE]), RoguelikeDigDrops.REVIVE_WEIGHT), "restoring did not save the approved table")
+			_expect(is_equal_approx(earth.value, 100.0 * RoguelikeDigDrops.DEFAULT_EARTH_CHANCE), "restoring did not show the approved chance")
+			_expect(_text(developer, "Share_revive") == "2%", "restoring did not show the approved shares")
+	developer.queue_free()
+	GameManager.developer_mode = was_developer
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(DIG_DROPS_PATH))
+
+
+func _text(screen: Node, node_name: String) -> String:
+	var label := screen.find_child(node_name, true, false) as Label
+	return label.text if label != null else ""
 
 
 func _every_recorded_id() -> Array[String]:

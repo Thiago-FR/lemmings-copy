@@ -32,6 +32,22 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/walk_aligned_1.png" id="30_walk_aligned_1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/walk_aligned_2.png" id="31_walk_aligned_2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/walk_aligned_3.png" id="32_walk_aligned_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/ladder_fit_0.png" id="33_ladder_fit_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/ladder_fit_1.png" id="34_ladder_fit_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/ladder_fit_2.png" id="35_ladder_fit_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/ladder_fit_3.png" id="36_ladder_fit_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/stair_lay_0.png" id="37_stair_lay_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/stair_lay_1.png" id="38_stair_lay_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/stair_lay_2.png" id="39_stair_lay_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/stair_lay_3.png" id="40_stair_lay_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/bridge_lay_0.png" id="41_bridge_lay_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/bridge_lay_1.png" id="42_bridge_lay_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/bridge_lay_2.png" id="43_bridge_lay_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/bridge_lay_3.png" id="44_bridge_lay_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/rope_slide_0.png" id="45_rope_slide_0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/rope_slide_1.png" id="46_rope_slide_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/rope_slide_2.png" id="47_rope_slide_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/miner/rope_slide_3.png" id="48_rope_slide_3"]
 
 [resource]
 resource_name = "miner"
@@ -171,4 +187,144 @@ animations = [{
 "loop": true,
 "name": &"walk",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.05,
+"texture": ExtResource("33_ladder_fit_0")
+}, {
+"duration": 1.05,
+"texture": ExtResource("34_ladder_fit_1")
+}, {
+"duration": 1.05,
+"texture": ExtResource("35_ladder_fit_2")
+}, {
+"duration": 1.05,
+"texture": ExtResource("36_ladder_fit_3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("13_climb_aligned_0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("14_climb_aligned_1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("15_climb_aligned_2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("16_climb_aligned_3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("13_climb_aligned_0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("14_climb_aligned_1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("15_climb_aligned_2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("16_climb_aligned_3")
+}],
+"loop": true,
+"name": &"ladder_place",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 0.9,
+"texture": ExtResource("37_stair_lay_0")
+}, {
+"duration": 0.9,
+"texture": ExtResource("38_stair_lay_1")
+}, {
+"duration": 0.9,
+"texture": ExtResource("39_stair_lay_2")
+}, {
+"duration": 0.9,
+"texture": ExtResource("40_stair_lay_3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("29_walk_aligned_0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("30_walk_aligned_1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("31_walk_aligned_2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("32_walk_aligned_3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("29_walk_aligned_0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("30_walk_aligned_1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("31_walk_aligned_2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("32_walk_aligned_3")
+}],
+"loop": true,
+"name": &"build",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 0.9,
+"texture": ExtResource("41_bridge_lay_0")
+}, {
+"duration": 0.9,
+"texture": ExtResource("42_bridge_lay_1")
+}, {
+"duration": 0.9,
+"texture": ExtResource("43_bridge_lay_2")
+}, {
+"duration": 0.9,
+"texture": ExtResource("44_bridge_lay_3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("29_walk_aligned_0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("30_walk_aligned_1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("31_walk_aligned_2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("32_walk_aligned_3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("29_walk_aligned_0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("30_walk_aligned_1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("31_walk_aligned_2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("32_walk_aligned_3")
+}],
+"loop": true,
+"name": &"bridge",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("45_rope_slide_0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("46_rope_slide_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("47_rope_slide_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("48_rope_slide_3")
+}],
+"loop": true,
+"name": &"rope_slide",
+"speed": 6.0
 }]

@@ -68,6 +68,7 @@ var _bricks: Array[Rect2] = []
 var _brick_nodes: Array[Array] = []
 ## Whether the brick at the same index is a soil ramp (initial_ramps).
 var _brick_soil: Array[bool] = []
+var _ropes: Array[Rope] = []
 var _brick_body: StaticBody2D = null
 var _edge_overlay: TerrainEdgeOverlay = null
 
@@ -494,6 +495,24 @@ func _solid_rect_of(cell: Vector2i) -> Rect2:
 
 func _is_terrain_cell(cell: Vector2i) -> bool:
 	return get_cell_source_id(cell) == TERRAIN_SOURCE_ID
+
+
+## Hangs a new rope with its top at world_top (a ledge's edge), still rolled
+## up: the tool lets it down by growing Rope.length.
+func place_rope(world_top: Vector2) -> Rope:
+	var rope := Rope.new()
+	add_child(rope)
+	rope.global_position = world_top
+	_ropes.append(rope)
+	return rope
+
+
+## The rope a body can take hold of, or null.
+func rope_reachable_by(body: Rect2) -> Rope:
+	for rope in _ropes:
+		if is_instance_valid(rope) and rope.is_reachable_by(body):
+			return rope
+	return null
 
 
 ## Whether the cell containing world_position holds a ladder.

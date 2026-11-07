@@ -1,4 +1,4 @@
-# Estado Atual — 5 de novembro de 2026
+# Estado Atual — 6 de novembro de 2026
 
 Registro de onde o projeto está, o que foi decidido e por quê. Convenções de
 código em [CLAUDE.md](../CLAUDE.md), mecânicas em [game_design.md](game_design.md),
@@ -29,6 +29,7 @@ feito e por quê, em ordem de assunto.
 | Botões Pausar/Continuar, Reiniciar, Menu | ✅ em toda fase (`GameControlsController`, no HUD) |
 | Menu com rolagem | ✅ Tutorial, Modo livre e uma fase por ferramenta |
 | Modo livre (editor) | ✅ pintar cenário e testar (ver "Modo livre") |
+| Jogos salvos | ✅ 5 jogos por modo nas Fases e no Roguelike, salvar sozinho (desligável) e botão Salvar (ver "Jogos salvos") |
 | Animação de paraquedas | ✅ `float`, no estado FLOATING |
 | Som e música | ✅ gerados em código (`tools/build_audio.py`), botão Som / tecla M |
 | Campanha "Fases" | ⚠️ 33 fases: 3 tutoriais + os 30 mapas exatos de `prints/ambientes`, com ferramentas por itens. Sendo conferidas de 3 em 3 pelo usuário: lote 1 (fases 4 a 6) entregue; as fases 7 a 33 estão no jogo sem conferência (ver "Campanha: 3 tutoriais + os mapas da pasta") |
@@ -36,6 +37,7 @@ feito e por quê, em ordem de assunto.
 | Gerador por ambientes | ✅ 10 ambientes, verificador de solução; ⚠️ o modelo erra no jogo real (ver "Fases que dão para vencer") |
 | Cenários novos | ✅ deserto, caverna de cristal, campo de neve, vulcão: fundo, blocos, entrada e saída de cada um |
 | Itens ao cavar | ✅ blocos soltam itens depois de cavados (terra 4%, concreto 12%), na campanha e no roguelike (ver "Itens ao cavar") |
+| Corda e Escada que cava | ✅ ferramentas novas para o grupo descer e subir, cada uma com fase (15 e 16) e testes (ver "Corda e Escada que cava") |
 
 ## A causa raiz (o que travava tudo)
 
@@ -193,6 +195,8 @@ continua chamando de `skill` (`SkillBase`, `SkillManager`); só o
 | `tnt` | TNT |
 | `basher` | Britadeira |
 | `miner` | Picareta |
+| `rope` | Corda |
+| `dig_stairs` | Escada que cava |
 
 **Uma ferramenta por vez, cada uma com sua fase exclusiva no menu**, onde
 ela é a única disponível e o único jeito de chegar à saída. A fase é criada
@@ -215,6 +219,8 @@ removidas: o modo livre virou o editor.
 | TNT | "TNT" (fase 14) | `test_tool_tnt` | `test_level_tnt` |
 | Britadeira | "Britadeira" (fase 12) | `test_tool_basher` | `test_level_basher` |
 | Picareta | "Picareta" (fase 13) | `test_tool_miner` | `test_level_miner` |
+| Corda | "Corda" (fase 15) | `test_tool_rope` | `test_level_rope` |
+| Escada que cava | "Escada que cava" (fase 16) | `test_tool_dig_stairs` | `test_level_dig_stairs` |
 
 Os testes novos usam bases comuns: `tests/tool_scenario_test.gd` (monta
 terreno, cria bonecos, roda cenários) e `tests/level_playthrough_test.gd`
@@ -880,6 +886,7 @@ Substituíram a Bomba antiga (`SkillBomber`, apagada). Decisões do usuário:
 | CLIMBING (Garras) | `climb`: vista de lado, garras na parede |
 | LADDER_PLACING / LADDER_CLIMBING | `ladder`: a vista de costas que antes se chamava `climb` |
 | FLOATING (Paraquedas) | `float`: paraquedas balançando, braços nas cordas, pés chutando |
+| ROPE_SLIDING (Corda) | `rope_slide`: de costas, mãos na corda acima da cabeça, uma sobre a outra |
 | MINING (Picareta) | `pickaxe`: golpe de picareta para a frente |
 | BASHING (Britadeira) | `jackhammer`: britadeira tremendo, com poeira |
 | DIGGING (Pá) | `dig` |
@@ -1736,9 +1743,9 @@ roguelike.
   Campo Aberto, Colinas Verdes e Vale dos Ventos) e
   `test_procedural_play_1` (semente 11, fase 3: o robô fica subindo a
   escada vertical na coluna 32 até o tempo acabar).
-- **Ainda não:** carta Garimpeiro, tabela editável no compêndio do modo
-  dev, escolher itens e porcentagens no Modo livre, e fases da campanha
-  que **dependam** dos itens que caem.
+- **Ainda não:** fases da campanha que **dependam** dos itens que caem
+  (Garimpeiro, tabela no compêndio e itens no Modo livre ficaram prontos
+  em 6 de novembro).
 
 ## Itens do mapa no ar ou dentro do bloco (5 de novembro de 2026)
 
@@ -1768,6 +1775,252 @@ verdade, eram 28 itens em 10 fases (9, 10, 13, 17, 18, 21, 22, 25, 29, 30).
 - **Robôs depois disso (6 de novembro):** igual a antes. Vencem 1, 2, 3, 4,
   6, 8, 12 a 19, 22 e 28, com as mesmas porcentagens; perdem as mesmas 17.
   Caíram itens ao cavar em 13 fases, sem erro de script.
+
+## Carta Garimpeiro e tabela de itens ao cavar no compêndio (6 de novembro de 2026)
+
+- **Garimpeiro** (`RoguelikeRelics.PROSPECTOR`, I a III, ilustração da bateia
+  com pepitas e picareta em `tools/build_card_art.py`): cada nível soma **+2
+  pontos na terra e +4 no concreto** à chance de um bloco quebrado soltar
+  item (`RoguelikeDigDrops.PROSPECTOR_*_PER_LEVEL`; com a tabela padrão, I =
+  6%/16%, II = 8%/20%, III = 10%/24%, nunca passa de 100%). Aparece nas
+  ofertas, na loja, na barra lateral, no modo dev e no compêndio como as
+  outras.
+- **Aba "Itens ao cavar" no compêndio** (ícone de picareta, a última): chance
+  da terra e do concreto e, para cada item (moeda, carga, ampulheta, bolsa,
+  pena), ícone, barra deslizante, campo de número e a porcentagem que dá. Com
+  o **modo desenvolvedor** ligado dá para mudar tudo; salva na hora em
+  `user://roguelike_dig_drops.cfg` e vale a partir da próxima fase; o botão
+  com ícone de reiniciar volta para o padrão (4%/12%; 60/22/10/6/2). Sem o
+  modo dev é só leitura (campos apagados, sem botão), e item ainda não
+  descoberto aparece em sombra. Apagar o arquivo também volta ao padrão.
+- Testes: `test_compendium` e `test_relic_effects` (Garimpeiro II numa fase
+  de verdade).
+
+## Modo livre: itens que saem dos blocos (6 de novembro de 2026)
+
+- Na barra de cima, ao lado de Quantidades, o botão da estrela
+  (`EditorDigDropsPanel`) escolhe o que os blocos quebrados do desenho
+  soltam: a chance na terra e no concreto (padrão 4% e 12%) e a divisão
+  entre carga de ferramenta, ampulheta e bolsa (padrão da campanha,
+  58/26/16). A divisão soma sempre 100%: subir um tira dos outros, e os que
+  mudaram piscam em dourado. Há um botão "nenhum item" (o botão da barra
+  vira o bloco riscado) e um que volta ao padrão.
+- Fica salvo no desenho (`LevelDrawing.dig_drops`, e na campanha pelo
+  `CampaignLevelStore`) e vale ao Jogar. Desenhos salvos antes disso abrem
+  **sem itens**, para jogar como foram feitos; desenhos novos e gerados
+  começam com a tabela da campanha. O roguelike guarda a tabela, mas a run
+  usa a própria.
+- Na barra fixa, quem entrega o item pego é o núcleo
+  (`LevelData.drops_on_fixed_bar` cria um `ItemCollector` sem a barra que
+  cresce).
+- **Nada fica travado** (pedido do usuário em 6/11): fases que não soltam
+  nada (tutoriais, fases de ferramenta, campanha sem itens) abrem com
+  "nenhum item" ligado, e o painel antes apagava os números **e ignorava o
+  mouse**, parecendo bloqueado. Agora os números ficam apagados mas
+  clicáveis, e mexer em qualquer um liga os itens de novo sozinho.
+- Teste: `tests/test_editor_dig_drops`; com o mouse de verdade, o
+  `window_test_real_clicks` abre o painel numa fase sem itens e clica no +
+  da terra.
+
+## Jogos salvos: Fases e Roguelike (6 de novembro de 2026)
+
+Pedido do usuário: salvar e carregar nos dois modos, com um menu ao
+entrar. Decisões dele: **5 jogos por modo**, a run do roguelike fica salva
+**no meio** (entre fases), salva **sozinho e com botão Salvar**, e o salvar
+sozinho pode ser **desligado na tela de cada modo**.
+
+- **Núcleo** (`scripts/utils/save_slots.gd`, `SaveSlots`): cada modo tem
+  `user://saves/<modo>/slot_1..5/`, uma pasta `working/` com o jogo em
+  andamento e `settings.cfg` (salvar sozinho). O modo só escreve na
+  `working/`; **Salvar copia a working para o slot**, carregar copia o slot
+  para a working. Por isso, com o salvar sozinho desligado, o slot fica
+  como estava até apertar Salvar. Cada slot tem `meta.cfg` com a data e uma
+  linha de resumo, que o modo entrega em `open(..., summary_provider)`. O
+  núcleo não conhece os arquivos de nenhum modo. `FolderUtils` (apagar
+  pasta, copiar arquivos) é usado também pelos backups do Modo livre.
+- **Menu do modo** (`GameMenu`, `scripts/ui/game_menu.gd`). A primeira
+  versão, uma lista de slots num painel, foi reprovada ("ta horrível... quero
+  um menu verdadeiro de games, praticamente igual à tela inicial"). Agora é
+  o visual do menu principal (céu e morros, título grande com contorno,
+  painel de madeira, botões largos com ícone e palavra), com os estilos em
+  `UiStyle.make_menu_title / add_menu_panel / make_menu_button`, que o menu
+  principal também usa.
+  - **Ao entrar no modo**: NOVO JOGO, CARREGAR, CONFIGURAÇÕES, MENU
+    PRINCIPAL.
+  - **No meio do jogo** (Esc ou o botão Menu, com o jogo pausado atrás):
+    CONTINUAR, SALVAR, CARREGAR, (Fases: ESCOLHER FASE), CONFIGURAÇÕES,
+    MENU PRINCIPAL. Fase sem jogo salvo (ferramentas, tutorial): só
+    CONTINUAR, CONFIGURAÇÕES e MENU PRINCIPAL.
+  - NOVO JOGO e CARREGAR mostram os 5 jogos no mesmo painel, um botão largo
+    cada (número, resumo e data). Novo jogo num slot ocupado pede para
+    substituir. Carregar tem apagar (com confirmação) e, no meio do jogo,
+    pergunta antes. **bug24** (`prints/bug24.png`): a borracha numa coluna
+    própria deixava os slots vazios e o Voltar desalinhados dos ocupados;
+    agora ela fica **dentro** do botão do jogo, na ponta direita, e todos os
+    botões têm a mesma largura. O Voltar usa a seta para a esquerda (ícone
+    `back`, espelho do `next`, em `tools/build_campaign_art.py`). SALVAR dá um pulinho com som (sem texto). Com o salvar
+    sozinho desligado, sair para o menu principal pergunta "Sair sem
+    salvar?".
+  - **"Salvar sozinho" fica em CONFIGURAÇÕES** do menu do modo
+    (`SettingsMenu.save_mode`).
+  - `GameMenu.make_save_button()` é o botão Salvar (baú) que a loja do
+    roguelike mostra.
+- **Fases** (`CampaignMenu`): o botão "Fases" do menu principal e o botão
+  Menu/Esc da seleção de fases abrem o menu; o jogo escolhido vira o
+  progresso (`Campaign.use_save_slot` aponta `Campaign.save_path` para a
+  working) e abre a seleção de fases. Cada vitória salva sozinho
+  (`Campaign.record_win`). Resumo: "Fase N de 33". O progresso antigo
+  (`user://campaign.cfg`) vira o jogo 1 na primeira vez
+  (`adopt_legacy_save`). Na fase, Menu/Esc (`GameControlsController.open_menu`)
+  abre o menu; carregar recomeça a fase.
+- **Roguelike** (`RoguelikeRunController`): abre na tela dos jogos. Cada
+  jogo tem o perfil (cofre, personagens, compêndio, ranking) e, durante uma
+  run, `run.cfg` com a run (`RoguelikeRunState.to_dictionary`, incluindo a
+  barra de ferramentas via `ToolInventory.to_dictionary`). A run é gravada
+  e salva sozinha **ao começar cada fase e ao entrar na loja**; carregar
+  volta para esse ponto (uma fase em andamento recomeça; as fases são
+  refeitas pela semente). Fim da run apaga o `run.cfg`. Resumo: "Mago:
+  fase 3 de 30" ou "Sem run em andamento, cofre N moedas". O perfil antigo
+  (`user://roguelike_profile.cfg`) vira o jogo 1. O modo abre no menu; na
+  fase, Menu/Esc do HUD abre o menu (`open_game_menu`); o botão Menu da
+  tela de personagens volta ao menu do modo. Botão Salvar também na loja.
+  Testes que abrem o modo direto usam `use_save_slots = false`.
+- Voltar ao menu principal fecha o jogo aberto (`SaveSlots.close()`), para o
+  botão Salvar sumir das fases de ferramenta. **Com o salvar sozinho
+  desligado, sair sem apertar Salvar perde o que não foi salvo, sem
+  perguntar.**
+- Testes: `tests/test_save_slots` (jogo novo, vitória salva sozinha,
+  desligado só salva no botão, slots separados, apagar, save antigo, os
+  botões do menu fora e dentro do jogo, pausa, Salvar sozinho nas
+  configurações)
+  e `modes/roguelike/tests/test_saved_run` (fecha no meio e volta na loja e
+  na fase, com moedas, relíquias e barra; fim da run). O
+  `window_test_real_clicks` agora clica, com o mouse de verdade, em Novo
+  jogo e no slot 1 do Roguelike (numa pasta de saves de teste) e, na fase,
+  no Menu e em Continuar. Prints: `prints/menus/`.
+
+## Modo livre: backups no máximo 5 e lista com rolagem (6 de novembro de 2026)
+
+- Ao abrir uma fase com backups, a lista "Atual" + versões antigas crescia
+  a cada save e passava da tela. Agora cada fase guarda **só os 5 backups
+  mais novos** (`LevelCollection.MAX_BACKUPS`); os mais velhos são
+  **apagados do disco** ao salvar e ao listar (`keep_newest_backups`), o que
+  também limpa os que já existiam. Vale para os desenhos do Modo livre e
+  para as fases da campanha no modo dev (só os backups; as fases não mudam).
+- A grade de fases e a lista de versões do `EditorLevelPicker` ficam numa
+  rolagem de no máximo 55% da altura da tela.
+- Bug achado pelo teste: dois saves no mesmo segundo podiam reaproveitar o
+  nome da pasta mais velha, recém-apagada, e a versão mais nova era tratada
+  como a mais velha (e apagada em seguida). As pastas agora levam um número
+  maior que todos os do mesmo segundo (`_new_backup_name`).
+- Teste: `tests/test_editor_backups` (8 saves deixam 5 backups no disco, o
+  mais novo é o certo, a lista rola e cabe na tela).
+
+## Animações de montar: escada vertical, escada diagonal e ponte (6 de novembro de 2026)
+
+- Em todos os personagens. Na escada vertical (`ladder_place`, de costas), o
+  boneco puxa o segmento da mochila, levanta acima da cabeça e encaixa na
+  célula de cima, com poeira na emenda, e depois sobe. Na escada diagonal
+  (`build`) e na ponte (`bridge`), ele se abaixa, assenta a tábua à frente e
+  a prega com um martelinho (na ponte, ajoelhado), e depois anda até a
+  ponta. A peça desenhada fica onde a de verdade aparece (o primeiro degrau
+  da escada diagonal pode pular até ~18 px).
+- A animação acompanha o ritmo da ferramenta: cada uma chama
+  `SkillAnimation.hold` com a fase em que está (trabalhando ou se movendo).
+- Quadros: `tools/build_construction_frames.py` (mago) e
+  `tools/build_character_variants.py` (os outros). Conferir com
+  `tools/capture_construction.tscn`; folhas em `prints/animacoes/`.
+- Para olhar: na escada vertical, os braços do Inventor e do Mineiro ficam
+  compridos esticados acima da cabeça; na ponte, o Mineiro ajoelhado quase
+  senta nas botas.
+
+## Corda e Escada que cava (6 de novembro de 2026)
+
+Pendência do usuário "subir/descer andares com o grupo" (ideia 12). Ele
+escolheu duas ferramentas, a Corda (só para descer) e a Escada que cava
+(para subir na rocha). Ainda não entram no gerador, no verificador, na
+campanha nem no roguelike: primeiro o usuário joga as fases delas.
+
+- **Corda** (`SkillRope`, id `rope`): o boneco guarda a corda e, na próxima
+  beirada com queda **maior do que ele aguenta** (`max_safe_fall_height`),
+  para na ponta, amarra (0,6 s), solta a corda até o chão (240 px/s, até 16
+  blocos) e desce por ela. **Todo boneco que cai daquela beirada se agarra
+  na corda** (`LemmingController._try_grab_rope`, estado `ROPE_SLIDING`) e
+  desce a 60 px/s (`Constants.ROPE_SLIDE_SPEED`) sem contar como queda.
+  Queda segura não gasta a corda (ele continua com ela). Se a queda for
+  maior que a corda, quem chega na ponta solta e cai o resto. A corda é um
+  nó `Rope` dentro do terreno (`TerrainDestructible.place_rope`), com
+  corda trançada e nó na ponta; só serve para descer. A corda é desenhada
+  **presa ao bloco** (pedido do usuário em 6/11: antes parecia flutuando
+  ao lado da beirada): uma trave de madeira deitada na beirada, presa por
+  uma estaca, com a ponta saindo para fora até a linha da corda, que desce
+  **reta** dela, um pouco afastada da parede para o corpo não entrar na
+  pedra (`Rope.anchor_offset`, posto pela `SkillRope`). Uma versão com a
+  corda passando pela quina e descendo inclinada foi reprovada ("corda
+  dobrada ficou estranha").
+- **bug22 / bug23** (`prints/bug22.png`, `prints/bug23.png`): o boneco
+  pegava a corda ao descer 1 px da beirada e era puxado para a linha dela,
+  ficando parado no ar ao lado da beirada (bug22) com as mãos acima de onde
+  a corda começa, "segurando o vento" (bug23). Agora ele cai até o topo do
+  corpo estar 8 px abaixo da trave (`Rope.GRIP_BELOW_TOP`) e só então pega:
+  as mãos ficam na corda.
+- **Escada que cava** (`SkillDigStairs`, id `dig_stairs`): o boneco guarda a
+  ferramenta e, na próxima parede de **terra**, cava uma escadaria subindo,
+  uma coluna por vez: cada coluna fica **meio bloco** mais alta que a
+  anterior (um bloco inteiro seria alto demais para subir andando) e é
+  aberta com 1,5 bloco de altura acima do degrau, para quem sobe não bater a
+  cabeça. **Cava em fatias, como a Picareta e a Britadeira** (pedido do
+  usuário em 6/11: apagar o bloco inteiro de uma vez ficou feio): cada
+  coluna sai em 4 fatias (os estágios de escavação do bloco), uma a cada
+  0,2 s, e o boneco anda uma fatia para dentro e para cima depois de cada
+  uma. Os blocos acima do degrau perdem fatias pelo lado; o bloco em que o
+  degrau cai no meio perde fatias **por cima** só até o degrau, e a metade de
+  baixo fica sendo o degrau (se ele sumir de outro jeito, volta um degrau de
+  terra, o mesmo das rampas). Quem vem atrás chega na frente da escada antes
+  de a coluna terminar e volta, como no túnel da Picareta. Para ao sair no
+  aberto, no concreto, na borda da fase ou em 24 colunas. Os blocos cavados
+  soltam itens como os da Pá. Animação: a da Picareta (estado
+  `STAIR_DIGGING`).
+- **Fases**: 15 "Corda" (entrada numa beirada 8 blocos acima da saída) e 16
+  "Escada que cava" (morro de terra de 5 blocos com a saída em cima), no
+  menu de ferramentas, 1 carga cada, meta 80%. O robô vence as duas com
+  100%. Ícones novos em `tools/build_ui_art.py` (`rope`, `dig_stairs`).
+- **Testes**: `test_tool_rope` (queda mortal, corpo entre colunas, queda
+  segura não usa) e `test_tool_dig_stairs` (morro de terra com o corpo
+  numa coluna e entre duas, morro de concreto não usado), mais
+  `test_level_rope` e `test_level_dig_stairs`.
+- **Prints**: `prints/ferramentas_novas/` (`rope_*.png`, `dig_stairs_*.png`),
+  feitos com `godot --path . --windowed --resolution 1280x720 res://tools/capture_tool_level.tscn -- <dados da fase> <ferramenta> <pasta> <segundos...>`.
+- **Animação de descer a corda** (`rope_slide`, 4 quadros, nos 5
+  personagens): de costas, os braços sobem pelos lados da cabeça e as mãos
+  seguram a corda acima dela, uma sobre a outra, trocando de lugar a cada
+  quadro; as pernas cruzam em volta da corda. Só os braços são desenhados:
+  a corda é o nó `Rope`, atrás do boneco. Gerada por
+  `tools/build_rope_frames.py` (mago) e `build_character_variants.py` (os
+  outros); o quadro tem 70 px a mais em cima e embaixo para as mãos caberem.
+  Folha: `prints/animacoes/rope_slide_sheet.png`.
+- **Ainda sem animação própria:** amarrar a corda usa a vista de costas da
+  escada.
+- O `test_tool_dig_stairs` tem uma parede no fim do topo do morro: com a
+  escada em fatias o grupo demora mais a subir, e o primeiro a chegar caía
+  do outro lado (queda mortal) antes de os outros chegarem.
+
+## Britadeira e Picareta a partir de um degrau (bug21, 6 de novembro de 2026)
+
+`prints/bug21.png` (fase 10): a Britadeira dada num boneco em cima de uma
+escada diagonal quebrava um bloco, o boneco caía no buraco e a ferramenta
+acabava; os outros batiam a cabeça no teto do buraco e voltavam, todos
+presos. Em cima do degrau o corpo fica fora da grade (pés no meio de um
+bloco), e o túnel abria só a linha do meio do corpo.
+
+- Fora da grade, o túnel abre **todas as linhas que o corpo ocupa** naquele
+  bloco (`SkillSideDigger._body_rows_y`, decidido no começo de cada bloco e
+  mantido até ele acabar). Na grade continua com um bloco de altura.
+- Com o chão do túnel um pouco abaixo dos pés (até um bloco), o boneco
+  **desce até ele e continua cavando** (`_settle_onto_tunnel_floor`), em vez
+  de parar.
+- Teste: `test_basher_from_stairs` (degrau no topo a 16, 24, 32, 40 e 48 px,
+  a Britadeira e 3 seguidores atravessam; falhava em 3 dos 5 antes).
 
 ## Defeitos do jogo corrigidos nesta passada (4 de novembro de 2026)
 
@@ -1863,11 +2116,10 @@ Em ordem de prioridade.
    7, 9, 10, 11, 20, 21, 23 a 27, 29 a 33), várias com o grupo parado até
    o tempo acabar. Ver "Entrada no alto, bonecos e metas" em "Campanha: 3
    tutoriais + os mapas da pasta".
-3a. **Pendência do usuário: subir/descer andares com o grupo** (cavernas
-   com entrada e saída na mesma altura). Nenhuma ferramenta abre caminho
-   para cima na rocha, e o poço da Pá mata quem vem atrás. Escada que cava,
-   corda e corrente de bonecos ficam para depois, cada uma com fases
-   próprias de teste. Ver ideia 12 em [ideias_futuras.md](ideias_futuras.md).
+3a. **Subir/descer andares com o grupo:** a Corda e a Escada que cava
+   existem (ver "Corda e Escada que cava"), mas ainda não entram no
+   gerador, no verificador, na campanha nem no roguelike: o usuário joga as
+   fases 15 e 16 antes. A corrente de bonecos ficou de fora (ideia 12).
 3b. **Itens no ar nas fases geradas do roguelike.** O gerador às vezes põe
    um ponto de item sem chão embaixo (os mapas 11 e 22 da campanha vieram
    assim e foram corrigidos na montagem, ver "Itens do mapa no ar ou
@@ -1911,9 +2163,8 @@ Decisões que esperam o usuário jogar:
 pasta"): o usuário avalia o lote 1 (fases 4 a 6); depois, lote a lote,
 conferir com o robô e com print os mapas 04 a 30.
 
-**Pedido do usuário (4 de novembro de 2026):** no Modo livre, escolher
-**quais itens a fase pode soltar e a porcentagem de cada um**, e carregar
-isso junto ao abrir a fase. Depende de "Itens ao cavar" (abaixo).
+**Feito (6 de novembro):** no Modo livre, escolher quais itens a fase solta
+e a porcentagem de cada um (ver "Modo livre: itens que saem dos blocos").
 
 Aprovado; a queda de itens já está feita (ver "Itens ao
 cavar"). Falta o que está marcado abaixo:
@@ -1925,8 +2176,8 @@ cavar"). Falta o que está marcado abaixo:
   - o que sai: moeda 60%, carga de ferramenta da barra 22%, ampulheta 10%,
     bolsa 6%, pena da fênix 2%. A Ganância aumenta as moedas, e uma carta
     nova (Garimpeiro) aumenta a chance;
-  - **falta:** a tabela de raridade aparece no compêndio do modo dev e é
-    editável ali; carta Garimpeiro;
+  - feitos em 6 de novembro: a tabela no compêndio do modo dev (editável) e
+    a carta Garimpeiro;
   - item solto só onde dá para ir e voltar para a rota: o item cai no
     buraco do próprio bloco, onde está quem cavou.
 
@@ -1956,11 +2207,12 @@ XP com patentes (seriam precisas muitas para 30 fases; "ficar mais forte"
 ainda precisa de análise).
 
 Falta fazer:
-- **Tutorial** que ensine as ferramentas sem texto explicando a fase.
+- **Tutorial** que ensine as ferramentas sem texto explicando a fase (o
+  usuário: só quando todo o resto estiver pronto).
 - **Loja e telas entre fases** com cara de jogo: a loja ainda é uma lista
   simples (as cartas já têm arte).
-- **Animações**: montar a Escada vertical (tirar da mochila), a Escada
-  diagonal e a Ponte (hoje usam andar ou a vista de costas).
+- **Animações**: amarrar a Corda (hoje usa a vista de costas da escada).
+  Descer a corda e montar as escadas e a ponte ficaram prontas.
 - **Terreno que nada quebra** como material de fase (só existe na borda).
 - Mais ideias em [ideias_futuras.md](ideias_futuras.md): Escada vertical
   começando no clique (1), modo fácil/difícil com reuso da ferramenta (2),

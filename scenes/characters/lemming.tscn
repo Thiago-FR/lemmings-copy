@@ -34,6 +34,22 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_1.png" id="31_jackhammer1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_2.png" id="32_jackhammer2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/jackhammer_3.png" id="33_jackhammer3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/ladder_fit_0.png" id="34_ladderfit0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/ladder_fit_1.png" id="35_ladderfit1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/ladder_fit_2.png" id="36_ladderfit2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/ladder_fit_3.png" id="37_ladderfit3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/stair_lay_0.png" id="38_stairlay0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/stair_lay_1.png" id="39_stairlay1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/stair_lay_2.png" id="40_stairlay2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/stair_lay_3.png" id="41_stairlay3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/bridge_lay_0.png" id="42_bridgelay0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/bridge_lay_1.png" id="43_bridgelay1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/bridge_lay_2.png" id="44_bridgelay2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/bridge_lay_3.png" id="45_bridgelay3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/rope_slide_0.png" id="46_ropeslide0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/rope_slide_1.png" id="47_ropeslide1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/rope_slide_2.png" id="48_ropeslide2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/wizard/rope_slide_3.png" id="49_ropeslide3"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_lemming"]
 resource_name = "wizard_placeholder"
@@ -182,6 +198,146 @@ animations = [{
 "loop": true,
 "name": &"walk",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.05,
+"texture": ExtResource("34_ladderfit0")
+}, {
+"duration": 1.05,
+"texture": ExtResource("35_ladderfit1")
+}, {
+"duration": 1.05,
+"texture": ExtResource("36_ladderfit2")
+}, {
+"duration": 1.05,
+"texture": ExtResource("37_ladderfit3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("6_climb0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("7_climb1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("8_climb2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("9_climb3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("6_climb0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("7_climb1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("8_climb2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("9_climb3")
+}],
+"loop": true,
+"name": &"ladder_place",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 0.9,
+"texture": ExtResource("38_stairlay0")
+}, {
+"duration": 0.9,
+"texture": ExtResource("39_stairlay1")
+}, {
+"duration": 0.9,
+"texture": ExtResource("40_stairlay2")
+}, {
+"duration": 0.9,
+"texture": ExtResource("41_stairlay3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("2_walk0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("3_walk1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("4_walk2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("5_walk3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("2_walk0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("3_walk1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("4_walk2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("5_walk3")
+}],
+"loop": true,
+"name": &"build",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 0.9,
+"texture": ExtResource("42_bridgelay0")
+}, {
+"duration": 0.9,
+"texture": ExtResource("43_bridgelay1")
+}, {
+"duration": 0.9,
+"texture": ExtResource("44_bridgelay2")
+}, {
+"duration": 0.9,
+"texture": ExtResource("45_bridgelay3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("2_walk0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("3_walk1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("4_walk2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("5_walk3")
+}, {
+"duration": 1.5,
+"texture": ExtResource("2_walk0")
+}, {
+"duration": 1.5,
+"texture": ExtResource("3_walk1")
+}, {
+"duration": 1.5,
+"texture": ExtResource("4_walk2")
+}, {
+"duration": 1.5,
+"texture": ExtResource("5_walk3")
+}],
+"loop": true,
+"name": &"bridge",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("46_ropeslide0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("47_ropeslide1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("48_ropeslide2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("49_ropeslide3")
+}],
+"loop": true,
+"name": &"rope_slide",
+"speed": 6.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lemming"]

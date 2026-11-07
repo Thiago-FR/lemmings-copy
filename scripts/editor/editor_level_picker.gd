@@ -10,6 +10,9 @@ extends CanvasLayer
 ##    by the date it was replaced.
 ## Emits picked(collection, index, backup_folder) (folder "" for the
 ## current version) or just closes on Back / Esc.
+##
+## The slots and the versions scroll when there are more than fit on the
+## screen (the panel used to run off it).
 
 signal picked(collection: LevelCollection, index: int, backup_folder: String)
 
@@ -22,6 +25,8 @@ const SLOT_COLUMNS := 10
 const SLOT_FONT_SIZE := 18
 const ICON_SCALE := 2.0
 const COLLECTION_BUTTON_SIZE := Vector2(220, 52)
+## Most of the screen's height a scrolling list takes.
+const LIST_MAX_SCREEN_SHARE := 0.55
 
 var _purpose: Purpose
 ## The collection and slot the drawing came from, highlighted.
@@ -103,11 +108,11 @@ func _show_slots(collection: LevelCollection) -> void:
 	grid.columns = mini(SLOT_COLUMNS, maxi(1, collection.get_slot_count()))
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 6)
-	_column.add_child(grid)
 	for index in collection.get_slot_count():
 		if _purpose == Purpose.OPEN and not collection.has_level(index):
 			continue
 		grid.add_child(_make_slot_button(collection, index))
+	_add_scrolling(grid)
 	_add_back_button(func() -> void:
 		var collections := LevelCollection.all()
 		if collections.size() == 1:
@@ -149,14 +154,33 @@ func _show_versions(collection: LevelCollection, index: int, backups: Array[Dict
 	current.name = "Current"
 	current.icon = UiStyle.icon("star")
 	current.pressed.connect(_pick.bind(collection, index, ""))
-	_column.add_child(current)
+	var versions := VBoxContainer.new()
+	versions.name = "Versions"
+	versions.add_theme_constant_override("separation", 14)
+	versions.add_child(current)
 	for backup in backups:
 		var button := UiStyle.make_text_button(backup.label)
 		button.icon = UiStyle.icon("hud_clock")
 		button.tooltip_text = "Versão substituída nesse dia"
 		button.pressed.connect(_pick.bind(collection, index, String(backup.folder)))
-		_column.add_child(button)
+		versions.add_child(button)
+	_add_scrolling(versions)
 	_add_back_button(_show_slots.bind(collection))
+
+
+## Adds a list inside a vertical scroll no taller than LIST_MAX_SCREEN_SHARE
+## of the screen, as tall as the list when it fits.
+func _add_scrolling(content: Control) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(content)
+	_column.add_child(scroll)
+	var wanted := content.get_combined_minimum_size()
+	var limit := get_viewport().get_visible_rect().size.y * LIST_MAX_SCREEN_SHARE
+	var scrollbar_width := scroll.get_v_scroll_bar().get_combined_minimum_size().x
+	scroll.custom_minimum_size = Vector2(wanted.x + (scrollbar_width if wanted.y > limit else 0.0), minf(wanted.y, limit))
 
 
 func _add_back_button(action: Callable) -> void:

@@ -29,7 +29,7 @@ func write(index: int, drawing: Dictionary) -> String:
 
 
 func list_backups(index: int) -> Array[Dictionary]:
-	return CampaignLevelStore.list_backups(index)
+	return LevelCollection.keep_newest_backups(CampaignLevelStore.list_backups(index))
 
 
 func read_backup(folder: String) -> Dictionary:

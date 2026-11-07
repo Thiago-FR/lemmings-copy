@@ -42,6 +42,9 @@ extends SkillBase
 ## Walking pace, so building reads as walking up the stairs it lays.
 @export var step_up_speed: float = 50.0
 
+## Animation of the BUILDING state (LemmingController.STATE_ANIMATIONS):
+## kneel and hammer a step, then walk up onto it (see SkillAnimation).
+const ANIMATION := &"build"
 ## A hair of space kept between the body and the next brick's spot, so the
 ## body never overlaps the brick it is about to lay.
 const BRICK_CLEARANCE := 0.5
@@ -139,6 +142,7 @@ func _measure(lemming: LemmingController) -> void:
 
 func physics_process(lemming: LemmingController, delta: float) -> bool:
 	lemming.velocity = Vector2.ZERO
+	SkillAnimation.hold(lemming.animated_sprite, ANIMATION, _move_remaining == Vector2.ZERO)
 
 	if _move_remaining != Vector2.ZERO:
 		_step_up(lemming, delta)

@@ -20,6 +20,8 @@ signal save_level_requested
 signal generate_requested
 ## Clear the drawing and start a new one.
 signal new_requested
+## Choose what broken blocks can give (EditorDigDropsPanel).
+signal dig_drops_requested
 
 const FONT_SIZE := 12
 const COUNTER_COLUMNS := 6
@@ -44,6 +46,7 @@ var _play_button: Button
 var _pause_button: Button
 var _restart_button: Button
 var _counters_toggle: Button
+var _dig_drops_button: Button
 var _counters_panel: PanelContainer
 var _counters_grid: GridContainer
 var _run_counts: PanelContainer
@@ -87,6 +90,12 @@ func set_counts(lemming_count: int, skill_counts: Dictionary) -> void:
 		skill_counters[skill_id].set_value(int(skill_counts.get(skill_id, 0)))
 
 
+## The drops button shows whether broken blocks give anything: the
+## sparkle when they do, the crossed-out block when they do not.
+func show_dig_drops(enabled: bool) -> void:
+	_dig_drops_button.icon = UiStyle.icon("dig_drops" if enabled else "drops_none")
+
+
 ## The test run's counts (shown while it runs or is paused).
 func show_run_counts(out_count: int, saved_count: int, lost_count: int, total_count: int) -> void:
 	_run_labels.out.text = str(out_count)
@@ -122,6 +131,7 @@ func update_for_state(is_editing: bool, is_paused: bool) -> void:
 	_pause_button.disabled = is_editing or is_paused
 	_restart_button.disabled = is_editing
 	_counters_toggle.disabled = not is_editing
+	_dig_drops_button.disabled = not is_editing
 	for button in _level_buttons:
 		button.disabled = not is_editing
 	_run_counts.visible = not is_editing
@@ -158,6 +168,9 @@ func _build_top_bar(theme: Theme) -> void:
 	_counters_toggle.toggle_mode = true
 	_counters_toggle.button_pressed = true
 	_counters_toggle.toggled.connect(func(_on: bool) -> void: _refresh_counters_visibility())
+	_dig_drops_button = _make_icon_button(row, "dig_drops", "Itens que saem dos blocos")
+	_dig_drops_button.name = "DigDropsButton"
+	_dig_drops_button.pressed.connect(dig_drops_requested.emit)
 	row.add_child(VSeparator.new())
 	var new_button := _make_icon_button(row, "level_new", "Novo (limpa o desenho)")
 	new_button.name = "NewLevelButton"

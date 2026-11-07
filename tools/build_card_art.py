@@ -944,6 +944,59 @@ def relic_hourglass():
     return image
 
 
+def nugget(image, cx, cy, size, seed):
+    """A lumpy gold nugget: a few overlapping blobs, lit on the upper left."""
+    rng = random.Random(seed)
+    blobs = [(cx, cy, size)]
+    for _ in range(3):
+        blobs.append((cx + rng.uniform(-size * 0.6, size * 0.6), cy + rng.uniform(-size * 0.4, size * 0.4), size * rng.uniform(0.55, 0.8)))
+    for bx, by, radius in blobs:
+        disc(image, bx, by, radius, ORANGE)
+    for bx, by, radius in blobs:
+        disc(image, bx - 0.6, by - 0.6, radius - 0.9, YELLOW)
+    disc(image, cx - size * 0.4, cy - size * 0.4, max(size * 0.3, 0.8), YELLOW_LIGHT)
+
+
+def relic_prospector():
+    """A miner's gold pan full of nuggets, a pickaxe leaning behind it: broken
+    blocks give items more often."""
+    image = new()
+    pick = new()
+    pickaxe(pick, Pen(pick, 1.5, 12, 0))
+    outline(pick)
+    image.alpha_composite(pick)
+    pan = new()
+    cx, cy = 31.5, 46.5
+    # Rim, then the shallow bowl inside it, darker towards the far edge.
+    for y in range(30, 64):
+        for x in range(0, 64):
+            dx = (x + 0.5 - cx) / 29.5
+            dy = (y + 0.5 - cy) / 13.5
+            dist = dx * dx + dy * dy
+            if dist <= 1.0:
+                put(pan, x, y, METAL_DARK)
+            if dist <= 0.78:
+                put(pan, x, y, METAL)
+            if dist <= 0.5:
+                put(pan, x, y, METAL_DARK if y < cy - 3 else rgb("#6e6a74"))
+    # Light along the near rim.
+    for x in range(6, 58):
+        dx = (x + 0.5 - cx) / 29.5
+        if abs(dx) < 1:
+            y = round(cy + 13.5 * math.sqrt(max(0.0, 0.78 - dx * dx)) * 0.97)
+            put(pan, x, y, METAL_LIGHT)
+    outline(pan)
+    image.alpha_composite(pan)
+    gold = new()
+    for nx, ny, size, seed in ((22, 46, 4.5, 1), (33, 43, 5.5, 2), (43, 47, 4, 3), (29, 50, 3.5, 4), (38, 51, 3, 5)):
+        nugget(gold, nx, ny, size, seed)
+    outline(gold)
+    image.alpha_composite(gold)
+    for x, y, size in ((12, 30, 2), (52, 34, 3), (34, 30, 2)):
+        sparkle(image, x, y, size)
+    return image
+
+
 RELICS = {
     "sharp_blades": relic_sharp_blades,
     "long_bridge": relic_long_bridge,
@@ -955,6 +1008,7 @@ RELICS = {
     "greed": relic_greed,
     "quick_step": relic_quick_step,
     "hourglass": relic_hourglass,
+    "prospector": relic_prospector,
 }
 
 

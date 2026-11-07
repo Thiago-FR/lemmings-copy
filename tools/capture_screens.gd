@@ -3,7 +3,8 @@ extends Node
 ## check layout and scale by eye. Needs a real renderer, so it cannot run
 ## headless; a window opens briefly. Run via:
 ##   godot --path . --windowed --resolution 1920x1080 res://tools/capture_screens.tscn -- <output dir>
-## Writes level.png, editor.png and cards.png (the roguelike's reward
+## Writes level.png, editor.png, editor_drops.png (the panel of what
+## broken blocks give) and cards.png (the roguelike's reward
 ## screen) into the output directory.
 
 const LEVEL_DATA_PATH := "res://resources/levels/level_07_data.tres"
@@ -38,6 +39,13 @@ func _run() -> void:
 		editor.paint_line(Vector2(400, floor_y - 32), Vector2(400, floor_y - 160))
 		await _frames(5)
 	_save(output_dir.path_join("editor.png"))
+	if editor != null:
+		editor.toolbar.dig_drops_requested.emit()
+		await _frames(5)
+		_save(output_dir.path_join("editor_drops.png"))
+		var panel := editor.get_node_or_null("DigDropsPanel")
+		if panel != null:
+			panel.queue_free()
 
 	# The roguelike is a mode: reached only if its folder is there, and by
 	# name rather than by class, so this core tool never depends on it.

@@ -37,6 +37,8 @@ func _initialize() -> void:
 	_build_level_12()
 	_build_level_13()
 	_build_level_14()
+	_build_level_15()
+	_build_level_16()
 
 	quit()
 
@@ -339,3 +341,40 @@ func _build_level_13() -> void:
 	_add_ui(root)
 
 	_save_level(root, "res://scenes/levels/level_13.tscn")
+
+
+## Rope: the entrance is on a high ledge, eight tiles (256px) above the
+## floor the exit stands on, far beyond the safe fall height. A lemming
+## carrying the rope ties it at the ledge's end and lets it down; everyone
+## who walks off the ledge after it slides down the rope.
+func _build_level_15() -> void:
+	var root := _new_level_root("Level15")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 9, 3, 4)      # high ledge, entrance side
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor, exit side
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 40))
+	_add_exit(root, Vector2(640, 328))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_15.tscn")
+
+
+## Digging stairs: a hill of earth five tiles tall fills the right of the
+## stage, with the exit on top. Too tall to step onto and with no way round;
+## a staircase dug up through it takes everyone to the top.
+func _build_level_16() -> void:
+	var root := _new_level_root("Level16")
+	var terrain := _new_terrain()
+	_paint_rect(terrain, 0, 24, 11, 12)   # floor
+	_paint_rect(terrain, 8, 24, 6, 10)    # hill of earth, exit on top
+	_paint_boundary_walls(terrain)
+	_add_child_owned(root, terrain)
+
+	_add_spawn(root, Vector2(80, 296))
+	_add_exit(root, Vector2(690, 168))
+	_add_ui(root)
+
+	_save_level(root, "res://scenes/levels/level_16.tscn")

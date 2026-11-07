@@ -18,6 +18,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var run: RoguelikeRunController = RUN_SCENE.instantiate()
 	run.profile_path = PROFILE_PATH
+	run.use_save_slots = false
 	add_child(run)
 	await get_tree().process_frame
 	run._on_character_chosen(RoguelikeCharacters.WIZARD)

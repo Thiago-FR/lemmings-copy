@@ -109,9 +109,12 @@ func _add_dig_dropper() -> void:
 
 
 ## A level whose tools come from items gets its items, its tool bar and
-## the bookkeeping between them (ItemCollector).
+## the bookkeeping between them (ItemCollector). So does a fixed-bar level
+## whose finds the core hands out (LevelData.drops_on_fixed_bar), without
+## the bar that grows.
 func _add_item_collector() -> void:
-	if not level_data.tools_from_items:
+	var takes_drops := level_data.dig_drops != null and level_data.drops_on_fixed_bar
+	if not level_data.tools_from_items and not takes_drops:
 		return
 	var collector := ItemCollector.new(self)
 	collector.name = "ItemCollector"

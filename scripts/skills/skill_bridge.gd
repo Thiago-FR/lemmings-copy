@@ -41,6 +41,9 @@ extends SkillBase
 ## in pixels per second. Walking pace, so bridging reads as walking.
 @export var walk_speed: float = 50.0
 
+## Animation of the BRIDGING state (LemmingController.STATE_ANIMATIONS):
+## kneel and hammer a plank, then walk along it (see SkillAnimation).
+const ANIMATION := &"bridge"
 ## A hair of space kept between the body and the next piece's spot, so the
 ## body never touches whatever ends the bridge there.
 const PIECE_CLEARANCE := 0.5
@@ -118,6 +121,7 @@ func start_while_walking(lemming: LemmingController) -> void:
 
 func physics_process(lemming: LemmingController, delta: float) -> bool:
 	lemming.velocity = Vector2.ZERO
+	SkillAnimation.hold(lemming.animated_sprite, ANIMATION, _move_remaining == Vector2.ZERO)
 
 	if _move_remaining != Vector2.ZERO:
 		_walk(lemming, delta)

@@ -8,7 +8,6 @@ extends Control
 ## turns the background into that level's setting: little text, as the user
 ## asked.
 
-const MAIN_MENU_SCENE_PATH := "res://scenes/main/main_menu.tscn"
 const TITLE := "Fases"
 const TITLE_FONT_SIZE := 44
 const TITLE_OUTLINE_SIZE := 8
@@ -185,8 +184,10 @@ func _confirm_reset() -> void:
 	add_child(modal)
 
 
+## Back to the campaign's menu (new game, load, settings, main menu).
 func _go_back() -> void:
-	get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
+	if get_node_or_null("CampaignMenu") == null:
+		CampaignMenu.open(get_tree(), false)
 
 
 func _environment_of(index: int) -> LevelEnvironment:

@@ -37,6 +37,8 @@ const CLIMB_SPEED: float = 18.0
 # Ladders are a deliberate route, not a struggle up a bare wall, so they are
 # climbed faster than Climber climbs rock.
 const LADDER_CLIMB_SPEED: float = 30.0
+## How fast a lemming slides down a rope (SkillRope), in pixels per second.
+const ROPE_SLIDE_SPEED: float = 60.0
 # How close to a ladder's centre a lemming has to be before it grabs it.
 # A walker moves under a pixel per frame, so it always passes within this;
 # grabbing anywhere in the ladder's cell would snap the body sideways by up

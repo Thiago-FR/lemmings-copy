@@ -22,6 +22,7 @@ func _ready() -> void:
 	var dig_speed_before := (SkillManager.create_skill("digger") as SkillDigger).dig_speed
 	var run: RoguelikeRunController = RUN_SCENE.instantiate()
 	run.profile_path = PROFILE_PATH
+	run.use_save_slots = false
 	add_child(run)
 	await get_tree().process_frame
 
